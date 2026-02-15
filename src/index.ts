@@ -12,29 +12,48 @@ import { createServer } from './api/server';
 
 async function main() {
   console.log('========================================');
-  console.log('  EchoWorld - AI智能体商业世界 v0.1.0');
+  console.log('  EchoWorld - AI智能体商业世界 v0.2.0');
   console.log('  1号世界: 商业规则世界');
+  console.log('  LLM引擎: 智谱GLM-4-Flash');
   console.log('========================================\n');
 
   // 1. 创建世界
   const world = new World(WORLD_1_CONFIG);
 
-  // 2. 创建初始AI智能体
-  const personalityKeys = Object.keys(AGENT_PERSONALITIES) as Array<keyof typeof AGENT_PERSONALITIES>;
-  const initialAgentCount = 5;
+  // 2. 配置智谱GLM作为AI引擎
+  const zhipuApiKey = process.env.ZHIPU_API_KEY || '';
+  const zhipuModel = process.env.ZHIPU_MODEL || 'glm-4-flash';
+  const useLLM = zhipuApiKey.length > 0;
 
-  console.log(`[初始化] 创建 ${initialAgentCount} 个AI智能体...\n`);
+  if (useLLM) {
+    world.configureLLM({
+      provider: 'zhipu',
+      apiKey: zhipuApiKey,
+      model: zhipuModel,
+      maxTokens: 800,
+      temperature: 0.7,
+    });
+    console.log(`[LLM] 智谱GLM已配置: ${zhipuModel}`);
+  } else {
+    console.log('[LLM] 未配置API密钥，使用内置规则引擎');
+  }
+
+  // 3. 创建10个AI智能体，全部接入GLM
+  const personalityKeys = Object.keys(AGENT_PERSONALITIES) as Array<keyof typeof AGENT_PERSONALITIES>;
+  const initialAgentCount = 10;
+
+  console.log(`\n[初始化] 创建 ${initialAgentCount} 个AI智能体 (GLM驱动)...\n`);
 
   for (let i = 0; i < initialAgentCount; i++) {
     const name = AGENT_NAMES[i];
     const personalityKey = personalityKeys[i % personalityKeys.length];
     const personality = AGENT_PERSONALITIES[personalityKey];
 
-    world.createAgent(name, personality);
-    console.log(`  - ${name} (${personalityKey}性格)`);
+    world.createAgent(name, personality, useLLM);
+    console.log(`  - ${name} (${personalityKey}性格) ${useLLM ? '[GLM]' : '[规则]'}`);
   }
 
-  // 3. 监听世界事件
+  // 4. 监听世界事件
   world.state.eventBus.on('*', (event) => {
     switch (event.type) {
       case 'day_start':
@@ -57,15 +76,15 @@ async function main() {
     }
   });
 
-  // 4. 启动API服务器
+  // 5. 启动API服务器（含前端页面）
   const port = parseInt(process.env.PORT || '3000');
   createServer(world, port);
 
-  // 5. 启动世界
+  // 6. 启动世界
   console.log('\n[启动] 世界即将运转...\n');
   world.start();
 
-  // 6. 优雅关闭
+  // 7. 优雅关闭
   process.on('SIGINT', () => {
     console.log('\n[关闭] 正在停止世界...');
     world.stop();
@@ -73,7 +92,7 @@ async function main() {
     console.log('\n最终世界状态:');
     console.log(`  实体数: ${(snapshot.entities as unknown[]).length}`);
     console.log(`  排行榜:`);
-    for (const entry of snapshot.leaderboard.slice(0, 5)) {
+    for (const entry of snapshot.leaderboard.slice(0, 10)) {
       console.log(`    ${entry.name}: 净资产 ${entry.netWorth.toFixed(0)}, 建筑 ${entry.buildings}个`);
     }
     process.exit(0);

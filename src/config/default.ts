@@ -18,7 +18,7 @@ export const WORLD_1_CONFIG: WorldConfig = {
 };
 
 /**
- * 预设的AI智能体性格模板
+ * 预设的AI智能体性格模板（10种，对应10个初始智能体）
  */
 export const AGENT_PERSONALITIES = {
   /** 商人 - 高贪婪度，善于交易 */
@@ -60,6 +60,46 @@ export const AGENT_PERSONALITIES = {
     socialAwareness: 0.5,
     innovation: 0.9,
     patience: 0.4,
+  },
+  /** 银行家 - 金融操作 */
+  banker: {
+    riskTolerance: 0.5,
+    greed: 0.7,
+    socialAwareness: 0.4,
+    innovation: 0.3,
+    patience: 0.7,
+  },
+  /** 农场主 - 自给自足 */
+  farmer: {
+    riskTolerance: 0.3,
+    greed: 0.2,
+    socialAwareness: 0.6,
+    innovation: 0.4,
+    patience: 0.9,
+  },
+  /** 投机者 - 短线操作 */
+  speculator: {
+    riskTolerance: 0.95,
+    greed: 0.9,
+    socialAwareness: 0.1,
+    innovation: 0.5,
+    patience: 0.1,
+  },
+  /** 慈善家 - 重社区 */
+  philanthropist: {
+    riskTolerance: 0.4,
+    greed: 0.1,
+    socialAwareness: 0.95,
+    innovation: 0.5,
+    patience: 0.6,
+  },
+  /** 全能型 - 平衡发展 */
+  balanced: {
+    riskTolerance: 0.5,
+    greed: 0.5,
+    socialAwareness: 0.5,
+    innovation: 0.5,
+    patience: 0.5,
   },
 };
 

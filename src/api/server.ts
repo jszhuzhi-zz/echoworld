@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { World } from '../core/World';
 import {
   BuildingType,
@@ -6,12 +7,24 @@ import {
 } from '../core/types';
 
 /**
- * API服务器 - 为人类玩家和外部系统提供HTTP接口
- * API Server - Provides HTTP endpoints for human players and external systems
+ * API服务器 - 为人类玩家和外部系统提供HTTP接口，同时托管前端面板
+ * API Server - Provides HTTP endpoints and serves frontend dashboard
  */
 export function createServer(world: World, port = 3000): express.Application {
   const app = express();
   app.use(express.json());
+
+  // CORS支持
+  app.use((_req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    next();
+  });
+
+  // 静态文件服务（前端面板）
+  const publicPath = path.join(__dirname, '../../public');
+  app.use(express.static(publicPath));
 
   // ========== 世界信息 ==========
 
@@ -209,8 +222,9 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // ========== 启动服务器 ==========
   app.listen(port, () => {
-    console.log(`[EchoWorld API] 服务器运行在 http://localhost:${port}`);
-    console.log(`[EchoWorld API] 可用端点:`);
+    console.log(`\n[EchoWorld] 服务器运行在 http://localhost:${port}`);
+    console.log(`[EchoWorld] 前端面板: http://localhost:${port}/`);
+    console.log(`[EchoWorld] API端点:`);
     console.log(`  GET  /api/world          - 世界完整快照`);
     console.log(`  GET  /api/entities       - 所有实体`);
     console.log(`  GET  /api/market         - 市场信息`);
