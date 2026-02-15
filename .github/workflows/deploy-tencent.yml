@@ -1,9 +1,20 @@
 name: Deploy to Tencent CloudBase
 
 on:
-  push:
-    branches: [main, claude/*]
   workflow_dispatch:
+    inputs:
+      tcb_secret_id:
+        description: '腾讯云 SecretId'
+        required: true
+        type: string
+      tcb_secret_key:
+        description: '腾讯云 SecretKey'
+        required: true
+        type: string
+      zhipu_api_key:
+        description: '智谱 API Key'
+        required: true
+        type: string
 
 jobs:
   deploy:
@@ -28,9 +39,9 @@ jobs:
         run: npm install -g @cloudbase/cli
 
       - name: Login to CloudBase
-        run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
+        run: tcb login --apiKeyId "${{ inputs.tcb_secret_id }}" --apiKey "${{ inputs.tcb_secret_key }}"
 
       - name: Deploy to CloudBase
         run: tcb framework deploy
         env:
-          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          ZHIPU_API_KEY: ${{ inputs.zhipu_api_key }}
