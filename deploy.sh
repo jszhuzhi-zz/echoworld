@@ -55,9 +55,14 @@ setup_env() {
   echo -e "${YELLOW}[4/6] 配置环境变量...${NC}"
 
   if [ ! -f .env ]; then
-    cat > .env << 'ENVEOF'
+    echo -e "  ${RED}未找到 .env 文件，请创建:${NC}"
+    echo "    PORT=3000"
+    echo "    ZHIPU_API_KEY=<你的智谱API密钥>"
+    echo "    ZHIPU_MODEL=glm-4-flash"
+    read -p "请输入智谱API密钥 (ZHIPU_API_KEY): " ZHIPU_KEY
+    cat > .env << ENVEOF
 PORT=3000
-ZHIPU_API_KEY=fdafdd21075f48498ee4161bf7deae37.OuhQom6Guirxg4q5
+ZHIPU_API_KEY=${ZHIPU_KEY}
 ZHIPU_MODEL=glm-4-flash
 ENVEOF
     echo -e "  ${GREEN}.env 文件已创建${NC}"
