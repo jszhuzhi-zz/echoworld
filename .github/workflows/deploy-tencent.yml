@@ -17,16 +17,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Check files
-        run: |
-          echo "=== Node version ==="
-          node --version
-          npm --version
-          echo "=== Files ==="
-          ls -la
-          echo "=== Package.json scripts ==="
-          cat package.json | grep -A 10 '"scripts"'
-
       - name: Install dependencies
         run: npm ci
 
@@ -41,15 +31,21 @@ jobs:
           npm install -g @cloudbase/cli@latest
           tcb --version
 
-      - name: Login and Deploy
+      - name: TCB Login
+        id: login
         run: |
           SID=$(echo 'QUtJRFZ1QUMxZDNHR0tFeVZvdGxQcTM1dll4OUIxVGlrYkFo' | base64 -d)
           SKEY=$(echo 'UGRlUzJQZWhXOFdWR243R0JzTWZzMXhoRVpnYzZNVVA=' | base64 -d)
+          echo "Attempting login..."
+          tcb login --apiKeyId "$SID" --apiKey "$SKEY" 2>&1 || true
+          echo "Login step finished"
+
+      - name: TCB Env List
+        run: tcb env:list 2>&1 || echo "env:list failed - login may have failed"
+
+      - name: TCB Deploy
+        run: |
           ZKEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
-          echo "Logging in..."
-          tcb login --apiKeyId "$SID" --apiKey "$SKEY"
-          echo "Login done. Listing envs..."
-          tcb env:list || echo "env:list failed"
-          echo "Deploying..."
-          ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose
-          echo "Deploy complete!"
+          echo "Starting deploy..."
+          ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1
+          echo "Deploy finished!"
