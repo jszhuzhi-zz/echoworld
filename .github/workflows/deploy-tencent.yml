@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - claude/ai-agent-commerce-world-U3fxB
+    paths-ignore:
+      - 'DEPLOY_INFO.txt'
 
 jobs:
   deploy:
@@ -43,30 +45,33 @@ jobs:
           ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1 | tee /tmp/deploy.log
           cat /tmp/deploy.log
 
-      - name: Get deployment info
-        if: always()
+      - name: Collect deployment info and commit
         run: |
-          mkdir -p deploy-info
-          echo "=== Environment Info ===" > deploy-info/result.txt
-          tcb env:list 2>&1 >> deploy-info/result.txt || true
-          echo "" >> deploy-info/result.txt
-          echo "=== Function List ===" >> deploy-info/result.txt
-          tcb fn list -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> deploy-info/result.txt || true
-          echo "" >> deploy-info/result.txt
-          echo "=== Service Domain ===" >> deploy-info/result.txt
-          tcb service domain -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> deploy-info/result.txt || true
-          echo "" >> deploy-info/result.txt
-          echo "=== Deploy Log ===" >> deploy-info/result.txt
-          cat /tmp/deploy.log >> deploy-info/result.txt 2>/dev/null || echo "No deploy log" >> deploy-info/result.txt
-          echo "" >> deploy-info/result.txt
-          echo "=== Access URLs ===" >> deploy-info/result.txt
-          echo "Cloud Function: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld" >> deploy-info/result.txt
-          echo "Env Console: https://console.cloud.tencent.com/tcb/env/index?envId=georgezhu-0gnrnw9ae9fca59a" >> deploy-info/result.txt
+          echo "===== EchoWorld 部署信息 =====" > DEPLOY_INFO.txt
+          echo "部署时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> DEPLOY_INFO.txt
+          echo "Commit: ${{ github.sha }}" >> DEPLOY_INFO.txt
+          echo "" >> DEPLOY_INFO.txt
 
-      - name: Upload deployment info
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy-info
-          path: deploy-info/
-          retention-days: 7
+          echo "--- 环境列表 ---" >> DEPLOY_INFO.txt
+          tcb env:list 2>&1 >> DEPLOY_INFO.txt || true
+          echo "" >> DEPLOY_INFO.txt
+
+          echo "--- 云函数列表 ---" >> DEPLOY_INFO.txt
+          tcb fn list -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> DEPLOY_INFO.txt || true
+          echo "" >> DEPLOY_INFO.txt
+
+          echo "--- 服务域名 ---" >> DEPLOY_INFO.txt
+          tcb service domain -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> DEPLOY_INFO.txt || true
+          echo "" >> DEPLOY_INFO.txt
+
+          echo "--- 部署日志 ---" >> DEPLOY_INFO.txt
+          cat /tmp/deploy.log >> DEPLOY_INFO.txt 2>/dev/null || echo "无日志" >> DEPLOY_INFO.txt
+
+          echo "" >> DEPLOY_INFO.txt
+          cat DEPLOY_INFO.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add DEPLOY_INFO.txt
+          git diff --staged --quiet || git commit -m "ci: update deployment info [skip ci]"
+          git push origin claude/ai-agent-commerce-world-U3fxB || true
