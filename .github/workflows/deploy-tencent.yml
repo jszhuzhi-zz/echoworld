@@ -44,6 +44,14 @@ jobs:
           SKEY=$(echo 'UGRlUzJQZWhXOFdWR243R0JzTWZzMXhoRVpnYzZNVVA=' | base64 -d)
           tcb login --apiKeyId "$SID" --apiKey "$SKEY"
 
+      - name: Setup CloudBase Framework Plugin
+        run: |
+          mkdir -p /home/runner/cloudbase-framework/registry/node_modules
+          cd /home/runner/cloudbase-framework/registry
+          npm init -y
+          npm install @cloudbase/framework-plugin-node@1.9.7
+          ls node_modules/@cloudbase/
+
       - name: TCB Deploy
         run: |
           ZKEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
