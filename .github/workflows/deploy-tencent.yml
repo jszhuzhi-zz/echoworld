@@ -33,32 +33,31 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Install CloudBase CLI
-        run: |
-          npm install -g @cloudbase/cli@latest
-          tcb --version
-
       - name: TCB Login
         run: |
           SID=$(echo 'QUtJRFZ1QUMxZDNHR0tFeVZvdGxQcTM1dll4OUIxVGlrYkFo' | base64 -d)
           SKEY=$(echo 'UGRlUzJQZWhXOFdWR243R0JzTWZzMXhoRVpnYzZNVVA=' | base64 -d)
+          # Install CLI from source (not standalone) to allow dynamic plugin loading
+          npm install -g @cloudbase/cli --no-optional
+          tcb --version
           tcb login --apiKeyId "$SID" --apiKey "$SKEY"
-
-      - name: Setup CloudBase Framework Plugin
-        run: |
-          mkdir -p /home/runner/cloudbase-framework/registry/node_modules
-          cd /home/runner/cloudbase-framework/registry
-          npm init -y
-          npm install @cloudbase/framework-plugin-node@1.9.7
-          ls node_modules/@cloudbase/
 
       - name: TCB Deploy
         run: |
           ZKEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
+          # Symlink the plugin into the framework registry so CLI can find it
+          PLUGIN_DIR="/home/runner/cloudbase-framework/registry/node_modules/@cloudbase"
+          mkdir -p "$PLUGIN_DIR"
+          # Find where the plugin is installed and link it
+          PLUGIN_SRC=$(node -e "console.log(require.resolve('@cloudbase/framework-plugin-node/package.json').replace('/package.json',''))")
+          ln -sf "$PLUGIN_SRC" "$PLUGIN_DIR/framework-plugin-node"
+          echo "Plugin linked: $PLUGIN_SRC -> $PLUGIN_DIR/framework-plugin-node"
+          ls -la "$PLUGIN_DIR/"
           ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1 | tee /tmp/deploy.log
           cat /tmp/deploy.log
 
       - name: Collect deployment info and commit
+        if: always()
         run: |
           echo "===== EchoWorld 部署信息 =====" > DEPLOY_INFO.txt
           echo "部署时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> DEPLOY_INFO.txt
@@ -75,6 +74,10 @@ jobs:
 
           echo "--- 服务域名 ---" >> DEPLOY_INFO.txt
           tcb service domain -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> DEPLOY_INFO.txt || true
+          echo "" >> DEPLOY_INFO.txt
+
+          echo "--- HTTP访问服务 ---" >> DEPLOY_INFO.txt
+          tcb service list -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> DEPLOY_INFO.txt || true
           echo "" >> DEPLOY_INFO.txt
 
           echo "--- 部署日志 ---" >> DEPLOY_INFO.txt
