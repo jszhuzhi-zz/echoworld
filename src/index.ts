@@ -10,7 +10,7 @@ import { createServer } from './api/server';
  * 世界有自己的货币和金融体系，规则会根据运行状态自动进化。
  */
 
-async function main() {
+function initWorld() {
   console.log('========================================');
   console.log('  EchoWorld - AI智能体商业世界 v0.2.0');
   console.log('  1号世界: 商业规则世界');
@@ -76,27 +76,32 @@ async function main() {
     }
   });
 
-  // 5. 启动API服务器（含前端页面）
-  const port = parseInt(process.env.PORT || '3000');
-  createServer(world, port);
-
-  // 6. 启动世界
-  console.log('\n[启动] 世界即将运转...\n');
-  world.start();
-
-  // 7. 优雅关闭
-  process.on('SIGINT', () => {
-    console.log('\n[关闭] 正在停止世界...');
-    world.stop();
-    const snapshot = world.getFullSnapshot();
-    console.log('\n最终世界状态:');
-    console.log(`  实体数: ${(snapshot.entities as unknown[]).length}`);
-    console.log(`  排行榜:`);
-    for (const entry of snapshot.leaderboard.slice(0, 10)) {
-      console.log(`    ${entry.name}: 净资产 ${entry.netWorth.toFixed(0)}, 建筑 ${entry.buildings}个`);
-    }
-    process.exit(0);
-  });
+  return { world, useLLM };
 }
 
-main().catch(console.error);
+// 初始化世界和服务器
+const { world } = initWorld();
+const port = parseInt(process.env.PORT || '3000');
+const app = createServer(world, port);
+
+// 启动世界模拟
+world.start();
+console.log('\n[启动] 世界已运转\n');
+
+// 优雅关闭
+process.on('SIGINT', () => {
+  console.log('\n[关闭] 正在停止世界...');
+  world.stop();
+  const snapshot = world.getFullSnapshot();
+  console.log('\n最终世界状态:');
+  console.log(`  实体数: ${(snapshot.entities as unknown[]).length}`);
+  console.log(`  排行榜:`);
+  for (const entry of snapshot.leaderboard.slice(0, 10)) {
+    console.log(`    ${entry.name}: 净资产 ${entry.netWorth.toFixed(0)}, 建筑 ${entry.buildings}个`);
+  }
+  process.exit(0);
+});
+
+// 导出app供CloudBase使用
+module.exports = app;
+export default app;
