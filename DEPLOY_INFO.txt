@@ -1,0 +1,219 @@
+===== EchoWorld 部署信息 =====
+部署时间: 2026-02-16 17:02:01 UTC
+Commit: 4c96b69c6a4aa1dca42cb49a8076e36e7d5b32ba
+
+--- 环境列表 ---
+CloudBase CLI 2.12.2
+Try the tcb ai command to start your AI full-stack development experience
+
+ This command will be deprecated, please use the new command tcb env list instead 
+
+┌───────────┬────────────────────────────┬─────────────────┬───────────┬─────────────────────┬────────────────────┐
+│   Name    │       Environment ID       │ Package Version │  Source   │    Creation Time    │ Environment Status │
+├───────────┼────────────────────────────┼─────────────────┼───────────┼─────────────────────┼────────────────────┤
+│ georgezhu │ georgezhu-0gnrnw9ae9fca59a │     体验版      │ CloudBase │ 2026-02-15 12:31:52 │       Normal       │
+└───────────┴────────────────────────────┴─────────────────┴───────────┴─────────────────────┴────────────────────┘
+
+--- 云函数列表 ---
+CloudBase CLI 2.12.2
+Try the tcb ai command to start your AI full-stack development experience
+┌──────────────┬───────────────────┬─────────────┬─────────────────────┬─────────────────────┬──────────────────────┐
+│ Function Id  │   Function name   │   Runtime   │    Creation Time    │  Modification time  │        Status        │
+├──────────────┼───────────────────┼─────────────┼─────────────────────┼─────────────────────┼──────────────────────┤
+│ lam-i1ngk3ol │ link-reit-backend │ Nodejs18.15 │ 2026-02-15 13:25:17 │ 2026-02-15 13:28:34 │ Deployment completed │
+└──────────────┴───────────────────┴─────────────┴─────────────────────┴─────────────────────┴──────────────────────┘
+
+--- 服务域名 ---
+CloudBase CLI 2.12.2
+Try the tcb ai command to start your AI full-stack development experience
+
+--- 部署日志 ---
+CloudBase CLI 2.12.2
+Try the tcb ai command to start your AI full-stack development experience
+- Loading data...
+[1m   ______ __                   __ ____                             [22m
+[1m  / ____// /____   __  __ ____/ // __ ) ____ _ _____ ___           [22m
+[1m / /    / // __ \ / / / // __  // __  |/ __ `// ___// _ \          [22m
+[1m/ /___ / // /_/ // /_/ // /_/ // /_/ // /_/ /(__  )/  __/          [22m
+[1m\____//_/_\____/ \__,_/ \__,_//_____/ \__,_//____/ \___/       __  [22m
+[1m   / ____/_____ ____ _ ____ ___   ___  _      __ ____   _____ / /__[22m
+[1m  / /_   / ___// __ `// __ `__ \ / _ \| | /| / // __ \ / ___// //_/[22m
+[1m / __/  / /   / /_/ // / / / / //  __/| |/ |/ // /_/ // /   / ,<   [22m
+[1m/_/    /_/    \__,_//_/ /_/ /_/ \___/ |__/|__/ \____//_/   /_/|_|  [22m
+[1m                                                                   [22m
+[1m[22m
+[1m CloudBase Framework [22m [32minfo[39m     Version [32mv1.9.7[39m
+[1m CloudBase Framework [22m [32minfo[39m     Github: [1m[4m[36mhttps://github.com/Tencent/cloudbase-framework[39m[24m[22m
+
+[1m CloudBase Framework [22m [32minfo[39m     EnvId [32mgeorgezhu-0gnrnw9ae9fca59a[39m
+[1m CloudBase Framework [22m [32minfo[39m     Region [32map-shanghai[39m
+[1m CloudBase Framework [22m [34mdebug[39m    本地构建，本地存在配置文件 {
+  functionRoot: './functions',
+  functions: [],
+  envId: 'georgezhu-0gnrnw9ae9fca59a',
+  version: '2.0',
+  framework: {
+    name: 'node',
+    plugins: {
+      node: {
+        use: '@cloudbase/framework-plugin-node',
+        inputs: {
+          name: 'echoworld',
+          entry: 'dist/index.js',
+          path: '/',
+          buildCommand: 'npm install && npm run build',
+          envVariables: {
+            ZHIPU_API_KEY: '${env.ZHIPU_API_KEY}',
+            ZHIPU_MODEL: 'glm-4-flash',
+            PORT: '3000'
+          }
+        }
+      }
+    }
+  }
+} 
+[1m CloudBase Framework [22m [34mdebug[39m    远程存在同名项目 'node' 
+[1m CloudBase Framework [22m [34mdebug[39m    项目配置信息 'rcConfig' {
+  functionRoot: './functions',
+  functions: [],
+  envId: 'georgezhu-0gnrnw9ae9fca59a',
+  version: '2.0',
+  framework: {
+    name: 'node',
+    plugins: {
+      node: {
+        use: '@cloudbase/framework-plugin-node',
+        inputs: {
+          name: 'echoworld',
+          entry: 'dist/index.js',
+          path: '/',
+          buildCommand: 'npm install && npm run build',
+          envVariables: {
+            ZHIPU_API_KEY: '${env.ZHIPU_API_KEY}',
+            ZHIPU_MODEL: 'glm-4-flash',
+            PORT: '3000'
+          }
+        }
+      }
+    }
+  }
+} 'extraData' {
+  repo: {
+    Branch: '',
+    CodingPackageName: '',
+    CodingPackageVersion: '',
+    Name: 'node',
+    ProjectId: 0,
+    ProjectName: '',
+    RawCode: '',
+    Type: 'local',
+    Url: '',
+    WorkDir: ''
+  },
+  tags: [],
+  environment: {},
+  network: {},
+  addons: {}
+} 'projectName' 'node' 
+[1m CloudBase Framework [22m [34mdebug[39m    RC 配置文件变更 false {
+  functionRoot: './functions',
+  functions: [],
+  envId: 'georgezhu-0gnrnw9ae9fca59a',
+  version: '2.0',
+  framework: {
+    name: 'node',
+    plugins: {
+      node: {
+        use: '@cloudbase/framework-plugin-node',
+        inputs: {
+          name: 'echoworld',
+          entry: 'dist/index.js',
+          path: '/',
+          buildCommand: 'npm install && npm run build',
+          envVariables: {
+            ZHIPU_API_KEY: '${env.ZHIPU_API_KEY}',
+            ZHIPU_MODEL: 'glm-4-flash',
+            PORT: '3000'
+          }
+        }
+      }
+    }
+  }
+} 
+[1m CloudBase Framework [22m [34mdebug[39m    Framework 配置文件变更 false {
+  name: 'node',
+  plugins: {
+    node: {
+      use: '@cloudbase/framework-plugin-node',
+      inputs: {
+        name: 'echoworld',
+        entry: 'dist/index.js',
+        path: '/',
+        buildCommand: 'npm install && npm run build',
+        envVariables: {
+          ZHIPU_API_KEY: '${env.ZHIPU_API_KEY}',
+          ZHIPU_MODEL: 'glm-4-flash',
+          PORT: '3000'
+        }
+      }
+    }
+  }
+} 
+[1m CloudBase Framework [22m [32minfo[39m     Validate config file success.
+[1m CloudBase Framework [22m [32minfo[39m     AppName [32mnode[39m
+[1m CloudBase Framework [22m [34mdebug[39m    appConfig {
+  name: 'node',
+  plugins: {
+    node: {
+      use: '@cloudbase/framework-plugin-node',
+      inputs: {
+        name: 'echoworld',
+        entry: 'dist/index.js',
+        path: '/',
+        buildCommand: 'npm install && npm run build',
+        envVariables: {
+          ZHIPU_API_KEY: '${env.ZHIPU_API_KEY}',
+          ZHIPU_MODEL: 'glm-4-flash',
+          PORT: '3000'
+        }
+      }
+    }
+  },
+  repo: {
+    Branch: '',
+    CodingPackageName: '',
+    CodingPackageVersion: '',
+    Name: 'node',
+    ProjectId: 0,
+    ProjectName: '',
+    RawCode: '',
+    Type: 'local',
+    Url: '',
+    WorkDir: ''
+  },
+  tags: [],
+  environment: {},
+  network: {},
+  addons: {}
+} 
+[1m CloudBase Framework [22m [32minfo[39m     📦 install plugins
+[1m CloudBase Framework [22m [34mdebug[39m    initHooks {} 
+[1m CloudBase Framework [22m [34mdebug[39m    resolve plugin @cloudbase/framework-plugin-node@1.9.7: use 0.00 s, mismatch：true, resolved version：1.9.7
+[1m CloudBase Framework [22m [34mdebug[39m    deploy '' '' 
+[1m CloudBase Framework [22m [32minfo[39m     callHooks 'preDeploy' 
+
+added 526 packages in 16s
+
+59 packages are looking for funding
+  run `npm fund` for details
+Error: Cannot find module '/home/runner/cloudbase-framework/registry/node_modules/@cloudbase/framework-plugin-node'
+    at webpackEmptyContext (/opt/hostedtoolcache/node/20.20.0/x64/lib/node_modules/@cloudbase/cli/dist/standalone/cli.js:478092:10)
+    at PluginManager.<anonymous> (/opt/hostedtoolcache/node/20.20.0/x64/lib/node_modules/@cloudbase/cli/dist/standalone/cli.js:486623:52)
+    at Generator.next (<anonymous>)
+    at fulfilled (/opt/hostedtoolcache/node/20.20.0/x64/lib/node_modules/@cloudbase/cli/dist/standalone/cli.js:486476:58)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  code: 'MODULE_NOT_FOUND'
+}
+[1m CloudBase Framework [22m [31merror[39m     Cannot find module '/home/runner/cloudbase-framework/registry/node_modules/@cloudbase/framework-plugin-node'
+[1m CloudBase Framework [22m [32minfo[39m     部署日志: '/home/runner/cloudbase-framework/logs/2026-02-16_17-01-41.log' 
+
