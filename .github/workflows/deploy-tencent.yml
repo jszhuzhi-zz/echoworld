@@ -40,23 +40,33 @@ jobs:
       - name: TCB Deploy
         run: |
           ZKEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
-          echo "=== cloudbaserc.json ==="
-          cat cloudbaserc.json
-          echo ""
-          echo "=== Starting deploy ==="
-          ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1 | tee /tmp/deploy.log || true
-          echo ""
-          echo "=== Deploy output ==="
+          ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1 | tee /tmp/deploy.log
           cat /tmp/deploy.log
-          echo ""
-          echo "## Deploy Log" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat /tmp/deploy.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          # Check if deploy actually succeeded
-          if grep -q "deployed" /tmp/deploy.log || grep -q "success" /tmp/deploy.log; then
-            echo "Deploy succeeded!"
-          else
-            echo "Deploy failed - check summary for details"
-            exit 1
-          fi
+
+      - name: Get deployment info
+        if: always()
+        run: |
+          mkdir -p deploy-info
+          echo "=== Environment Info ===" > deploy-info/result.txt
+          tcb env:list 2>&1 >> deploy-info/result.txt || true
+          echo "" >> deploy-info/result.txt
+          echo "=== Function List ===" >> deploy-info/result.txt
+          tcb fn list -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> deploy-info/result.txt || true
+          echo "" >> deploy-info/result.txt
+          echo "=== Service Domain ===" >> deploy-info/result.txt
+          tcb service domain -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> deploy-info/result.txt || true
+          echo "" >> deploy-info/result.txt
+          echo "=== Deploy Log ===" >> deploy-info/result.txt
+          cat /tmp/deploy.log >> deploy-info/result.txt 2>/dev/null || echo "No deploy log" >> deploy-info/result.txt
+          echo "" >> deploy-info/result.txt
+          echo "=== Access URLs ===" >> deploy-info/result.txt
+          echo "Cloud Function: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld" >> deploy-info/result.txt
+          echo "Env Console: https://console.cloud.tencent.com/tcb/env/index?envId=georgezhu-0gnrnw9ae9fca59a" >> deploy-info/result.txt
+
+      - name: Upload deployment info
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-info
+          path: deploy-info/
+          retention-days: 7
