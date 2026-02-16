@@ -32,20 +32,31 @@ jobs:
           tcb --version
 
       - name: TCB Login
-        id: login
         run: |
           SID=$(echo 'QUtJRFZ1QUMxZDNHR0tFeVZvdGxQcTM1dll4OUIxVGlrYkFo' | base64 -d)
           SKEY=$(echo 'UGRlUzJQZWhXOFdWR243R0JzTWZzMXhoRVpnYzZNVVA=' | base64 -d)
-          echo "Attempting login..."
-          tcb login --apiKeyId "$SID" --apiKey "$SKEY" 2>&1 || true
-          echo "Login step finished"
-
-      - name: TCB Env List
-        run: tcb env:list 2>&1 || echo "env:list failed - login may have failed"
+          tcb login --apiKeyId "$SID" --apiKey "$SKEY"
 
       - name: TCB Deploy
         run: |
           ZKEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
-          echo "Starting deploy..."
-          ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1
-          echo "Deploy finished!"
+          echo "=== cloudbaserc.json ==="
+          cat cloudbaserc.json
+          echo ""
+          echo "=== Starting deploy ==="
+          ZHIPU_API_KEY="$ZKEY" tcb framework deploy --verbose 2>&1 | tee /tmp/deploy.log || true
+          echo ""
+          echo "=== Deploy output ==="
+          cat /tmp/deploy.log
+          echo ""
+          echo "## Deploy Log" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat /tmp/deploy.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          # Check if deploy actually succeeded
+          if grep -q "deployed" /tmp/deploy.log || grep -q "success" /tmp/deploy.log; then
+            echo "Deploy succeeded!"
+          else
+            echo "Deploy failed - check summary for details"
+            exit 1
+          fi
