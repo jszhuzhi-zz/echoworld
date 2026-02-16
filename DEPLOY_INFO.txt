@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-16 17:05:24 UTC
-Commit: 5e700146fa78e2dc8306db6ea8dc5cdff7b24585
+部署时间: 2026-02-16 17:09:05 UTC
+Commit: 0a67adc73d36a74255451fb58ea12430fb7157c1
 
 --- 环境列表 ---
 CloudBase CLI 2.12.2
@@ -26,6 +26,15 @@ Try the tcb ai command to start your AI full-stack development experience
 --- 服务域名 ---
 CloudBase CLI 2.12.2
 Try the tcb ai command to start your AI full-stack development experience
+
+--- HTTP访问服务 ---
+CloudBase CLI 2.12.2
+Try the tcb ai command to start your AI full-stack development experience
+┌──────────────┬─────────────────────┬────────────────┬─────────────────────┐
+│ Trigger path │ Associated resource │  Trigger type  │    Creation Time    │
+├──────────────┼─────────────────────┼────────────────┼─────────────────────┤
+│     /api     │  link-reit-backend  │ Cloud function │ 2026-02-15 05:30:04 │
+└──────────────┴─────────────────────┴────────────────┴─────────────────────┘
 
 --- 部署日志 ---
 CloudBase CLI 2.12.2
@@ -202,7 +211,7 @@ Try the tcb ai command to start your AI full-stack development experience
 [1m CloudBase Framework [22m [34mdebug[39m    deploy '' '' 
 [1m CloudBase Framework [22m [32minfo[39m     callHooks 'preDeploy' 
 
-up to date in 675ms
+added 525 packages, and changed 1 package in 20s
 
 59 packages are looking for funding
   run `npm fund` for details
@@ -215,5 +224,5 @@ Error: Cannot find module '/home/runner/cloudbase-framework/registry/node_module
   code: 'MODULE_NOT_FOUND'
 }
 [1m CloudBase Framework [22m [31merror[39m     Cannot find module '/home/runner/cloudbase-framework/registry/node_modules/@cloudbase/framework-plugin-node'
-[1m CloudBase Framework [22m [32minfo[39m     部署日志: '/home/runner/cloudbase-framework/logs/2026-02-16_17-05-20.log' 
+[1m CloudBase Framework [22m [32minfo[39m     部署日志: '/home/runner/cloudbase-framework/logs/2026-02-16_17-08-41.log' 
 
