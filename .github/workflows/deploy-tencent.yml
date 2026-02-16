@@ -19,6 +19,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      CI: true
+      CLOUDBASE_CIID: ${{ inputs.tcb_secret_id }}
+      CLOUDBASE_CIKEY: ${{ inputs.tcb_secret_key }}
     steps:
       - uses: actions/checkout@v4
 
@@ -36,12 +40,17 @@ jobs:
         run: npm test
 
       - name: Install CloudBase CLI
-        run: npm install -g @cloudbase/cli
+        run: npm install -g @cloudbase/cli@latest
 
       - name: Login to CloudBase
-        run: tcb login --apiKeyId "${{ inputs.tcb_secret_id }}" --apiKey "${{ inputs.tcb_secret_key }}"
+        run: |
+          tcb login --apiKeyId "${{ inputs.tcb_secret_id }}" --apiKey "${{ inputs.tcb_secret_key }}"
+          echo "Login completed"
+
+      - name: Verify login
+        run: tcb env:list
 
       - name: Deploy to CloudBase
-        run: tcb framework deploy
+        run: tcb framework deploy --verbose
         env:
           ZHIPU_API_KEY: ${{ inputs.zhipu_api_key }}
