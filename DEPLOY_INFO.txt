@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-16 17:02:01 UTC
-Commit: 4c96b69c6a4aa1dca42cb49a8076e36e7d5b32ba
+部署时间: 2026-02-16 17:05:24 UTC
+Commit: 5e700146fa78e2dc8306db6ea8dc5cdff7b24585
 
 --- 环境列表 ---
 CloudBase CLI 2.12.2
@@ -202,7 +202,7 @@ Try the tcb ai command to start your AI full-stack development experience
 [1m CloudBase Framework [22m [34mdebug[39m    deploy '' '' 
 [1m CloudBase Framework [22m [32minfo[39m     callHooks 'preDeploy' 
 
-added 526 packages in 16s
+up to date in 675ms
 
 59 packages are looking for funding
   run `npm fund` for details
@@ -215,5 +215,5 @@ Error: Cannot find module '/home/runner/cloudbase-framework/registry/node_module
   code: 'MODULE_NOT_FOUND'
 }
 [1m CloudBase Framework [22m [31merror[39m     Cannot find module '/home/runner/cloudbase-framework/registry/node_modules/@cloudbase/framework-plugin-node'
-[1m CloudBase Framework [22m [32minfo[39m     部署日志: '/home/runner/cloudbase-framework/logs/2026-02-16_17-01-41.log' 
+[1m CloudBase Framework [22m [32minfo[39m     部署日志: '/home/runner/cloudbase-framework/logs/2026-02-16_17-05-20.log' 
 
