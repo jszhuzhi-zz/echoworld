@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 03:50:28 UTC
-Commit: 131e7d29cb2acc55d32781ab45dcbad0ccdd13ff
+部署时间: 2026-02-17 03:54:22 UTC
+Commit: 5f726cf9fff8f8f17025acc3e2e1c971a85e0c7c
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -484,6 +484,7 @@ found 0 vulnerabilities
   adding: node_modules/gopd/gOPD.js (deflated 4%)
   adding: node_modules/gopd/tsconfig.json (deflated 12%)
   adding: node_modules/gopd/index.js (deflated 21%)
+  adding: index.js (deflated 51%)
   adding: dist/ (stored 0%)
   adding: dist/infrastructure/ (stored 0%)
   adding: dist/infrastructure/BuildingManager.js (deflated 73%)
@@ -512,24 +513,24 @@ found 0 vulnerabilities
   adding: dist/core/WorldClock.js (deflated 63%)
   adding: dist/core/World.js (deflated 66%)
   adding: dist/index.js (deflated 54%)
-  ZIP 大小: 0.61 MB
+  ZIP 大小: 0.62 MB
 
 [2/5] 部署云函数...
   使用 base64 直接上传...
-  部署失败: [CreateFunction] [code=InvalidParameterValue.Handler,msg=Handler取值与规范不符，请修正后再试。可参考：https://mc.tencent.com/dcPGxe15,reqId=793fa1ee-838a-4670-9665-bd37cc68fae2]
+  部署失败: [CreateFunction] [code=InvalidParameterValue.Environment,msg=环境变量Key包含前缀SCF_、QCLOUD_或TENCENTCLOUD_，请修正后重试。,reqId=d743ed50-2270-44d8-8a01-91ee72c7b090]
 
-部署失败: CloudBaseError: [CreateFunction] [code=InvalidParameterValue.Handler,msg=Handler取值与规范不符，请修正后再试。可参考：https://mc.tencent.com/dcPGxe15,reqId=793fa1ee-838a-4670-9665-bd37cc68fae2]
+部署失败: CloudBaseError: [CreateFunction] [code=InvalidParameterValue.Environment,msg=环境变量Key包含前缀SCF_、QCLOUD_或TENCENTCLOUD_，请修正后重试。,reqId=d743ed50-2270-44d8-8a01-91ee72c7b090]
     at CloudService.request (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/utils/cloud-api-request.js:125:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
     at async FunctionService.createFunction (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/function/index.js:188:25)
     at async descriptor.value (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/utils/envLazy.js:13:26)
-    at async deploy (/home/runner/work/echoworld/echoworld/scripts/deploy-cloudbase.js:100:5) {
+    at async deploy (/home/runner/work/echoworld/echoworld/scripts/deploy-cloudbase.js:102:5) {
   original: {
     Code: 'InvalidParameter',
-    Message: '[code=InvalidParameterValue.Handler,msg=Handler取值与规范不符，请修正后再试。可参考：https://mc.tencent.com/dcPGxe15,reqId=793fa1ee-838a-4670-9665-bd37cc68fae2]'
+    Message: '[code=InvalidParameterValue.Environment,msg=环境变量Key包含前缀SCF_、QCLOUD_或TENCENTCLOUD_，请修正后重试。,reqId=d743ed50-2270-44d8-8a01-91ee72c7b090]'
   },
   code: 'InvalidParameter',
-  requestId: 'dae319d0-af8f-4ce8-b6c3-0a2998ca5c73',
+  requestId: '9b9373f6-39c7-4ed7-aaa7-9c1fa012e819',
   action: 'CreateFunction'
 }
 
