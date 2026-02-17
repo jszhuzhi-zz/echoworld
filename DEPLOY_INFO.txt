@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 05:00:42 UTC
-Commit: 813c5ddcd05c75f4ebff369793e39a54ad053a19
+部署时间: 2026-02-17 05:03:23 UTC
+Commit: b5475fdcee5f631c4b4d0cda460aac8148feb449
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -37,11 +37,8 @@ found 0 vulnerabilities
   Web Function 包大小: 652K
   ZIP base64 大小: 0.84 MB
   部署 SCF Web Function...
-  SCF Web Function 创建成功!
-  等待函数就绪...
-  函数状态: Creating, 类型: HTTP
-  访问信息: {"Host":"","Vip":""}
-  触发器 (0):
+  函数 echoworld_web 已存在 (CreateFailed), 更新代码...
+  SCF Web Function: [UpdateFunctionCode] FailedOperation.UpdateFunctionCode: 当前函数处于CreateFailed状态，无法进行此操作，请稍后重试。
 
 [6/6] 获取部署结果...
 
