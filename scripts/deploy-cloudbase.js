@@ -272,6 +272,7 @@ async function deploy() {
 
     // 先检查函数是否已存在
     let fnExists = false;
+    let fnStatus = '';
     try {
       const existing = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
         FunctionName: WEB_FN_NAME,
@@ -279,14 +280,33 @@ async function deploy() {
       });
       if (existing && existing.FunctionName) {
         fnExists = true;
-        console.log(`  函数 ${WEB_FN_NAME} 已存在 (${existing.Status}), 更新代码...`);
+        fnStatus = existing.Status;
+        console.log(`  函数 ${WEB_FN_NAME} 已存在 (${fnStatus})`);
       }
     } catch (err) {
       // 函数不存在
+      console.log(`  函数 ${WEB_FN_NAME} 不存在，将创建`);
     }
 
-    if (fnExists) {
-      // 更新函数代码
+    // 如果函数处于 CreateFailed 状态，先删除再重新创建
+    if (fnExists && (fnStatus === 'CreateFailed' || fnStatus === 'DeleteFailed')) {
+      console.log(`  函数状态异常 (${fnStatus})，先删除...`);
+      try {
+        await tcApiCall('scf', 'DeleteFunction', SCF_VERSION, {
+          FunctionName: WEB_FN_NAME,
+          Namespace: 'default',
+        });
+        console.log('  旧函数已删除');
+        fnExists = false;
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      } catch (err) {
+        console.log('  删除旧函数:', err.message);
+      }
+    }
+
+    if (fnExists && fnStatus === 'Active') {
+      // 更新已有函数代码
+      console.log('  更新函数代码...');
       await tcApiCall('scf', 'UpdateFunctionCode', SCF_VERSION, {
         FunctionName: WEB_FN_NAME,
         Namespace: 'default',
@@ -294,15 +314,16 @@ async function deploy() {
         ZipFile: zipBase64,
       });
       console.log('  函数代码更新成功');
-    } else {
-      // 创建新函数
+    } else if (!fnExists) {
+      // 创建新函数（使用 Nodejs18.15 运行时）
+      console.log('  创建新 Web Function...');
       await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
         FunctionName: WEB_FN_NAME,
         Type: 'HTTP',
         Runtime: 'Nodejs16.13',
         Handler: 'index.main',
         Code: { ZipFile: zipBase64 },
-        Timeout: 30,
+        Timeout: 60,
         MemorySize: 256,
         Namespace: 'default',
         Environment: {
@@ -315,6 +336,8 @@ async function deploy() {
         Description: 'EchoWorld AI Agent Commerce World - Web Function',
       });
       console.log('  SCF Web Function 创建成功!');
+    } else {
+      console.log(`  函数状态: ${fnStatus}, 跳过部署`);
     }
 
     // 5c. 等待函数就绪（轮询直到 Active，最多 60 秒）
