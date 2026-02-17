@@ -227,33 +227,44 @@ async function deploy() {
   console.log('\n[5/6] 创建 SCF API Gateway 触发器...');
   let apiGatewayUrl = null;
 
-  // 5a. 先确保 SCF 服务角色存在（首次使用 SCF 需要创建服务角色）
-  try {
-    console.log('  检查/创建 SCF 服务角色...');
-    await tcApiCall('cam', 'CreateServiceLinkedRole', '2019-01-16', {
-      QCSServiceName: ['scf.qcloud.com'],
-    });
-    console.log('  SCF 服务角色创建成功');
-  } catch (err) {
-    if (err.message && err.message.includes('already exists')) {
-      console.log('  SCF 服务角色已存在');
-    } else {
-      console.log('  创建 SCF 服务角色:', err.message);
-      // 继续尝试，可能角色已存在但返回了不同错误
-    }
-  }
-
-  // 5b. 同时确保 API Gateway 服务角色存在
-  try {
-    await tcApiCall('cam', 'CreateServiceLinkedRole', '2019-01-16', {
-      QCSServiceName: ['apigateway.qcloud.com'],
-    });
-    console.log('  API Gateway 服务角色创建成功');
-  } catch (err) {
-    if (err.message && err.message.includes('already exists')) {
-      console.log('  API Gateway 服务角色已存在');
-    } else {
-      console.log('  创建 API Gateway 服务角色:', err.message);
+  // 5a. 确保 SCF 和 API Gateway 服务角色存在
+  console.log('  初始化服务角色...');
+  const roleNames = [
+    { service: 'scf.qcloud.com', name: 'SCF' },
+    { service: 'apigateway.qcloud.com', name: 'API Gateway' },
+  ];
+  for (const role of roleNames) {
+    try {
+      await tcApiCall('cam', 'CreateServiceLinkedRole', '2019-01-16', {
+        QCSServiceName: role.service,
+      });
+      console.log(`  ${role.name} 服务角色创建成功`);
+    } catch (err) {
+      if (err.message && (err.message.includes('already exists') || err.message.includes('RoleNameInUse'))) {
+        console.log(`  ${role.name} 服务角色已存在`);
+      } else {
+        console.log(`  创建 ${role.name} 服务角色: ${err.message}`);
+        // 也尝试 CreateRole 方式创建 SCF_QcsRole
+        if (role.service === 'scf.qcloud.com') {
+          try {
+            await tcApiCall('cam', 'CreateRole', '2019-01-16', {
+              RoleName: 'SCF_QcsRole',
+              PolicyDocument: JSON.stringify({
+                version: '2.0',
+                statement: [{
+                  action: 'sts:AssumeRole',
+                  effect: 'allow',
+                  principal: { service: ['scf.qcloud.com'] }
+                }]
+              }),
+              Description: 'SCF service role for API Gateway integration',
+            });
+            console.log('  SCF_QcsRole 创建成功 (via CreateRole)');
+          } catch (err2) {
+            console.log(`  CreateRole SCF_QcsRole: ${err2.message}`);
+          }
+        }
+      }
     }
   }
 
