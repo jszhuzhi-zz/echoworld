@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 03:54:22 UTC
-Commit: 5f726cf9fff8f8f17025acc3e2e1c971a85e0c7c
+部署时间: 2026-02-17 03:58:42 UTC
+Commit: 6aeade4147778538f582b29628883aea6107f3ce
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -517,9 +517,9 @@ found 0 vulnerabilities
 
 [2/5] 部署云函数...
   使用 base64 直接上传...
-  部署失败: [CreateFunction] [code=InvalidParameterValue.Environment,msg=环境变量Key包含前缀SCF_、QCLOUD_或TENCENTCLOUD_，请修正后重试。,reqId=d743ed50-2270-44d8-8a01-91ee72c7b090]
+  部署失败: [CreateFunction] ZipFile is too long，exceeds 131072B, please reduce the package size or upload via COS
 
-部署失败: CloudBaseError: [CreateFunction] [code=InvalidParameterValue.Environment,msg=环境变量Key包含前缀SCF_、QCLOUD_或TENCENTCLOUD_，请修正后重试。,reqId=d743ed50-2270-44d8-8a01-91ee72c7b090]
+部署失败: CloudBaseError: [CreateFunction] ZipFile is too long，exceeds 131072B, please reduce the package size or upload via COS
     at CloudService.request (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/utils/cloud-api-request.js:125:33)
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
     at async FunctionService.createFunction (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/function/index.js:188:25)
@@ -527,10 +527,10 @@ found 0 vulnerabilities
     at async deploy (/home/runner/work/echoworld/echoworld/scripts/deploy-cloudbase.js:102:5) {
   original: {
     Code: 'InvalidParameter',
-    Message: '[code=InvalidParameterValue.Environment,msg=环境变量Key包含前缀SCF_、QCLOUD_或TENCENTCLOUD_，请修正后重试。,reqId=d743ed50-2270-44d8-8a01-91ee72c7b090]'
+    Message: 'ZipFile is too long，exceeds 131072B, please reduce the package size or upload via COS'
   },
   code: 'InvalidParameter',
-  requestId: '9b9373f6-39c7-4ed7-aaa7-9c1fa012e819',
+  requestId: 'e7a5cf32-853a-486c-ba80-32f3fd003d46',
   action: 'CreateFunction'
 }
 
