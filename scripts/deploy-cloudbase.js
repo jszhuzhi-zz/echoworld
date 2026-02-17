@@ -223,146 +223,110 @@ async function deploy() {
     }
   }
 
-  // 5. 创建 SCF API Gateway 触发器（独立于 CloudBase HTTP 服务）
-  console.log('\n[5/6] 创建 SCF API Gateway 触发器...');
+  // 5. 创建 API Gateway 直接访问（绕过 SCF 角色权限问题）
+  console.log('\n[5/6] 创建 API Gateway 服务...');
   let apiGatewayUrl = null;
+  const APIGW_VERSION = '2018-08-08';
 
-  // 5a. 确保 SCF_QcsRole 存在并有 API Gateway 权限
-  console.log('  初始化 SCF 服务角色...');
   try {
-    // 先尝试创建角色（如果已存在会跳过）
+    // 5a. 查找或创建 API Gateway 服务
+    let serviceId = null;
+    let subDomain = null;
+
+    // 先查找已有服务
     try {
-      await tcApiCall('cam', 'CreateRole', '2019-01-16', {
-        RoleName: 'SCF_QcsRole',
-        PolicyDocument: JSON.stringify({
-          version: '2.0',
-          statement: [{
-            action: 'sts:AssumeRole',
-            effect: 'allow',
-            principal: { service: ['scf.qcloud.com'] }
-          }]
-        }),
-        Description: 'SCF service role for API Gateway integration',
+      const services = await tcApiCall('apigateway', 'DescribeServicesStatus', APIGW_VERSION, {
+        Limit: 100,
+        Filters: [{ Name: 'ServiceName', Values: ['echoworld_api'] }],
       });
-      console.log('  SCF_QcsRole 创建成功');
+      if (services && services.Result && services.Result.ServiceSet) {
+        for (const svc of services.Result.ServiceSet) {
+          if (svc.ServiceName === 'echoworld_api') {
+            serviceId = svc.ServiceId;
+            subDomain = svc.OuterSubDomain;
+            console.log(`  已有 API Gateway 服务: ${serviceId} (${subDomain})`);
+            break;
+          }
+        }
+      }
     } catch (err) {
-      if (err.message && (err.message.includes('already exists') || err.message.includes('RoleNameInUse'))) {
-        console.log('  SCF_QcsRole 已存在');
-      } else {
-        console.log('  创建 SCF_QcsRole:', err.message);
-      }
+      console.log('  查询 API Gateway 服务:', err.message);
     }
 
-    // 附加 API Gateway 全量权限策略到 SCF_QcsRole
-    const policiesToAttach = [
-      { id: 28313910, name: 'QcloudAPIGWFullAccess', desc: 'API Gateway 全量' },
-      { id: 219188, name: 'QcloudAccessForSCFRole', desc: 'SCF 角色' },
-    ];
-    for (const policy of policiesToAttach) {
-      try {
-        await tcApiCall('cam', 'AttachRolePolicy', '2019-01-16', {
-          AttachRoleName: 'SCF_QcsRole',
-          PolicyId: policy.id,
-        });
-        console.log(`  附加策略 ${policy.name} 成功`);
-      } catch (err) {
-        if (err.message && err.message.includes('bindRepeat')) {
-          console.log(`  策略 ${policy.name} 已附加`);
-        } else {
-          // 尝试用 PolicyName 方式
-          try {
-            await tcApiCall('cam', 'AttachRolePolicy', '2019-01-16', {
-              AttachRoleName: 'SCF_QcsRole',
-              PolicyName: policy.name,
-            });
-            console.log(`  附加策略 ${policy.name} 成功 (via name)`);
-          } catch (err2) {
-            console.log(`  附加策略 ${policy.name}: ${err2.message}`);
+    // 如果没有，创建新服务
+    if (!serviceId) {
+      console.log('  创建 API Gateway 服务...');
+      const svcResult = await tcApiCall('apigateway', 'CreateService', APIGW_VERSION, {
+        ServiceName: 'echoworld_api',
+        ServiceDesc: 'EchoWorld API Gateway',
+        Protocol: 'http&https',
+        NetTypes: ['OUTER'],
+        IpVersion: 'IPv4',
+      });
+      serviceId = svcResult.ServiceId;
+      subDomain = svcResult.OuterSubDomain;
+      console.log(`  API Gateway 服务创建成功: ${serviceId}`);
+      console.log(`  子域名: ${subDomain}`);
+    }
+
+    // 5b. 查找或创建 API 端点
+    let apiExists = false;
+    try {
+      const apis = await tcApiCall('apigateway', 'DescribeApisStatus', APIGW_VERSION, {
+        ServiceId: serviceId,
+        Limit: 100,
+      });
+      if (apis && apis.Result && apis.Result.ApiIdStatusSet) {
+        for (const api of apis.Result.ApiIdStatusSet) {
+          if (api.Path === '/') {
+            apiExists = true;
+            console.log(`  API 端点已存在: ${api.ApiId} (${api.Method} ${api.Path})`);
+            break;
           }
         }
       }
+    } catch (err) {
+      console.log('  查询 API 端点:', err.message);
     }
 
-    // 等待角色生效
-    console.log('  等待角色策略生效...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
-  } catch (err) {
-    console.log('  初始化服务角色失败:', err.message);
-  }
+    if (!apiExists) {
+      console.log('  创建 API 端点 (ANY /) -> SCF echoworld...');
+      const apiResult = await tcApiCall('apigateway', 'CreateApi', APIGW_VERSION, {
+        ServiceId: serviceId,
+        ApiName: 'echoworld_proxy',
+        Protocol: 'HTTP',
+        AuthType: 'NONE',
+        EnableCORS: true,
+        RequestConfig: {
+          Path: '/',
+          Method: 'ANY',
+        },
+        ServiceType: 'SCF',
+        ServiceTimeout: 30,
+        ServiceScfFunctionName: FUNCTION_NAME,
+        ServiceScfFunctionNamespace: ENV_ID,
+        ServiceScfFunctionQualifier: '$DEFAULT',
+        ServiceScfIsIntegratedResponse: true,
+      });
+      console.log(`  API 端点创建成功: ${apiResult.Result?.ApiId || 'ok'}`);
+    }
 
-  try {
-    // 先检查是否已有 API Gateway 触发器
-    const triggers = await tcApiCall('scf', 'ListTriggers', '2018-04-16', {
-      FunctionName: FUNCTION_NAME,
-      Namespace: ENV_ID,
+    // 5c. 发布服务
+    console.log('  发布 API Gateway 服务...');
+    await tcApiCall('apigateway', 'ReleaseService', APIGW_VERSION, {
+      ServiceId: serviceId,
+      EnvironmentName: 'release',
+      ReleaseDesc: 'EchoWorld deployment',
     });
+    console.log('  服务发布成功!');
 
-    let existingApigwTrigger = null;
-    if (triggers && triggers.Triggers) {
-      for (const t of triggers.Triggers) {
-        console.log(`  已有触发器: ${t.TriggerName} (${t.Type})`);
-        if (t.Type === 'apigw') {
-          existingApigwTrigger = t;
-        }
-      }
-    }
-
-    if (existingApigwTrigger) {
-      console.log('  API Gateway 触发器已存在');
-      // 解析触发器描述获取 URL
-      try {
-        const desc = JSON.parse(existingApigwTrigger.TriggerDesc);
-        if (desc.service && desc.service.subDomain) {
-          apiGatewayUrl = `https://${desc.service.subDomain}/release/`;
-          console.log(`  API Gateway URL: ${apiGatewayUrl}`);
-        }
-      } catch (e) {
-        console.log('  无法解析触发器描述:', existingApigwTrigger.TriggerDesc?.substring(0, 200));
-      }
-    } else {
-      // 创建新的 API Gateway 触发器
-      console.log('  创建新的 API Gateway 触发器...');
-      const triggerDesc = JSON.stringify({
-        api: {
-          authRequired: 'FALSE',
-          requestConfig: {
-            method: 'ANY'
-          },
-          isIntegratedResponse: 'TRUE'
-        },
-        service: {
-          serviceName: 'SCF_API_SERVICE_echoworld'
-        },
-        release: {
-          environmentName: 'release'
-        }
-      });
-
-      const triggerResult = await tcApiCall('scf', 'CreateTrigger', '2018-04-16', {
-        FunctionName: FUNCTION_NAME,
-        TriggerName: 'apigw_echoworld',
-        Type: 'apigw',
-        TriggerDesc: triggerDesc,
-        Namespace: ENV_ID,
-        Qualifier: '$DEFAULT',
-      });
-
-      console.log('  API Gateway 触发器创建成功!');
-      console.log('  触发器信息:', JSON.stringify(triggerResult).substring(0, 500));
-
-      // 从响应中提取 URL
-      if (triggerResult && triggerResult.TriggerInfo) {
-        try {
-          const info = JSON.parse(triggerResult.TriggerInfo.TriggerDesc || '{}');
-          if (info.service && info.service.subDomain) {
-            apiGatewayUrl = `https://${info.service.subDomain}/release/`;
-          }
-        } catch (e) {}
-      }
+    if (subDomain) {
+      apiGatewayUrl = `https://${subDomain}/release/`;
+      console.log(`  API Gateway URL: ${apiGatewayUrl}`);
     }
   } catch (err) {
-    console.log('  SCF API Gateway 触发器:', err.message);
-    console.log('  (如果 API Gateway 已下线，此方式不可用)');
+    console.log('  API Gateway:', err.message);
+    console.log('  (API Gateway 可能需要在控制台开通)');
   }
 
   // 6. 获取部署结果
