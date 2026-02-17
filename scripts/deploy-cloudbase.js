@@ -14,7 +14,7 @@ const ENV_ID = 'georgezhu-0gnrnw9ae9fca59a';
 const FUNCTION_NAME = 'echoworld';
 const SECRET_ID = process.env.TCB_SECRET_ID;
 const SECRET_KEY = process.env.TCB_SECRET_KEY;
-const REGION = 'ap-shanghai';
+const REGION = 'ap-guangzhou'; // CloudBase 默认地域
 
 // ============ Tencent Cloud API v3 签名工具 ============
 
@@ -288,6 +288,17 @@ async function deploy() {
       console.log(`  函数 ${WEB_FN_NAME} 不存在，将创建`);
     }
 
+    // 清理上海地域的残留函数
+    try {
+      await tcApiCall('scf', 'DeleteFunction', SCF_VERSION, {
+        FunctionName: WEB_FN_NAME,
+        Namespace: 'default',
+      }, 'ap-shanghai');
+      console.log('  清理 ap-shanghai 残留函数成功');
+    } catch (err) {
+      // 忽略不存在的错误
+    }
+
     // 如果函数处于 CreateFailed 状态，先删除再重新创建
     if (fnExists && (fnStatus === 'CreateFailed' || fnStatus === 'DeleteFailed')) {
       console.log(`  函数状态异常 (${fnStatus})，先删除...`);
@@ -316,46 +327,29 @@ async function deploy() {
       console.log('  函数代码更新成功');
     } else if (!fnExists) {
       // 创建新 Web Function
-      // 先尝试创建 Event 类型（更可靠），再尝试 HTTP 类型
       console.log('  创建新 Web Function...');
-
-      // 尝试多个地域（广州是 CloudBase 默认地域）
-      const regions = ['ap-guangzhou', 'ap-shanghai'];
-      let created = false;
-
-      for (const region of regions) {
-        if (created) break;
-        console.log(`  尝试地域: ${region}...`);
-        try {
-          await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
-            FunctionName: WEB_FN_NAME,
-            Type: 'HTTP',
-            Runtime: 'Nodejs16.13',
-            Handler: 'index.main',
-            Code: { ZipFile: zipBase64 },
-            Timeout: 60,
-            MemorySize: 256,
-            Namespace: 'default',
-            Environment: {
-              Variables: [
-                { Key: 'DEPLOY_ENV', Value: 'cloudbase' },
-                { Key: 'ZHIPU_API_KEY', Value: process.env.ZHIPU_API_KEY || '' },
-                { Key: 'ZHIPU_MODEL', Value: 'glm-4-flash' },
-              ],
-            },
-            Description: 'EchoWorld AI Agent Commerce World - Web Function',
-          }, region);
-          console.log(`  SCF Web Function 创建成功 (${region})!`);
-          created = true;
-          // 更新 REGION 用于后续查询
-          break;
-        } catch (err) {
-          console.log(`  ${region}: ${err.message}`);
-        }
-      }
-
-      if (!created) {
-        console.log('  所有地域创建 Web Function 失败');
+      try {
+        await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
+          FunctionName: WEB_FN_NAME,
+          Type: 'HTTP',
+          Runtime: 'Nodejs16.13',
+          Handler: 'index.main',
+          Code: { ZipFile: zipBase64 },
+          Timeout: 60,
+          MemorySize: 256,
+          Namespace: 'default',
+          Environment: {
+            Variables: [
+              { Key: 'DEPLOY_ENV', Value: 'cloudbase' },
+              { Key: 'ZHIPU_API_KEY', Value: process.env.ZHIPU_API_KEY || '' },
+              { Key: 'ZHIPU_MODEL', Value: 'glm-4-flash' },
+            ],
+          },
+          Description: 'EchoWorld AI Agent Commerce World - Web Function',
+        });
+        console.log('  SCF Web Function 创建成功!');
+      } catch (err) {
+        console.log(`  创建 Web Function: ${err.message}`);
       }
     } else {
       console.log(`  函数状态: ${fnStatus}, 跳过部署`);
