@@ -112,34 +112,27 @@ async function deploy() {
     }
   }
 
-  // 3. 尝试开通 HTTP 访问服务
-  console.log('\n[3/5] 检查/开通 HTTP 访问服务...');
+  // 3. 开通 HTTP 访问服务（使用 SDK 内置 access 模块）
+  console.log('\n[3/5] 开通 HTTP 访问服务...');
   try {
-    await manager.commonService().call({
-      Action: 'EstablishCloudBaseRunServer',
-      Param: { EnvId: ENV_ID },
-    });
-    console.log('  HTTP 服务开通成功');
+    await manager.access.switchAuth(true);
+    console.log('  HTTP 访问服务已开通');
   } catch (err) {
-    console.log('  HTTP 服务:', err.message);
+    console.log('  开通 HTTP 服务:', err.message);
   }
 
-  // 4. 创建 HTTP 触发路由
+  // 4. 创建 HTTP 触发路由（使用 SDK 内置 access 模块）
   console.log('\n[4/5] 创建 HTTP 访问路由...');
   try {
-    await manager.commonService().call({
-      Action: 'CreateCloudBaseGWAPI',
-      Param: {
-        ServiceId: ENV_ID,
-        EnvId: ENV_ID,
-        Path: '/echoworld',
-        Type: 1,
-        Name: FUNCTION_NAME,
-      },
+    const result = await manager.access.createAccess({
+      path: '/echoworld',
+      name: FUNCTION_NAME,
+      type: 1,
+      auth: false,
     });
-    console.log('  路由 /echoworld 创建成功');
+    console.log('  路由 /echoworld 创建成功, APIId:', result.APIId);
   } catch (err) {
-    if (err.message && err.message.includes('bindPath already bindName')) {
+    if (err.message && (err.message.includes('bindPath already') || err.message.includes('bindpath already'))) {
       console.log('  路由 /echoworld 已存在');
     } else {
       console.log('  创建路由:', err.message);
@@ -157,33 +150,29 @@ async function deploy() {
     }
   }
 
-  // 查询 HTTP 访问服务列表
+  // 查询 HTTP 访问路由列表（使用 SDK 内置方法）
   try {
-    const gwList = await manager.commonService().call({
-      Action: 'DescribeCloudBaseGWAPI',
-      Param: { ServiceId: ENV_ID, EnvId: ENV_ID },
-    });
+    const gwList = await manager.access.getAccessList();
     console.log('\nHTTP 路由:');
     if (gwList && gwList.APISet) {
       for (const api of gwList.APISet) {
         console.log(`  ${api.Path} -> ${api.Name} (${api.Type === 1 ? '云函数' : '其他'})`);
       }
     }
+    console.log('HTTP 服务状态:', gwList.EnableService ? '已开通' : '未开通');
   } catch (err) {
     console.log('  获取路由列表:', err.message);
   }
 
-  // 查询默认域名
+  // 查询默认域名（使用 SDK 内置方法）
   try {
-    const domainResult = await manager.commonService().call({
-      Action: 'DescribeCloudBaseGWService',
-      Param: { ServiceId: ENV_ID, EnvId: ENV_ID },
-    });
+    const domainResult = await manager.access.getDomainList();
     if (domainResult && domainResult.DefaultDomain) {
       console.log(`\n访问地址: https://${domainResult.DefaultDomain}/echoworld`);
     } else {
       console.log('\n访问地址: https://' + ENV_ID + '.service.tcloudbase.com/echoworld');
     }
+    console.log('HTTP 服务状态:', domainResult.EnableService ? '已开通' : '未开通');
     console.log('域名信息:', JSON.stringify(domainResult).substring(0, 300));
   } catch (err) {
     console.log('  获取域名:', err.message);
