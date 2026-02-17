@@ -315,27 +315,48 @@ async function deploy() {
       });
       console.log('  函数代码更新成功');
     } else if (!fnExists) {
-      // 创建新函数（使用 Nodejs18.15 运行时）
+      // 创建新 Web Function
+      // 先尝试创建 Event 类型（更可靠），再尝试 HTTP 类型
       console.log('  创建新 Web Function...');
-      await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
-        FunctionName: WEB_FN_NAME,
-        Type: 'HTTP',
-        Runtime: 'Nodejs16.13',
-        Handler: 'index.main',
-        Code: { ZipFile: zipBase64 },
-        Timeout: 60,
-        MemorySize: 256,
-        Namespace: 'default',
-        Environment: {
-          Variables: [
-            { Key: 'DEPLOY_ENV', Value: 'cloudbase' },
-            { Key: 'ZHIPU_API_KEY', Value: process.env.ZHIPU_API_KEY || '' },
-            { Key: 'ZHIPU_MODEL', Value: 'glm-4-flash' },
-          ],
-        },
-        Description: 'EchoWorld AI Agent Commerce World - Web Function',
-      });
-      console.log('  SCF Web Function 创建成功!');
+
+      // 尝试多个地域（广州是 CloudBase 默认地域）
+      const regions = ['ap-guangzhou', 'ap-shanghai'];
+      let created = false;
+
+      for (const region of regions) {
+        if (created) break;
+        console.log(`  尝试地域: ${region}...`);
+        try {
+          await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
+            FunctionName: WEB_FN_NAME,
+            Type: 'HTTP',
+            Runtime: 'Nodejs16.13',
+            Handler: 'index.main',
+            Code: { ZipFile: zipBase64 },
+            Timeout: 60,
+            MemorySize: 256,
+            Namespace: 'default',
+            Environment: {
+              Variables: [
+                { Key: 'DEPLOY_ENV', Value: 'cloudbase' },
+                { Key: 'ZHIPU_API_KEY', Value: process.env.ZHIPU_API_KEY || '' },
+                { Key: 'ZHIPU_MODEL', Value: 'glm-4-flash' },
+              ],
+            },
+            Description: 'EchoWorld AI Agent Commerce World - Web Function',
+          }, region);
+          console.log(`  SCF Web Function 创建成功 (${region})!`);
+          created = true;
+          // 更新 REGION 用于后续查询
+          break;
+        } catch (err) {
+          console.log(`  ${region}: ${err.message}`);
+        }
+      }
+
+      if (!created) {
+        console.log('  所有地域创建 Web Function 失败');
+      }
     } else {
       console.log(`  函数状态: ${fnStatus}, 跳过部署`);
     }
@@ -355,6 +376,21 @@ async function deploy() {
 
     if (fnInfo) {
       console.log(`  最终状态: ${fnInfo.Status}`);
+
+      // 如果 CreateFailed，尝试获取错误原因
+      if (fnInfo.Status === 'CreateFailed') {
+        console.log('  === CreateFailed 调试信息 ===');
+        if (fnInfo.StatusDesc) console.log(`  StatusDesc: ${fnInfo.StatusDesc}`);
+        if (fnInfo.StatusReasons) console.log(`  StatusReasons: ${JSON.stringify(fnInfo.StatusReasons)}`);
+        if (fnInfo.ErrNo) console.log(`  ErrNo: ${fnInfo.ErrNo}`);
+        // 输出所有非空字段帮助调试
+        for (const [key, val] of Object.entries(fnInfo)) {
+          if (val && typeof val === 'string' && val.length < 200 && !['CodeInfo', 'CodeResult'].includes(key)) {
+            console.log(`  ${key}: ${val}`);
+          }
+        }
+      }
+
       if (fnInfo.AccessInfo) {
         console.log(`  访问信息: ${JSON.stringify(fnInfo.AccessInfo)}`);
         if (fnInfo.AccessInfo.Host) {
@@ -364,7 +400,7 @@ async function deploy() {
       }
       // 显示函数的完整信息用于调试
       const debugKeys = ['FunctionId', 'FunctionName', 'Type', 'Status', 'Runtime', 'Timeout',
-        'AccessInfo', 'HttpConfigInfo', 'Qualifier', 'FunctionVersion'];
+        'AccessInfo', 'HttpConfigInfo', 'Qualifier', 'FunctionVersion', 'StatusDesc', 'StatusReasons'];
       for (const key of debugKeys) {
         if (fnInfo[key] !== undefined) {
           const val = typeof fnInfo[key] === 'object' ? JSON.stringify(fnInfo[key]) : fnInfo[key];
