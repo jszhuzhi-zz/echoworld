@@ -227,45 +227,67 @@ async function deploy() {
   console.log('\n[5/6] 创建 SCF API Gateway 触发器...');
   let apiGatewayUrl = null;
 
-  // 5a. 确保 SCF 和 API Gateway 服务角色存在
-  console.log('  初始化服务角色...');
-  const roleNames = [
-    { service: 'scf.qcloud.com', name: 'SCF' },
-    { service: 'apigateway.qcloud.com', name: 'API Gateway' },
-  ];
-  for (const role of roleNames) {
+  // 5a. 确保 SCF_QcsRole 存在并有 API Gateway 权限
+  console.log('  初始化 SCF 服务角色...');
+  try {
+    // 先尝试创建角色（如果已存在会跳过）
     try {
-      await tcApiCall('cam', 'CreateServiceLinkedRole', '2019-01-16', {
-        QCSServiceName: role.service,
+      await tcApiCall('cam', 'CreateRole', '2019-01-16', {
+        RoleName: 'SCF_QcsRole',
+        PolicyDocument: JSON.stringify({
+          version: '2.0',
+          statement: [{
+            action: 'sts:AssumeRole',
+            effect: 'allow',
+            principal: { service: ['scf.qcloud.com'] }
+          }]
+        }),
+        Description: 'SCF service role for API Gateway integration',
       });
-      console.log(`  ${role.name} 服务角色创建成功`);
+      console.log('  SCF_QcsRole 创建成功');
     } catch (err) {
       if (err.message && (err.message.includes('already exists') || err.message.includes('RoleNameInUse'))) {
-        console.log(`  ${role.name} 服务角色已存在`);
+        console.log('  SCF_QcsRole 已存在');
       } else {
-        console.log(`  创建 ${role.name} 服务角色: ${err.message}`);
-        // 也尝试 CreateRole 方式创建 SCF_QcsRole
-        if (role.service === 'scf.qcloud.com') {
+        console.log('  创建 SCF_QcsRole:', err.message);
+      }
+    }
+
+    // 附加 API Gateway 全量权限策略到 SCF_QcsRole
+    const policiesToAttach = [
+      { id: 28313910, name: 'QcloudAPIGWFullAccess', desc: 'API Gateway 全量' },
+      { id: 219188, name: 'QcloudAccessForSCFRole', desc: 'SCF 角色' },
+    ];
+    for (const policy of policiesToAttach) {
+      try {
+        await tcApiCall('cam', 'AttachRolePolicy', '2019-01-16', {
+          AttachRoleName: 'SCF_QcsRole',
+          PolicyId: policy.id,
+        });
+        console.log(`  附加策略 ${policy.name} 成功`);
+      } catch (err) {
+        if (err.message && err.message.includes('bindRepeat')) {
+          console.log(`  策略 ${policy.name} 已附加`);
+        } else {
+          // 尝试用 PolicyName 方式
           try {
-            await tcApiCall('cam', 'CreateRole', '2019-01-16', {
-              RoleName: 'SCF_QcsRole',
-              PolicyDocument: JSON.stringify({
-                version: '2.0',
-                statement: [{
-                  action: 'sts:AssumeRole',
-                  effect: 'allow',
-                  principal: { service: ['scf.qcloud.com'] }
-                }]
-              }),
-              Description: 'SCF service role for API Gateway integration',
+            await tcApiCall('cam', 'AttachRolePolicy', '2019-01-16', {
+              AttachRoleName: 'SCF_QcsRole',
+              PolicyName: policy.name,
             });
-            console.log('  SCF_QcsRole 创建成功 (via CreateRole)');
+            console.log(`  附加策略 ${policy.name} 成功 (via name)`);
           } catch (err2) {
-            console.log(`  CreateRole SCF_QcsRole: ${err2.message}`);
+            console.log(`  附加策略 ${policy.name}: ${err2.message}`);
           }
         }
       }
     }
+
+    // 等待角色生效
+    console.log('  等待角色策略生效...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  } catch (err) {
+    console.log('  初始化服务角色失败:', err.message);
   }
 
   try {
