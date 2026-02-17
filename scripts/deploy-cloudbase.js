@@ -63,11 +63,9 @@ async function deploy() {
   execSync(`find ${fnDir}/node_modules -name "*.md" -o -name "*.txt" -o -name "*.map" -o -name "CHANGELOG*" -o -name "LICENSE*" -o -name "*.ts" -o -name ".npmignore" -o -name ".eslintrc*" -o -name ".editorconfig" | xargs rm -f 2>/dev/null || true`);
   execSync(`find ${fnDir}/node_modules -name "test" -o -name "tests" -o -name "example" -o -name "examples" -o -name ".github" | xargs rm -rf 2>/dev/null || true`);
 
-  // 创建 zip
-  execSync(`cd ${fnDir} && zip -r -9 ${zipPath} . -x "*.ts" "*.map"`, { stdio: 'inherit' });
-  const zipBuffer = fs.readFileSync(zipPath);
-  const zipSizeMB = zipBuffer.length / 1024 / 1024;
-  console.log(`  ZIP 大小: ${zipSizeMB.toFixed(2)} MB`);
+  // 计算大小
+  const totalSize = execSync(`du -sh ${fnDir}`).toString().split('\t')[0];
+  console.log(`  函数包大小: ${totalSize}`);
 
   // 2. 部署云函数
   console.log('\n[2/5] 部署云函数...');
@@ -88,15 +86,8 @@ async function deploy() {
     functionRootPath: fnDir,
   };
 
-  if (zipSizeMB < 1.4) {
-    // 小于 1.4MB 使用 base64 直接上传
-    console.log('  使用 base64 直接上传...');
-    funcConfig.base64Code = zipBuffer.toString('base64');
-  } else {
-    // 大于 1.4MB 使用 functionRootPath 方式（SDK 会自动处理 COS 上传）
-    console.log('  使用 functionRootPath 方式上传...');
-    // manager-node SDK 会自动处理大文件通过 COS 上传
-  }
+  // 始终使用 functionRootPath（SDK 自动通过 COS 上传）
+  console.log('  使用 COS 上传方式...');
 
   try {
     await manager.functions.createFunction(funcConfig);
