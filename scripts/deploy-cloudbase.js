@@ -33,11 +33,13 @@ async function deploy() {
 
   execSync(`rm -rf ${fnDir} && mkdir -p ${fnDir}`);
 
-  // 只复制编译后的 dist 和 public
+  // 复制编译后的 dist、public 和云函数入口
   execSync(`cp -r ${projectDir}/dist ${fnDir}/`);
   if (fs.existsSync(path.join(projectDir, 'public'))) {
     execSync(`cp -r ${projectDir}/public ${fnDir}/`);
   }
+  // 复制云函数入口文件
+  execSync(`cp ${projectDir}/scripts/fn-entry.js ${fnDir}/index.js`);
 
   // 创建精简的 package.json（只保留生产依赖）
   const pkg = require(path.join(projectDir, 'package.json'));
@@ -75,7 +77,7 @@ async function deploy() {
       name: FUNCTION_NAME,
       timeout: 30,
       runtime: 'Nodejs16.13',
-      handler: 'dist/index.main_handler',
+      handler: 'index.main',
       envVariables: {
         ZHIPU_API_KEY: process.env.ZHIPU_API_KEY || '',
         ZHIPU_MODEL: 'glm-4-flash',
