@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 04:48:16 UTC
-Commit: 16a78be0620a25625f680452ebc719f5cfa22f2d
+部署时间: 2026-02-17 04:50:35 UTC
+Commit: f455541bec157134f60b8fbbd70452b825f52366
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -33,11 +33,14 @@ found 0 vulnerabilities
   创建路由: [CreateCloudBaseGWAPI] api created
 
 [5/6] 创建 SCF API Gateway 触发器...
-  检查/创建 SCF 服务角色...
-  创建 SCF 服务角色: [CreateServiceLinkedRole] InvalidParameter.ParamError: invalid param
-  创建 API Gateway 服务角色: [CreateServiceLinkedRole] InvalidParameter.ParamError: invalid param
+  初始化服务角色...
+  创建 SCF 服务角色: [CreateServiceLinkedRole] InvalidParameter: The value type of parameter `QCSServiceName` is not valid, input type should be `array-type`
+  SCF_QcsRole 创建成功 (via CreateRole)
+  创建 API Gateway 服务角色: [CreateServiceLinkedRole] InvalidParameter: The value type of parameter `QCSServiceName` is not valid, input type should be `array-type`
   创建新的 API Gateway 触发器...
-  SCF API Gateway 触发器: [CreateTrigger] UnauthorizedOperation: 没有权限进行此操作，请修改后重试。([TencentCloudSDKError] Code=InternalError.GetRoleError, Message=role not exist, RequestId=4ae81788-bbc6-4296-ab3b-029935f616f2)
+  SCF API Gateway 触发器: [CreateTrigger] FailedOperation.Apigw: 请求Apigw失败，请稍后重试。如无法解决，请联系智能客服或提交工单。([TencentCloudSDKError] Code=UnauthorizedOperation, Message=[request id:1771303833]you are not authorized to perform operation (apigw:CreateService)
+resource (*) has no permission
+。, RequestId=c90d4a17-e4e8-4de3-8e14-db9cff0a9a88)
   (如果 API Gateway 已下线，此方式不可用)
 
 [6/6] 获取部署结果...
