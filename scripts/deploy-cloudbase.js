@@ -226,6 +226,37 @@ async function deploy() {
   // 5. 创建 SCF API Gateway 触发器（独立于 CloudBase HTTP 服务）
   console.log('\n[5/6] 创建 SCF API Gateway 触发器...');
   let apiGatewayUrl = null;
+
+  // 5a. 先确保 SCF 服务角色存在（首次使用 SCF 需要创建服务角色）
+  try {
+    console.log('  检查/创建 SCF 服务角色...');
+    await tcApiCall('cam', 'CreateServiceLinkedRole', '2019-01-16', {
+      QCSServiceName: ['scf.qcloud.com'],
+    });
+    console.log('  SCF 服务角色创建成功');
+  } catch (err) {
+    if (err.message && err.message.includes('already exists')) {
+      console.log('  SCF 服务角色已存在');
+    } else {
+      console.log('  创建 SCF 服务角色:', err.message);
+      // 继续尝试，可能角色已存在但返回了不同错误
+    }
+  }
+
+  // 5b. 同时确保 API Gateway 服务角色存在
+  try {
+    await tcApiCall('cam', 'CreateServiceLinkedRole', '2019-01-16', {
+      QCSServiceName: ['apigateway.qcloud.com'],
+    });
+    console.log('  API Gateway 服务角色创建成功');
+  } catch (err) {
+    if (err.message && err.message.includes('already exists')) {
+      console.log('  API Gateway 服务角色已存在');
+    } else {
+      console.log('  创建 API Gateway 服务角色:', err.message);
+    }
+  }
+
   try {
     // 先检查是否已有 API Gateway 触发器
     const triggers = await tcApiCall('scf', 'ListTriggers', '2018-04-16', {
