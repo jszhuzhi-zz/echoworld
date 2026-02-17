@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 05:03:23 UTC
-Commit: b5475fdcee5f631c4b4d0cda460aac8148feb449
+部署时间: 2026-02-17 05:08:14 UTC
+Commit: f535ac98d6cd1a81dbac9c2d3b4c38cf96e20e70
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -37,8 +37,36 @@ found 0 vulnerabilities
   Web Function 包大小: 652K
   ZIP base64 大小: 0.84 MB
   部署 SCF Web Function...
-  函数 echoworld_web 已存在 (CreateFailed), 更新代码...
-  SCF Web Function: [UpdateFunctionCode] FailedOperation.UpdateFunctionCode: 当前函数处于CreateFailed状态，无法进行此操作，请稍后重试。
+  函数 echoworld_web 已存在 (CreateFailed)
+  函数状态异常 (CreateFailed)，先删除...
+  旧函数已删除
+  创建新 Web Function...
+  SCF Web Function 创建成功!
+  等待函数就绪...
+  [5s] 状态: Creating, 类型: HTTP
+  [10s] 状态: CreateFailed, 类型: HTTP
+  [15s] 状态: CreateFailed, 类型: HTTP
+  [20s] 状态: CreateFailed, 类型: HTTP
+  [25s] 状态: CreateFailed, 类型: HTTP
+  [30s] 状态: CreateFailed, 类型: HTTP
+  [35s] 状态: CreateFailed, 类型: HTTP
+  [40s] 状态: CreateFailed, 类型: HTTP
+  [45s] 状态: CreateFailed, 类型: HTTP
+  [50s] 状态: CreateFailed, 类型: HTTP
+  [55s] 状态: CreateFailed, 类型: HTTP
+  [60s] 状态: CreateFailed, 类型: HTTP
+  最终状态: CreateFailed
+  访问信息: {"Host":"","Vip":""}
+  FunctionId: lam-gy152tz5
+  FunctionName: echoworld_web
+  Type: HTTP
+  Status: CreateFailed
+  Runtime: Nodejs16.13
+  Timeout: 60
+  AccessInfo: {"Host":"","Vip":""}
+  Qualifier: $LATEST
+  FunctionVersion: $LATEST
+  触发器 (0):
 
 [6/6] 获取部署结果...
 
