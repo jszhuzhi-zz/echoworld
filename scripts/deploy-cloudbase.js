@@ -1,11 +1,8 @@
 /**
  * CloudBase 部署脚本
- * 使用 @cloudbase/manager-node SDK 部署云函数
- * 使用 Tencent Cloud API v3 创建 SCF API Gateway 触发器提供 HTTP 访问
+ * 使用 @cloudbase/manager-node SDK 部署云函数到腾讯云开发
  */
 const CloudBase = require('@cloudbase/manager-node');
-const crypto = require('crypto');
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -14,80 +11,6 @@ const ENV_ID = 'georgezhu-0gnrnw9ae9fca59a';
 const FUNCTION_NAME = 'echoworld';
 const SECRET_ID = process.env.TCB_SECRET_ID;
 const SECRET_KEY = process.env.TCB_SECRET_KEY;
-const REGION = 'ap-guangzhou'; // CloudBase 默认地域
-
-// ============ Tencent Cloud API v3 签名工具 ============
-
-function tcApiCall(service, action, version, payload, region) {
-  return new Promise((resolve, reject) => {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const date = new Date(timestamp * 1000).toISOString().split('T')[0];
-    const host = `${service}.tencentcloudapi.com`;
-    const payloadStr = JSON.stringify(payload);
-
-    // Step 1: Canonical Request
-    const hashedPayload = crypto.createHash('sha256').update(payloadStr).digest('hex');
-    const canonicalRequest = [
-      'POST', '/', '',
-      `content-type:application/json\nhost:${host}\n`,
-      'content-type;host',
-      hashedPayload
-    ].join('\n');
-
-    // Step 2: String to Sign
-    const credentialScope = `${date}/${service}/tc3_request`;
-    const hashedCanonical = crypto.createHash('sha256').update(canonicalRequest).digest('hex');
-    const stringToSign = [
-      'TC3-HMAC-SHA256', String(timestamp), credentialScope, hashedCanonical
-    ].join('\n');
-
-    // Step 3: Calculate Signature
-    const secretDate = crypto.createHmac('sha256', `TC3${SECRET_KEY}`).update(date).digest();
-    const secretService = crypto.createHmac('sha256', secretDate).update(service).digest();
-    const secretSigning = crypto.createHmac('sha256', secretService).update('tc3_request').digest();
-    const signature = crypto.createHmac('sha256', secretSigning).update(stringToSign).digest('hex');
-
-    // Step 4: Authorization Header
-    const authorization = `TC3-HMAC-SHA256 Credential=${SECRET_ID}/${credentialScope}, SignedHeaders=content-type;host, Signature=${signature}`;
-
-    const options = {
-      hostname: host,
-      method: 'POST',
-      path: '/',
-      headers: {
-        'Content-Type': 'application/json',
-        'Host': host,
-        'X-TC-Action': action,
-        'X-TC-Timestamp': String(timestamp),
-        'X-TC-Version': version,
-        'X-TC-Region': region || REGION,
-        'Authorization': authorization
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(data);
-          if (result.Response && result.Response.Error) {
-            reject(new Error(`[${action}] ${result.Response.Error.Code}: ${result.Response.Error.Message}`));
-          } else {
-            resolve(result.Response);
-          }
-        } catch (e) {
-          reject(new Error(`Failed to parse response: ${data.substring(0, 200)}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    req.write(payloadStr);
-    req.end();
-  });
-}
-
-// ============ 主部署流程 ============
 
 async function deploy() {
   console.log('=== CloudBase Deploy Script ===');
@@ -102,8 +25,9 @@ async function deploy() {
     envId: ENV_ID,
   });
 
-  // 0. 获取环境信息和地域
+  // 0. 获取环境信息
   console.log('\n[0] 获取环境信息...');
+  let planName = '';
   try {
     const envInfo = await manager.commonService().call({
       Action: 'DescribeEnvs',
@@ -111,15 +35,16 @@ async function deploy() {
     });
     if (envInfo && envInfo.EnvList && envInfo.EnvList[0]) {
       const env = envInfo.EnvList[0];
-      console.log(`  环境: ${env.EnvId} (${env.Source || 'unknown'}) 状态: ${env.Status}`);
-      console.log(`  套餐: ${env.PackageName || 'unknown'}`);
+      planName = env.PackageName || '';
+      console.log(`  环境: ${env.EnvId} 状态: ${env.Status}`);
+      console.log(`  套餐: ${planName}`);
     }
   } catch (err) {
     console.log('  获取环境信息:', err.message);
   }
 
   // 1. 打包函数代码
-  console.log('\n[1/6] 打包函数代码...');
+  console.log('\n[1/4] 打包函数代码...');
   const projectDir = path.resolve(__dirname, '..');
   const fnRoot = '/tmp/echoworld-functions';
   const fnDir = path.join(fnRoot, FUNCTION_NAME);
@@ -154,9 +79,8 @@ async function deploy() {
   const totalSize = execSync(`du -sh ${fnDir}`).toString().split('\t')[0];
   console.log(`  函数包大小: ${totalSize}`);
 
-  // 2. 部署云函数到 CloudBase
-  console.log('\n[2/6] 部署云函数...');
-
+  // 2. 部署云函数
+  console.log('\n[2/4] 部署云函数...');
   const funcConfig = {
     func: {
       name: FUNCTION_NAME,
@@ -195,303 +119,90 @@ async function deploy() {
     }
   }
 
-  // 3. 尝试开通 CloudBase HTTP 访问服务
-  console.log('\n[3/6] 尝试开通 CloudBase HTTP 访问服务...');
+  // 3. 开通 HTTP 访问服务 & 创建路由
+  console.log('\n[3/4] 配置 HTTP 访问...');
+  let httpEnabled = false;
+
   try {
     await manager.access.switchAuth(true);
+    httpEnabled = true;
     console.log('  HTTP 访问服务已开通');
   } catch (err) {
-    console.log('  CloudBase HTTP 服务:', err.message);
-    console.log('  (免费套餐限制，将使用 SCF API Gateway 触发器作为替代)');
+    console.log('  HTTP 服务开通失败:', err.message);
   }
 
-  // 4. 创建 CloudBase HTTP 路由
-  console.log('\n[4/6] 创建 CloudBase HTTP 路由...');
   try {
-    const result = await manager.access.createAccess({
+    await manager.access.createAccess({
       path: '/echoworld',
       name: FUNCTION_NAME,
       type: 1,
       auth: false,
     });
-    console.log('  路由 /echoworld 创建成功, APIId:', result.APIId);
+    console.log('  路由 /echoworld -> echoworld 创建成功');
   } catch (err) {
-    if (err.message && (err.message.includes('bindPath already') || err.message.includes('bindpath already'))) {
-      console.log('  路由 /echoworld 已存在');
+    if (err.message && (err.message.includes('bindPath already') || err.message.includes('api created'))) {
+      console.log('  路由 /echoworld 已配置');
     } else {
       console.log('  创建路由:', err.message);
     }
   }
 
-  // 5. 部署 SCF Web Function（HTTP 类型函数，自带公网访问 URL）
-  console.log('\n[5/6] 部署 SCF Web Function...');
-  let webFunctionUrl = null;
-  const SCF_VERSION = '2018-04-16';
-  const WEB_FN_NAME = 'echoworld_web';
-
-  try {
-    // 5a. 准备 Web Function 代码包
-    console.log('  准备 Web Function 代码包...');
-    const webFnDir = '/tmp/echoworld-webfn';
-    execSync(`rm -rf ${webFnDir} && mkdir -p ${webFnDir}`);
-
-    // 复制编译后的 dist 和 public
-    execSync(`cp -r ${fnDir}/dist ${webFnDir}/`);
-    execSync(`cp -r ${fnDir}/node_modules ${webFnDir}/`);
-    if (fs.existsSync(path.join(fnDir, 'public'))) {
-      execSync(`cp -r ${fnDir}/public ${webFnDir}/`);
-    }
-
-    // 复制 Web Function 入口（直接启动 Express 监听 9000 端口）
-    execSync(`cp ${projectDir}/scripts/scf-web-entry.js ${webFnDir}/index.js`);
-
-    // 创建 scf_bootstrap（SCF Web Function 启动脚本）
-    fs.writeFileSync(path.join(webFnDir, 'scf_bootstrap'), '#!/bin/bash\nexport DEPLOY_ENV=cloudbase\nnode index.js\n');
-    execSync(`chmod +x ${webFnDir}/scf_bootstrap`);
-
-    // 创建 package.json
-    fs.writeFileSync(path.join(webFnDir, 'package.json'), JSON.stringify({
-      name: 'echoworld-web',
-      version: '1.0.0',
-      main: 'index.js',
-    }, null, 2));
-
-    // 打包为 zip
-    const zipPath = '/tmp/echoworld-webfn.zip';
-    execSync(`cd ${webFnDir} && zip -r ${zipPath} . -x '*.md' '*.txt' '*.map'`);
-    const zipSize = execSync(`du -sh ${zipPath}`).toString().split('\t')[0];
-    console.log(`  Web Function 包大小: ${zipSize}`);
-
-    // 读取 zip 为 base64
-    const zipBuffer = fs.readFileSync(zipPath);
-    const zipBase64 = zipBuffer.toString('base64');
-    console.log(`  ZIP base64 大小: ${(zipBase64.length / 1024 / 1024).toFixed(2)} MB`);
-
-    // 5b. 创建或更新 SCF Web Function
-    console.log('  部署 SCF Web Function...');
-
-    // 先检查函数是否已存在
-    let fnExists = false;
-    let fnStatus = '';
-    try {
-      const existing = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
-        FunctionName: WEB_FN_NAME,
-        Namespace: 'default',
-      });
-      if (existing && existing.FunctionName) {
-        fnExists = true;
-        fnStatus = existing.Status;
-        console.log(`  函数 ${WEB_FN_NAME} 已存在 (${fnStatus})`);
-      }
-    } catch (err) {
-      // 函数不存在
-      console.log(`  函数 ${WEB_FN_NAME} 不存在，将创建`);
-    }
-
-    // 清理上海地域的残留函数
-    try {
-      await tcApiCall('scf', 'DeleteFunction', SCF_VERSION, {
-        FunctionName: WEB_FN_NAME,
-        Namespace: 'default',
-      }, 'ap-shanghai');
-      console.log('  清理 ap-shanghai 残留函数成功');
-    } catch (err) {
-      // 忽略不存在的错误
-    }
-
-    // 如果函数处于 CreateFailed 状态，先删除再重新创建
-    if (fnExists && (fnStatus === 'CreateFailed' || fnStatus === 'DeleteFailed')) {
-      console.log(`  函数状态异常 (${fnStatus})，先删除...`);
-      try {
-        await tcApiCall('scf', 'DeleteFunction', SCF_VERSION, {
-          FunctionName: WEB_FN_NAME,
-          Namespace: 'default',
-        });
-        console.log('  旧函数已删除');
-        fnExists = false;
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      } catch (err) {
-        console.log('  删除旧函数:', err.message);
-      }
-    }
-
-    if (fnExists && fnStatus === 'Active') {
-      // 更新已有函数代码
-      console.log('  更新函数代码...');
-      await tcApiCall('scf', 'UpdateFunctionCode', SCF_VERSION, {
-        FunctionName: WEB_FN_NAME,
-        Namespace: 'default',
-        Handler: 'index.main',
-        ZipFile: zipBase64,
-      });
-      console.log('  函数代码更新成功');
-    } else if (!fnExists) {
-      // 创建新 Web Function
-      console.log('  创建新 Web Function...');
-      try {
-        await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
-          FunctionName: WEB_FN_NAME,
-          Type: 'HTTP',
-          Runtime: 'Nodejs16.13',
-          Handler: 'index.main',
-          Code: { ZipFile: zipBase64 },
-          Timeout: 60,
-          MemorySize: 256,
-          Namespace: 'default',
-          Environment: {
-            Variables: [
-              { Key: 'DEPLOY_ENV', Value: 'cloudbase' },
-              { Key: 'ZHIPU_API_KEY', Value: process.env.ZHIPU_API_KEY || '' },
-              { Key: 'ZHIPU_MODEL', Value: 'glm-4-flash' },
-            ],
-          },
-          Description: 'EchoWorld AI Agent Commerce World - Web Function',
-        });
-        console.log('  SCF Web Function 创建成功!');
-      } catch (err) {
-        console.log(`  创建 Web Function: ${err.message}`);
-      }
-    } else {
-      console.log(`  函数状态: ${fnStatus}, 跳过部署`);
-    }
-
-    // 5c. 等待函数就绪（轮询直到 Active，最多 60 秒）
-    console.log('  等待函数就绪...');
-    let fnInfo = null;
-    for (let i = 0; i < 12; i++) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      fnInfo = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
-        FunctionName: WEB_FN_NAME,
-        Namespace: 'default',
-      });
-      console.log(`  [${(i + 1) * 5}s] 状态: ${fnInfo.Status}, 类型: ${fnInfo.Type}`);
-      if (fnInfo.Status === 'Active') break;
-    }
-
-    if (fnInfo) {
-      console.log(`  最终状态: ${fnInfo.Status}`);
-
-      // 如果 CreateFailed，尝试获取错误原因
-      if (fnInfo.Status === 'CreateFailed') {
-        console.log('  === CreateFailed 调试信息 ===');
-        if (fnInfo.StatusDesc) console.log(`  StatusDesc: ${fnInfo.StatusDesc}`);
-        if (fnInfo.StatusReasons) console.log(`  StatusReasons: ${JSON.stringify(fnInfo.StatusReasons)}`);
-        if (fnInfo.ErrNo) console.log(`  ErrNo: ${fnInfo.ErrNo}`);
-        // 输出所有非空字段帮助调试
-        for (const [key, val] of Object.entries(fnInfo)) {
-          if (val && typeof val === 'string' && val.length < 200 && !['CodeInfo', 'CodeResult'].includes(key)) {
-            console.log(`  ${key}: ${val}`);
-          }
-        }
-      }
-
-      if (fnInfo.AccessInfo) {
-        console.log(`  访问信息: ${JSON.stringify(fnInfo.AccessInfo)}`);
-        if (fnInfo.AccessInfo.Host) {
-          webFunctionUrl = `https://${fnInfo.AccessInfo.Host}`;
-          console.log(`  Web Function URL: ${webFunctionUrl}`);
-        }
-      }
-      // 显示函数的完整信息用于调试
-      const debugKeys = ['FunctionId', 'FunctionName', 'Type', 'Status', 'Runtime', 'Timeout',
-        'AccessInfo', 'HttpConfigInfo', 'Qualifier', 'FunctionVersion', 'StatusDesc', 'StatusReasons'];
-      for (const key of debugKeys) {
-        if (fnInfo[key] !== undefined) {
-          const val = typeof fnInfo[key] === 'object' ? JSON.stringify(fnInfo[key]) : fnInfo[key];
-          console.log(`  ${key}: ${val}`);
-        }
-      }
-    }
-
-    // 尝试获取函数触发器
-    try {
-      const triggers = await tcApiCall('scf', 'ListTriggers', SCF_VERSION, {
-        FunctionName: WEB_FN_NAME,
-        Namespace: 'default',
-      });
-      if (triggers && triggers.Triggers) {
-        console.log(`  触发器 (${triggers.Triggers.length}):`);
-        for (const t of triggers.Triggers) {
-          console.log(`    - ${t.TriggerName} (${t.Type}): ${t.TriggerDesc?.substring(0, 200)}`);
-        }
-      }
-    } catch (err) {
-      console.log('  获取触发器:', err.message);
-    }
-  } catch (err) {
-    console.log('  SCF Web Function:', err.message);
-  }
-
-  // 6. 获取部署结果
-  console.log('\n[6/6] 获取部署结果...');
+  // 4. 获取部署结果
+  console.log('\n[4/4] 获取部署结果...');
   const fnList = await manager.functions.listFunctions().catch(() => null);
-  console.log('\n=== 部署结果 ===');
+
+  console.log('\n========================================');
+  console.log('         部署结果');
+  console.log('========================================');
+
   if (fnList && fnList.Functions) {
-    console.log('云函数列表:');
+    console.log('\n云函数:');
     for (const fn of fnList.Functions) {
-      console.log(`  - ${fn.FunctionName} (${fn.Runtime}) Status: ${fn.Status}`);
+      console.log(`  ${fn.FunctionName} | ${fn.Runtime} | ${fn.Status}`);
     }
   }
 
-  // 查询 SCF 函数详情（获取可能的 Function URL）
-  try {
-    const fnDetail = await tcApiCall('scf', 'GetFunction', '2018-04-16', {
-      FunctionName: FUNCTION_NAME,
-      Namespace: ENV_ID,
-    });
-    if (fnDetail) {
-      console.log(`\n函数详情:`);
-      console.log(`  名称: ${fnDetail.FunctionName}`);
-      console.log(`  运行时: ${fnDetail.Runtime}`);
-      console.log(`  状态: ${fnDetail.Status}`);
-      console.log(`  类型: ${fnDetail.Type || 'Event'}`);
-      if (fnDetail.AccessInfo) {
-        console.log(`  访问信息: ${JSON.stringify(fnDetail.AccessInfo)}`);
-      }
-      // 列出触发器
-      if (fnDetail.Triggers) {
-        console.log(`  触发器 (${fnDetail.Triggers.length}):`);
-        for (const t of fnDetail.Triggers) {
-          console.log(`    - ${t.TriggerName} (${t.Type}): ${t.TriggerDesc?.substring(0, 200)}`);
-        }
-      }
-    }
-  } catch (err) {
-    console.log('  获取函数详情:', err.message);
-  }
-
-  // CloudBase HTTP 路由
   try {
     const gwList = await manager.access.getAccessList();
-    console.log('\nCloudBase HTTP 路由:');
+    console.log('\nHTTP 路由:');
     if (gwList && gwList.APISet) {
       for (const api of gwList.APISet) {
-        console.log(`  ${api.Path} -> ${api.Name} (${api.Type === 1 ? '云函数' : '其他'})`);
+        console.log(`  ${api.Path} -> ${api.Name}`);
       }
     }
-    console.log('CloudBase HTTP 服务:', gwList.EnableService ? '已开通' : '未开通 (免费套餐限制)');
-  } catch (err) {
-    console.log('  获取路由列表:', err.message);
-  }
+    httpEnabled = gwList.EnableService === true;
+  } catch (err) {}
 
-  // CloudBase 域名
+  let domain = '';
   try {
     const domainResult = await manager.access.getDomainList();
-    console.log('\nCloudBase 域名:', domainResult.DefaultDomain || 'unknown');
-    console.log('CloudBase HTTP 服务:', domainResult.EnableService ? '已开通' : '未开通');
-  } catch (err) {
-    console.log('  获取域名:', err.message);
+    domain = domainResult.DefaultDomain || '';
+    httpEnabled = domainResult.EnableService === true;
+  } catch (err) {}
+
+  console.log(`\nHTTP 服务: ${httpEnabled ? '✓ 已开通' : '✗ 未开通'}`);
+
+  if (httpEnabled && domain) {
+    console.log(`\n========================================`);
+    console.log(`  访问地址: https://${domain}/echoworld`);
+    console.log(`  API: https://${domain}/echoworld/api/world`);
+    console.log(`========================================`);
+  } else {
+    console.log(`\n========================================`);
+    console.log(`  云函数已部署成功，但 HTTP 服务未开通。`);
+    console.log(`  当前套餐: ${planName} (体验版不支持 HTTP 访问服务)`);
+    console.log('');
+    console.log(`  开通方式:`);
+    console.log(`  1. 访问 CloudBase 控制台:`);
+    console.log(`     https://console.cloud.tencent.com/tcb/env/access?envId=${ENV_ID}`);
+    console.log(`  2. 在「HTTP 访问服务」页面，点击开通`);
+    console.log(`     (可能需要升级套餐为按量计费/包年包月)`);
+    console.log(`  3. 开通后访问地址为:`);
+    console.log(`     https://${domain || ENV_ID + '.service.tcloudbase.com'}/echoworld`);
+    console.log(`========================================`);
   }
 
-  // 总结访问地址
-  console.log('\n=== 访问地址 ===');
-  if (webFunctionUrl) {
-    console.log(`SCF Web Function: ${webFunctionUrl}`);
-    console.log(`API (世界状态): ${webFunctionUrl}/api/world`);
-  }
-  console.log(`CloudBase (需开通HTTP服务): https://${ENV_ID}.service.tcloudbase.com/echoworld`);
-  console.log(`SCF 控制台: https://console.cloud.tencent.com/scf/list?rid=4&ns=default`);
-  console.log(`CloudBase 控制台: https://console.cloud.tencent.com/tcb/env/access?envId=${ENV_ID}`);
+  console.log(`\n控制台: https://console.cloud.tencent.com/tcb/env/access?envId=${ENV_ID}`);
   console.log('\n=== 部署完成 ===');
 }
 
