@@ -28,10 +28,11 @@ async function deploy() {
   // 1. 打包函数代码为精简 zip（<1.5MB）
   console.log('\n[1/5] 打包函数代码...');
   const projectDir = path.resolve(__dirname, '..');
-  const fnDir = '/tmp/echoworld-fn';
-  const zipPath = '/tmp/echoworld-fn.zip';
+  // SDK 期望 functionRootPath/函数名/ 的目录结构
+  const fnRoot = '/tmp/echoworld-functions';
+  const fnDir = path.join(fnRoot, FUNCTION_NAME);
 
-  execSync(`rm -rf ${fnDir} && mkdir -p ${fnDir}`);
+  execSync(`rm -rf ${fnRoot} && mkdir -p ${fnDir}`);
 
   // 复制编译后的 dist、public 和云函数入口
   execSync(`cp -r ${projectDir}/dist ${fnDir}/`);
@@ -46,7 +47,7 @@ async function deploy() {
   const minPkg = {
     name: pkg.name,
     version: pkg.version,
-    main: 'dist/index.js',
+    main: 'index.js',
     dependencies: {
       express: pkg.dependencies.express,
       uuid: pkg.dependencies.uuid,
@@ -83,7 +84,7 @@ async function deploy() {
       },
     },
     force: true,
-    functionRootPath: fnDir,
+    functionRootPath: fnRoot,
   };
 
   // 始终使用 functionRootPath（SDK 自动通过 COS 上传）
