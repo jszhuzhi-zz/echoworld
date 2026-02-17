@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 04:50:35 UTC
-Commit: f455541bec157134f60b8fbbd70452b825f52366
+部署时间: 2026-02-17 04:53:28 UTC
+Commit: ed44954f14c77a775c4de948c89fb2ce7d379592
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -33,14 +33,17 @@ found 0 vulnerabilities
   创建路由: [CreateCloudBaseGWAPI] api created
 
 [5/6] 创建 SCF API Gateway 触发器...
-  初始化服务角色...
-  创建 SCF 服务角色: [CreateServiceLinkedRole] InvalidParameter: The value type of parameter `QCSServiceName` is not valid, input type should be `array-type`
-  SCF_QcsRole 创建成功 (via CreateRole)
-  创建 API Gateway 服务角色: [CreateServiceLinkedRole] InvalidParameter: The value type of parameter `QCSServiceName` is not valid, input type should be `array-type`
+  初始化 SCF 服务角色...
+  SCF_QcsRole 已存在
+  附加策略 QcloudAPIGWFullAccess: [AttachRolePolicy] AuthFailure.UnauthorizedOperation: [request id:c2bb0b0b-1332-4d83-8db2-99f935adfd04]you are not authorized to perform operation (cam:AttachRolePolicy)
+resource (qcs::cam:::role/4611686018445354313) has no permission
+
+  附加策略 QcloudAccessForSCFRole: [AttachRolePolicy] RequestLimitExceeded: Your current request times equals to `4` in a second, which exceeds the frequency limit `3` for a second. Please reduce the frequency of calls.
+  等待角色策略生效...
   创建新的 API Gateway 触发器...
-  SCF API Gateway 触发器: [CreateTrigger] FailedOperation.Apigw: 请求Apigw失败，请稍后重试。如无法解决，请联系智能客服或提交工单。([TencentCloudSDKError] Code=UnauthorizedOperation, Message=[request id:1771303833]you are not authorized to perform operation (apigw:CreateService)
+  SCF API Gateway 触发器: [CreateTrigger] FailedOperation.Apigw: 请求Apigw失败，请稍后重试。如无法解决，请联系智能客服或提交工单。([TencentCloudSDKError] Code=UnauthorizedOperation, Message=[request id:1771304006]you are not authorized to perform operation (apigw:CreateService)
 resource (*) has no permission
-。, RequestId=c90d4a17-e4e8-4de3-8e14-db9cff0a9a88)
+。, RequestId=3c0c86b0-6b81-4177-90e4-ea4b76bcc867)
   (如果 API Gateway 已下线，此方式不可用)
 
 [6/6] 获取部署结果...
