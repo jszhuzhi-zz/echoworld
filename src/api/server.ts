@@ -222,7 +222,7 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // ========== 启动服务器 ==========
   // CloudBase 环境由平台管理端口，不需要手动 listen
-  if (!process.env.TENCENTCLOUD_RUNENV) {
+  if (!process.env.DEPLOY_ENV) {
     app.listen(port, () => {
       console.log(`\n[EchoWorld] 服务器运行在 http://localhost:${port}`);
       console.log(`[EchoWorld] 前端面板: http://localhost:${port}/`);

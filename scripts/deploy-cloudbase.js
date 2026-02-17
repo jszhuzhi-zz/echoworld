@@ -81,7 +81,7 @@ async function deploy() {
       envVariables: {
         ZHIPU_API_KEY: process.env.ZHIPU_API_KEY || '',
         ZHIPU_MODEL: 'glm-4-flash',
-        TENCENTCLOUD_RUNENV: 'SCF',
+        DEPLOY_ENV: 'cloudbase',
       },
     },
     force: true,
