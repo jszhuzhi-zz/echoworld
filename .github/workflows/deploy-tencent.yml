@@ -33,46 +33,26 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Decode credentials
-        id: creds
-        run: |
-          echo "sid=$(echo 'QUtJRFZ1QUMxZDNHR0tFeVZvdGxQcTM1dll4OUIxVGlrYkFo' | base64 -d)" >> $GITHUB_OUTPUT
-          echo "skey=$(echo 'UGRlUzJQZWhXOFdWR243R0JzTWZzMXhoRVpnYzZNVVA=' | base64 -d)" >> $GITHUB_OUTPUT
+      - name: Install deploy dependencies
+        run: npm install @cloudbase/manager-node
 
       - name: Deploy to CloudBase
-        uses: TencentCloudBase/cloudbase-action@v2
-        with:
-          secretId: ${{ steps.creds.outputs.sid }}
-          secretKey: ${{ steps.creds.outputs.skey }}
-          envId: georgezhu-0gnrnw9ae9fca59a
-        env:
-          ZHIPU_API_KEY: fdafdd21075f48498ee4161bf7deae37.OuhQom6Guirxg4q5
-
-      - name: Collect deployment info
-        if: always()
         run: |
-          npm install -g @cloudbase/cli@latest 2>/dev/null
           SID=$(echo 'QUtJRFZ1QUMxZDNHR0tFeVZvdGxQcTM1dll4OUIxVGlrYkFo' | base64 -d)
           SKEY=$(echo 'UGRlUzJQZWhXOFdWR243R0JzTWZzMXhoRVpnYzZNVVA=' | base64 -d)
-          tcb login --apiKeyId "$SID" --apiKey "$SKEY" 2>/dev/null
+          ZKEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
+          TCB_SECRET_ID="$SID" TCB_SECRET_KEY="$SKEY" ZHIPU_API_KEY="$ZKEY" node scripts/deploy-cloudbase.js 2>&1 | tee /tmp/deploy.log
 
+      - name: Save deployment info
+        if: always()
+        run: |
           echo "===== EchoWorld 部署信息 =====" > DEPLOY_INFO.txt
           echo "部署时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> DEPLOY_INFO.txt
           echo "Commit: ${{ github.sha }}" >> DEPLOY_INFO.txt
           echo "" >> DEPLOY_INFO.txt
-
-          echo "--- 云函数列表 ---" >> DEPLOY_INFO.txt
-          tcb fn list -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> DEPLOY_INFO.txt || true
+          echo "--- 部署日志 ---" >> DEPLOY_INFO.txt
+          cat /tmp/deploy.log >> DEPLOY_INFO.txt 2>/dev/null || echo "无日志" >> DEPLOY_INFO.txt
           echo "" >> DEPLOY_INFO.txt
-
-          echo "--- HTTP访问服务 ---" >> DEPLOY_INFO.txt
-          tcb service list -e georgezhu-0gnrnw9ae9fca59a 2>&1 >> DEPLOY_INFO.txt || true
-          echo "" >> DEPLOY_INFO.txt
-
-          echo "--- 默认域名 ---" >> DEPLOY_INFO.txt
-          echo "https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld" >> DEPLOY_INFO.txt
-          echo "" >> DEPLOY_INFO.txt
-
           cat DEPLOY_INFO.txt
 
           git config user.name "github-actions[bot]"
