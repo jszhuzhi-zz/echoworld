@@ -317,24 +317,40 @@ async function deploy() {
       console.log('  SCF Web Function 创建成功!');
     }
 
-    // 等待函数就绪
+    // 5c. 等待函数就绪（轮询直到 Active，最多 60 秒）
     console.log('  等待函数就绪...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    let fnInfo = null;
+    for (let i = 0; i < 12; i++) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      fnInfo = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
+        FunctionName: WEB_FN_NAME,
+        Namespace: 'default',
+      });
+      console.log(`  [${(i + 1) * 5}s] 状态: ${fnInfo.Status}, 类型: ${fnInfo.Type}`);
+      if (fnInfo.Status === 'Active') break;
+    }
 
-    // 5c. 获取函数 URL
-    const fnInfo = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
-      FunctionName: WEB_FN_NAME,
-      Namespace: 'default',
-    });
-    console.log(`  函数状态: ${fnInfo.Status}, 类型: ${fnInfo.Type}`);
-    if (fnInfo.AccessInfo) {
-      console.log(`  访问信息: ${JSON.stringify(fnInfo.AccessInfo)}`);
-      if (fnInfo.AccessInfo.Host) {
-        webFunctionUrl = `https://${fnInfo.AccessInfo.Host}`;
+    if (fnInfo) {
+      console.log(`  最终状态: ${fnInfo.Status}`);
+      if (fnInfo.AccessInfo) {
+        console.log(`  访问信息: ${JSON.stringify(fnInfo.AccessInfo)}`);
+        if (fnInfo.AccessInfo.Host) {
+          webFunctionUrl = `https://${fnInfo.AccessInfo.Host}`;
+          console.log(`  Web Function URL: ${webFunctionUrl}`);
+        }
+      }
+      // 显示函数的完整信息用于调试
+      const debugKeys = ['FunctionId', 'FunctionName', 'Type', 'Status', 'Runtime', 'Timeout',
+        'AccessInfo', 'HttpConfigInfo', 'Qualifier', 'FunctionVersion'];
+      for (const key of debugKeys) {
+        if (fnInfo[key] !== undefined) {
+          const val = typeof fnInfo[key] === 'object' ? JSON.stringify(fnInfo[key]) : fnInfo[key];
+          console.log(`  ${key}: ${val}`);
+        }
       }
     }
 
-    // 尝试获取函数触发器 URL
+    // 尝试获取函数触发器
     try {
       const triggers = await tcApiCall('scf', 'ListTriggers', SCF_VERSION, {
         FunctionName: WEB_FN_NAME,
