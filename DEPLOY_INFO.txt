@@ -1,11 +1,15 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 04:21:00 UTC
-Commit: 32e6d70ab2761095549727397ad72c57928498ab
+部署时间: 2026-02-17 04:45:10 UTC
+Commit: 29a7b0250a1a7e58f0f61be4021b766fb27c9421
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
 
-[1/5] 打包函数代码...
+[0] 获取环境信息...
+  环境: georgezhu-0gnrnw9ae9fca59a (qcloud) 状态: NORMAL
+  套餐: 体验版
+
+[1/6] 打包函数代码...
 
 added 71 packages, and audited 72 packages in 2s
 
@@ -15,31 +19,46 @@ added 71 packages, and audited 72 packages in 2s
 found 0 vulnerabilities
   函数包大小: 3.3M
 
-[2/5] 部署云函数...
+[2/6] 部署云函数...
   使用 COS 上传方式...
 [echoworld] 部署方式: COS 上传
 [echoworld] 部署方式: COS 上传
   云函数部署成功!
 
-[3/5] 开通 HTTP 访问服务...
-  开通 HTTP 服务: [ModifyCloudBaseGWPrivilege] 当前套餐无法执行此操作
+[3/6] 尝试开通 CloudBase HTTP 访问服务...
+  CloudBase HTTP 服务: [ModifyCloudBaseGWPrivilege] 当前套餐无法执行此操作
+  (免费套餐限制，将使用 SCF API Gateway 触发器作为替代)
 
-[4/5] 创建 HTTP 访问路由...
-  路由 /echoworld 创建成功, APIId: 5f0aa869-8e50-4478-9805-1673f994019e
+[4/6] 创建 CloudBase HTTP 路由...
+  创建路由: [CreateCloudBaseGWAPI] api created
 
-[5/5] 获取部署结果...
+[5/6] 创建 SCF API Gateway 触发器...
+  创建新的 API Gateway 触发器...
+  SCF API Gateway 触发器: [CreateTrigger] UnauthorizedOperation: 没有权限进行此操作，请修改后重试。([TencentCloudSDKError] Code=InternalError.GetRoleError, Message=role not exist, RequestId=4d1f47bf-a23d-4725-ba79-72a51d90de74)
+  (如果 API Gateway 已下线，此方式不可用)
+
+[6/6] 获取部署结果...
 
 === 部署结果 ===
 
-HTTP 路由:
+函数详情:
+  名称: echoworld
+  运行时: Nodejs16.13
+  状态: Active
+  类型: Event
+  访问信息: {"Host":"","Vip":""}
+  触发器 (0):
+
+CloudBase HTTP 路由:
   /api -> link-reit-backend (云函数)
   /echoworld -> echoworld (云函数)
-HTTP 服务状态: 未开通
+CloudBase HTTP 服务: 未开通 (免费套餐限制)
 
-访问地址: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
-HTTP 服务状态: 未开通
-域名信息: {"AccessFlag":1,"CustomRoutingRules":"","DefaultDomain":"georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com","EnableCheckAcrossDomain":true,"EnableService":false,"EnableUnion":false,"OriginDomain":"georgezhu-0gnrnw9ae9fca59a.tcbaccess-in.tencentcloudbase.com","RequestId":"a625f1bd-122f-42f0-9fe0-12a0
+CloudBase 域名: georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com
+CloudBase HTTP 服务: 未开通
 
+=== 访问地址 ===
+CloudBase (需开通HTTP服务): https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
 控制台: https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
 
 === 部署完成 ===
