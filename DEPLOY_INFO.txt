@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 05:12:49 UTC
-Commit: 9a09f299d4c93e12292eae311011d5900c672d32
+部署时间: 2026-02-17 05:17:22 UTC
+Commit: 8aadd64c788efb29ecbaea7a706225168bdd6e24
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -41,22 +41,67 @@ found 0 vulnerabilities
   函数状态异常 (CreateFailed)，先删除...
   旧函数已删除
   创建新 Web Function...
-  尝试地域: ap-guangzhou...
-  SCF Web Function 创建成功 (ap-guangzhou)!
+  SCF Web Function 创建成功!
   等待函数就绪...
-  SCF Web Function: [GetFunction] ResourceNotFound.Function: 未找到指定的Function，请创建后再试。
+  [5s] 状态: Creating, 类型: HTTP
+  [10s] 状态: CreateFailed, 类型: HTTP
+  [15s] 状态: CreateFailed, 类型: HTTP
+  [20s] 状态: CreateFailed, 类型: HTTP
+  [25s] 状态: CreateFailed, 类型: HTTP
+  [30s] 状态: CreateFailed, 类型: HTTP
+  [35s] 状态: CreateFailed, 类型: HTTP
+  [40s] 状态: CreateFailed, 类型: HTTP
+  [45s] 状态: CreateFailed, 类型: HTTP
+  [50s] 状态: CreateFailed, 类型: HTTP
+  [55s] 状态: CreateFailed, 类型: HTTP
+  [60s] 状态: CreateFailed, 类型: HTTP
+  最终状态: CreateFailed
+  === CreateFailed 调试信息 ===
+  StatusReasons: [{"ErrorCode":"UserError","ErrorMessage":"[TencentCloudSDKError] Code: AuthFailure.UnauthorizedOperation, Message: [request id:03f45637-b057-48b0-b177-6b0afc6aed06]you are not authorized to perform operation (cls:DescribeLogsets)\nresource (qcs::cls:ap-guangzhou:uin/100046055088:logset/*) has no permission\n RequestId:[03f45637-b057-48b0-b177-6b0afc6aed06]"},{"ErrorCode":"BadCmqMsgError","ErrorMessage":"BadCmqMsgError,err: Get UserErrors in Request, failed to write meta."}]
+  Qualifier: $LATEST
+  Description: EchoWorld AI Agent Commerce World - Web Function
+  Runtime: Nodejs16.13
+  UseGpu: FALSE
+  FunctionVersion: $LATEST
+  FunctionName: echoworld_web
+  Namespace: default
+  InstallDependency: FALSE
+  Status: CreateFailed
+  AvailableStatus: Available
+  FunctionId: lam-gxxuru1w
+  L5Enable: FALSE
+  DnsCache: FALSE
+  ModTime: 2026-02-17 13:16:11
+  AddTime: 2026-02-17 13:16:11
+  OnsEnable: FALSE
+  NodeType: CPU
+  DeployMode: code
+  ResourceId: scf-gz-gxxuru1w
+  LogFormat: default
+  Type: HTTP
+  AsyncRunEnable: FALSE
+  TraceEnable: FALSE
+  LogType: stream
+  ClusterName: ap-guangzhou-cube-1
+  RequestId: 9e4b5c48-1e18-48bb-9904-f56101dcb1d0
+  访问信息: {"Host":"","Vip":""}
+  FunctionId: lam-gxxuru1w
+  FunctionName: echoworld_web
+  Type: HTTP
+  Status: CreateFailed
+  Runtime: Nodejs16.13
+  Timeout: 60
+  AccessInfo: {"Host":"","Vip":""}
+  Qualifier: $LATEST
+  FunctionVersion: $LATEST
+  StatusDesc: 
+  StatusReasons: [{"ErrorCode":"UserError","ErrorMessage":"[TencentCloudSDKError] Code: AuthFailure.UnauthorizedOperation, Message: [request id:03f45637-b057-48b0-b177-6b0afc6aed06]you are not authorized to perform operation (cls:DescribeLogsets)\nresource (qcs::cls:ap-guangzhou:uin/100046055088:logset/*) has no permission\n RequestId:[03f45637-b057-48b0-b177-6b0afc6aed06]"},{"ErrorCode":"BadCmqMsgError","ErrorMessage":"BadCmqMsgError,err: Get UserErrors in Request, failed to write meta."}]
+  触发器 (0):
 
 [6/6] 获取部署结果...
 
 === 部署结果 ===
-
-函数详情:
-  名称: echoworld
-  运行时: Nodejs16.13
-  状态: Active
-  类型: Event
-  访问信息: {"Host":"","Vip":""}
-  触发器 (0):
+  获取函数详情: [GetFunction] ResourceNotFound.Namespace: 未找到指定的Namespace，请创建后再试。
 
 CloudBase HTTP 路由:
   /api -> link-reit-backend (云函数)
