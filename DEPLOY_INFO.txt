@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 04:56:44 UTC
-Commit: f9faeb97b56aa7bd9be7a5605fbad028b800e1d5
+部署时间: 2026-02-17 05:00:42 UTC
+Commit: 813c5ddcd05c75f4ebff369793e39a54ad053a19
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -32,10 +32,16 @@ found 0 vulnerabilities
 [4/6] 创建 CloudBase HTTP 路由...
   创建路由: [CreateCloudBaseGWAPI] api created
 
-[5/6] 创建 API Gateway 服务...
-  创建 API Gateway 服务...
-  API Gateway: [CreateService] FailedOperation.LimitingResourceCreated: The API gateway product has been stopped for sale,and no new resources can be created.
-  (API Gateway 可能需要在控制台开通)
+[5/6] 部署 SCF Web Function...
+  准备 Web Function 代码包...
+  Web Function 包大小: 652K
+  ZIP base64 大小: 0.84 MB
+  部署 SCF Web Function...
+  SCF Web Function 创建成功!
+  等待函数就绪...
+  函数状态: Creating, 类型: HTTP
+  访问信息: {"Host":"","Vip":""}
+  触发器 (0):
 
 [6/6] 获取部署结果...
 
@@ -59,7 +65,8 @@ CloudBase HTTP 服务: 未开通
 
 === 访问地址 ===
 CloudBase (需开通HTTP服务): https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
-控制台: https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
+SCF 控制台: https://console.cloud.tencent.com/scf/list?rid=4&ns=default
+CloudBase 控制台: https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
 
 === 部署完成 ===
 
