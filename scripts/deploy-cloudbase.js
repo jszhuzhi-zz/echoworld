@@ -223,110 +223,134 @@ async function deploy() {
     }
   }
 
-  // 5. 创建 API Gateway 直接访问（绕过 SCF 角色权限问题）
-  console.log('\n[5/6] 创建 API Gateway 服务...');
-  let apiGatewayUrl = null;
-  const APIGW_VERSION = '2018-08-08';
+  // 5. 部署 SCF Web Function（HTTP 类型函数，自带公网访问 URL）
+  console.log('\n[5/6] 部署 SCF Web Function...');
+  let webFunctionUrl = null;
+  const SCF_VERSION = '2018-04-16';
+  const WEB_FN_NAME = 'echoworld_web';
 
   try {
-    // 5a. 查找或创建 API Gateway 服务
-    let serviceId = null;
-    let subDomain = null;
+    // 5a. 准备 Web Function 代码包
+    console.log('  准备 Web Function 代码包...');
+    const webFnDir = '/tmp/echoworld-webfn';
+    execSync(`rm -rf ${webFnDir} && mkdir -p ${webFnDir}`);
 
-    // 先查找已有服务
+    // 复制编译后的 dist 和 public
+    execSync(`cp -r ${fnDir}/dist ${webFnDir}/`);
+    execSync(`cp -r ${fnDir}/node_modules ${webFnDir}/`);
+    if (fs.existsSync(path.join(fnDir, 'public'))) {
+      execSync(`cp -r ${fnDir}/public ${webFnDir}/`);
+    }
+
+    // 复制 Web Function 入口（直接启动 Express 监听 9000 端口）
+    execSync(`cp ${projectDir}/scripts/scf-web-entry.js ${webFnDir}/index.js`);
+
+    // 创建 scf_bootstrap（SCF Web Function 启动脚本）
+    fs.writeFileSync(path.join(webFnDir, 'scf_bootstrap'), '#!/bin/bash\nexport DEPLOY_ENV=cloudbase\nnode index.js\n');
+    execSync(`chmod +x ${webFnDir}/scf_bootstrap`);
+
+    // 创建 package.json
+    fs.writeFileSync(path.join(webFnDir, 'package.json'), JSON.stringify({
+      name: 'echoworld-web',
+      version: '1.0.0',
+      main: 'index.js',
+    }, null, 2));
+
+    // 打包为 zip
+    const zipPath = '/tmp/echoworld-webfn.zip';
+    execSync(`cd ${webFnDir} && zip -r ${zipPath} . -x '*.md' '*.txt' '*.map'`);
+    const zipSize = execSync(`du -sh ${zipPath}`).toString().split('\t')[0];
+    console.log(`  Web Function 包大小: ${zipSize}`);
+
+    // 读取 zip 为 base64
+    const zipBuffer = fs.readFileSync(zipPath);
+    const zipBase64 = zipBuffer.toString('base64');
+    console.log(`  ZIP base64 大小: ${(zipBase64.length / 1024 / 1024).toFixed(2)} MB`);
+
+    // 5b. 创建或更新 SCF Web Function
+    console.log('  部署 SCF Web Function...');
+
+    // 先检查函数是否已存在
+    let fnExists = false;
     try {
-      const services = await tcApiCall('apigateway', 'DescribeServicesStatus', APIGW_VERSION, {
-        Limit: 100,
-        Filters: [{ Name: 'ServiceName', Values: ['echoworld_api'] }],
+      const existing = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
+        FunctionName: WEB_FN_NAME,
+        Namespace: 'default',
       });
-      if (services && services.Result && services.Result.ServiceSet) {
-        for (const svc of services.Result.ServiceSet) {
-          if (svc.ServiceName === 'echoworld_api') {
-            serviceId = svc.ServiceId;
-            subDomain = svc.OuterSubDomain;
-            console.log(`  已有 API Gateway 服务: ${serviceId} (${subDomain})`);
-            break;
-          }
-        }
+      if (existing && existing.FunctionName) {
+        fnExists = true;
+        console.log(`  函数 ${WEB_FN_NAME} 已存在 (${existing.Status}), 更新代码...`);
       }
     } catch (err) {
-      console.log('  查询 API Gateway 服务:', err.message);
+      // 函数不存在
     }
 
-    // 如果没有，创建新服务
-    if (!serviceId) {
-      console.log('  创建 API Gateway 服务...');
-      const svcResult = await tcApiCall('apigateway', 'CreateService', APIGW_VERSION, {
-        ServiceName: 'echoworld_api',
-        ServiceDesc: 'EchoWorld API Gateway',
-        Protocol: 'http&https',
-        NetTypes: ['OUTER'],
-        IpVersion: 'IPv4',
+    if (fnExists) {
+      // 更新函数代码
+      await tcApiCall('scf', 'UpdateFunctionCode', SCF_VERSION, {
+        FunctionName: WEB_FN_NAME,
+        Namespace: 'default',
+        Handler: 'index.main',
+        ZipFile: zipBase64,
       });
-      serviceId = svcResult.ServiceId;
-      subDomain = svcResult.OuterSubDomain;
-      console.log(`  API Gateway 服务创建成功: ${serviceId}`);
-      console.log(`  子域名: ${subDomain}`);
-    }
-
-    // 5b. 查找或创建 API 端点
-    let apiExists = false;
-    try {
-      const apis = await tcApiCall('apigateway', 'DescribeApisStatus', APIGW_VERSION, {
-        ServiceId: serviceId,
-        Limit: 100,
-      });
-      if (apis && apis.Result && apis.Result.ApiIdStatusSet) {
-        for (const api of apis.Result.ApiIdStatusSet) {
-          if (api.Path === '/') {
-            apiExists = true;
-            console.log(`  API 端点已存在: ${api.ApiId} (${api.Method} ${api.Path})`);
-            break;
-          }
-        }
-      }
-    } catch (err) {
-      console.log('  查询 API 端点:', err.message);
-    }
-
-    if (!apiExists) {
-      console.log('  创建 API 端点 (ANY /) -> SCF echoworld...');
-      const apiResult = await tcApiCall('apigateway', 'CreateApi', APIGW_VERSION, {
-        ServiceId: serviceId,
-        ApiName: 'echoworld_proxy',
-        Protocol: 'HTTP',
-        AuthType: 'NONE',
-        EnableCORS: true,
-        RequestConfig: {
-          Path: '/',
-          Method: 'ANY',
+      console.log('  函数代码更新成功');
+    } else {
+      // 创建新函数
+      await tcApiCall('scf', 'CreateFunction', SCF_VERSION, {
+        FunctionName: WEB_FN_NAME,
+        Type: 'HTTP',
+        Runtime: 'Nodejs16.13',
+        Handler: 'index.main',
+        Code: { ZipFile: zipBase64 },
+        Timeout: 30,
+        MemorySize: 256,
+        Namespace: 'default',
+        Environment: {
+          Variables: [
+            { Key: 'DEPLOY_ENV', Value: 'cloudbase' },
+            { Key: 'ZHIPU_API_KEY', Value: process.env.ZHIPU_API_KEY || '' },
+            { Key: 'ZHIPU_MODEL', Value: 'glm-4-flash' },
+          ],
         },
-        ServiceType: 'SCF',
-        ServiceTimeout: 30,
-        ServiceScfFunctionName: FUNCTION_NAME,
-        ServiceScfFunctionNamespace: ENV_ID,
-        ServiceScfFunctionQualifier: '$DEFAULT',
-        ServiceScfIsIntegratedResponse: true,
+        Description: 'EchoWorld AI Agent Commerce World - Web Function',
       });
-      console.log(`  API 端点创建成功: ${apiResult.Result?.ApiId || 'ok'}`);
+      console.log('  SCF Web Function 创建成功!');
     }
 
-    // 5c. 发布服务
-    console.log('  发布 API Gateway 服务...');
-    await tcApiCall('apigateway', 'ReleaseService', APIGW_VERSION, {
-      ServiceId: serviceId,
-      EnvironmentName: 'release',
-      ReleaseDesc: 'EchoWorld deployment',
-    });
-    console.log('  服务发布成功!');
+    // 等待函数就绪
+    console.log('  等待函数就绪...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-    if (subDomain) {
-      apiGatewayUrl = `https://${subDomain}/release/`;
-      console.log(`  API Gateway URL: ${apiGatewayUrl}`);
+    // 5c. 获取函数 URL
+    const fnInfo = await tcApiCall('scf', 'GetFunction', SCF_VERSION, {
+      FunctionName: WEB_FN_NAME,
+      Namespace: 'default',
+    });
+    console.log(`  函数状态: ${fnInfo.Status}, 类型: ${fnInfo.Type}`);
+    if (fnInfo.AccessInfo) {
+      console.log(`  访问信息: ${JSON.stringify(fnInfo.AccessInfo)}`);
+      if (fnInfo.AccessInfo.Host) {
+        webFunctionUrl = `https://${fnInfo.AccessInfo.Host}`;
+      }
+    }
+
+    // 尝试获取函数触发器 URL
+    try {
+      const triggers = await tcApiCall('scf', 'ListTriggers', SCF_VERSION, {
+        FunctionName: WEB_FN_NAME,
+        Namespace: 'default',
+      });
+      if (triggers && triggers.Triggers) {
+        console.log(`  触发器 (${triggers.Triggers.length}):`);
+        for (const t of triggers.Triggers) {
+          console.log(`    - ${t.TriggerName} (${t.Type}): ${t.TriggerDesc?.substring(0, 200)}`);
+        }
+      }
+    } catch (err) {
+      console.log('  获取触发器:', err.message);
     }
   } catch (err) {
-    console.log('  API Gateway:', err.message);
-    console.log('  (API Gateway 可能需要在控制台开通)');
+    console.log('  SCF Web Function:', err.message);
   }
 
   // 6. 获取部署结果
@@ -392,12 +416,13 @@ async function deploy() {
 
   // 总结访问地址
   console.log('\n=== 访问地址 ===');
-  if (apiGatewayUrl) {
-    console.log(`API Gateway: ${apiGatewayUrl}`);
-    console.log(`API (世界状态): ${apiGatewayUrl}api/world`);
+  if (webFunctionUrl) {
+    console.log(`SCF Web Function: ${webFunctionUrl}`);
+    console.log(`API (世界状态): ${webFunctionUrl}/api/world`);
   }
   console.log(`CloudBase (需开通HTTP服务): https://${ENV_ID}.service.tcloudbase.com/echoworld`);
-  console.log(`控制台: https://console.cloud.tencent.com/tcb/env/access?envId=${ENV_ID}`);
+  console.log(`SCF 控制台: https://console.cloud.tencent.com/scf/list?rid=4&ns=default`);
+  console.log(`CloudBase 控制台: https://console.cloud.tencent.com/tcb/env/access?envId=${ENV_ID}`);
   console.log('\n=== 部署完成 ===');
 }
 
