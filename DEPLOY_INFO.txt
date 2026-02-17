@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 04:07:10 UTC
-Commit: 3a2a04ef895922c7cae0950748447c46cb0a3b61
+部署时间: 2026-02-17 04:21:00 UTC
+Commit: 32e6d70ab2761095549727397ad72c57928498ab
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -21,19 +21,24 @@ found 0 vulnerabilities
 [echoworld] 部署方式: COS 上传
   云函数部署成功!
 
-[3/5] 检查/开通 HTTP 访问服务...
-  HTTP 服务: [EstablishCloudBaseRunServer] The request is missing the required parameter `IsPublic`.
+[3/5] 开通 HTTP 访问服务...
+  开通 HTTP 服务: [ModifyCloudBaseGWPrivilege] 当前套餐无法执行此操作
 
 [4/5] 创建 HTTP 访问路由...
-  创建路由: [CreateCloudBaseGWAPI] The parameter `EnvId` is not recognized.
+  路由 /echoworld 创建成功, APIId: 5f0aa869-8e50-4478-9805-1673f994019e
 
 [5/5] 获取部署结果...
 
 === 部署结果 ===
-  获取路由列表: [DescribeCloudBaseGWAPI] The parameter `EnvId` is not recognized.
-  获取域名: [DescribeCloudBaseGWService] The parameter `EnvId` is not recognized.
+
+HTTP 路由:
+  /api -> link-reit-backend (云函数)
+  /echoworld -> echoworld (云函数)
+HTTP 服务状态: 未开通
 
 访问地址: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
+HTTP 服务状态: 未开通
+域名信息: {"AccessFlag":1,"CustomRoutingRules":"","DefaultDomain":"georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com","EnableCheckAcrossDomain":true,"EnableService":false,"EnableUnion":false,"OriginDomain":"georgezhu-0gnrnw9ae9fca59a.tcbaccess-in.tencentcloudbase.com","RequestId":"a625f1bd-122f-42f0-9fe0-12a0
 
 控制台: https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
 
