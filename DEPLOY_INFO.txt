@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-17 04:02:30 UTC
-Commit: 37bd297e62a677d6518c9ec6d2e1081a0a12a606
+部署时间: 2026-02-17 04:07:10 UTC
+Commit: 3a2a04ef895922c7cae0950748447c46cb0a3b61
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -17,19 +17,25 @@ found 0 vulnerabilities
 
 [2/5] 部署云函数...
   使用 COS 上传方式...
-  部署失败: 函数代码打包失败：路径不存在：/tmp/echoworld-fn/echoworld
+[echoworld] 部署方式: COS 上传
+[echoworld] 部署方式: COS 上传
+  云函数部署成功!
 
-部署失败: CloudBaseError: 函数代码打包失败：路径不存在：/tmp/echoworld-fn/echoworld
-    at FunctionPacker.build (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/function/packer.js:125:23)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async FunctionService.getCodeParams (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/function/index.js:1368:9)
-    at async descriptor.value (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/utils/envLazy.js:13:26)
-    at async FunctionService.createFunction (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/function/index.js:176:23)
-    at async descriptor.value (/home/runner/work/echoworld/echoworld/node_modules/@cloudbase/manager-node/lib/utils/envLazy.js:13:26)
-    at async deploy (/home/runner/work/echoworld/echoworld/scripts/deploy-cloudbase.js:93:5) {
-  original: null,
-  code: '',
-  requestId: '',
-  action: ''
-}
+[3/5] 检查/开通 HTTP 访问服务...
+  HTTP 服务: [EstablishCloudBaseRunServer] The request is missing the required parameter `IsPublic`.
+
+[4/5] 创建 HTTP 访问路由...
+  创建路由: [CreateCloudBaseGWAPI] The parameter `EnvId` is not recognized.
+
+[5/5] 获取部署结果...
+
+=== 部署结果 ===
+  获取路由列表: [DescribeCloudBaseGWAPI] The parameter `EnvId` is not recognized.
+  获取域名: [DescribeCloudBaseGWService] The parameter `EnvId` is not recognized.
+
+访问地址: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
+
+控制台: https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
+
+=== 部署完成 ===
 
