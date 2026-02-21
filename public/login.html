@@ -75,16 +75,6 @@
       color: var(--green); padding: 10px 14px; border-radius: 8px;
       font-size: 13px; margin-bottom: 16px; display: none;
     }
-    .role-cards { display: flex; gap: 8px; }
-    .role-card {
-      flex: 1; padding: 12px 8px; background: var(--bg3);
-      border: 2px solid var(--border); border-radius: 8px;
-      text-align: center; cursor: pointer; transition: all 0.2s;
-    }
-    .role-card.selected { border-color: var(--accent); background: rgba(59,130,246,0.1); }
-    .role-card .role-icon { font-size: 24px; margin-bottom: 4px; }
-    .role-card .role-name { font-size: 13px; font-weight: 600; }
-    .role-card .role-desc { font-size: 11px; color: var(--text2); margin-top: 2px; }
     .guest-link {
       text-align: center; margin-top: 16px;
     }
@@ -135,32 +125,15 @@
           <label>邀请码 (可选)</label>
           <input type="text" id="regReferralCode" placeholder="有邀请码可填写，邀请者获得100CC" maxlength="8" style="text-transform:uppercase">
         </div>
-        <div class="form-group">
-          <label>选择角色</label>
-          <div class="role-cards">
-            <div class="role-card selected" onclick="selectRole('investor')" id="roleInvestor">
-              <div class="role-icon">💰</div>
-              <div class="role-name">投资者</div>
-              <div class="role-desc">初始 1000 CC</div>
-            </div>
-            <div class="role-card" onclick="selectRole('observer')" id="roleObserver">
-              <div class="role-icon">👁️</div>
-              <div class="role-name">观察家</div>
-              <div class="role-desc">浏览新闻动态</div>
-            </div>
-          </div>
-        </div>
         <button type="submit" class="btn-primary" id="regBtn">注册</button>
       </form>
     </div>
     <div class="guest-link">
-      <a href="/">← 返回世界总览</a> &nbsp;|&nbsp; <a href="/news">游客模式浏览新闻</a>
+      <a href="/">← 返回世界总览</a>
     </div>
   </div>
 
   <script>
-    let selectedRole = 'investor';
-
     // Check if already logged in
     (function checkAuth() {
       const token = localStorage.getItem('echoworld_token');
@@ -185,12 +158,6 @@
       }
     }
 
-    function selectRole(role) {
-      selectedRole = role;
-      document.getElementById('roleInvestor').classList.toggle('selected', role === 'investor');
-      document.getElementById('roleObserver').classList.toggle('selected', role === 'observer');
-    }
-
     function showError(msg) {
       const el = document.getElementById('errorMsg');
       el.textContent = msg; el.style.display = 'block';
@@ -205,8 +172,7 @@
 
     function redirectByRole(role) {
       if (role === 'admin') window.location.href = '/admin';
-      else if (role === 'investor') window.location.href = '/game';
-      else window.location.href = '/news';
+      else window.location.href = '/game';
     }
 
     async function handleLogin(e) {
@@ -246,7 +212,7 @@
           body: JSON.stringify({
             username: document.getElementById('regUsername').value,
             password: document.getElementById('regPassword').value,
-            role: selectedRole,
+            role: 'investor',
             referralCode: document.getElementById('regReferralCode').value.trim().toUpperCase() || undefined,
           }),
         });

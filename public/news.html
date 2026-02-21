@@ -150,7 +150,6 @@
       <div class="nav-logo">EchoWorld</div>
       <div class="nav-links">
         <a href="/">总览</a>
-        <a href="/admin">管理</a>
         <a href="/game">游戏</a>
         <a href="/news" class="active">新闻</a>
       </div>
@@ -224,7 +223,7 @@
     if (token && currentUser) {
       document.getElementById('navRight').innerHTML = `
         <span class="nav-user">${currentUser.username} (${
-          currentUser.role === 'admin' ? '管理员' : currentUser.role === 'investor' ? '投资者' : '观察家'
+          currentUser.role === 'investor' ? '投资者' : '玩家'
         })</span>
         <button class="btn-logout" onclick="logout()">退出</button>
       `;

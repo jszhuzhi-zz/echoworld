@@ -38,6 +38,17 @@
     .btn-nav{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
     .btn-nav:hover{background:rgba(255,255,255,0.15);color:#fff}
 
+    /* === World News Ticker === */
+    #news-ticker{position:fixed;top:48px;left:0;right:0;z-index:19;height:28px;
+      background:rgba(10,14,23,0.85);border-bottom:1px solid var(--border);
+      overflow:hidden;display:flex;align-items:center;backdrop-filter:blur(4px)}
+    #news-ticker .nt-label{flex-shrink:0;padding:0 10px;font-size:10px;font-weight:700;
+      color:var(--accent);border-right:1px solid var(--border);height:100%;display:flex;align-items:center}
+    #news-ticker .nt-scroll{white-space:nowrap;display:inline-block;animation:ntScroll 80s linear infinite;padding-left:100%}
+    #news-ticker .nt-item{display:inline-block;padding:0 24px;font-size:11px;color:var(--text2)}
+    #news-ticker .nt-item .nt-type{color:var(--accent);font-weight:600;margin-right:4px}
+    @keyframes ntScroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
     /* === Bottom Action Bar === */
     #action-bar{position:fixed;z-index:15;bottom:16px;left:16px;right:16px;
       display:flex;justify-content:space-between;align-items:center;
@@ -198,7 +209,6 @@
   <div class="top-left">
     <span class="logo">EchoWorld 3D</span>
     <a href="/" class="btn-sm btn-nav">首页</a>
-    <a href="/news" class="btn-sm btn-nav">新闻</a>
     <div class="stat-bars">
       <div class="stat-bar"><span class="label">🍔</span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
       <div class="stat-bar"><span class="label">⚡</span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
@@ -211,6 +221,14 @@
     <div class="money-badge" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">0 CC</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
     <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout">退出</button>
+  </div>
+</div>
+
+<!-- World News Ticker -->
+<div id="news-ticker">
+  <div class="nt-label">世界播报</div>
+  <div class="nt-scroll" id="newsTickerScroll">
+    <span class="nt-item" style="color:var(--text2)">加载中...</span>
   </div>
 </div>
 
@@ -1579,6 +1597,25 @@ async function fetchEconomy() {
   } catch (e) { /* ignore */ }
 }
 
+/** 获取世界新闻播报 */
+async function fetchNewsTicker() {
+  try {
+    const res = await fetch(API + '/api/events?count=30');
+    if (!res.ok) return;
+    const events = await res.json();
+    if (!events.length) return;
+    const el = document.getElementById('newsTickerScroll');
+    el.innerHTML = events.map(ev => {
+      const d = ev.data || {};
+      const desc = d.description || d.reason || d.action || '';
+      const t = (ev.type || '').toLowerCase();
+      const cat = t.includes('trade') || t.includes('transaction') ? 'trade' :
+                  t.includes('build') ? 'build' : t.includes('rule') ? 'rule' : '';
+      return `<span class="nt-item"><span class="nt-type">${ev.type||'event'}</span>${desc}</span>`;
+    }).join('');
+  } catch(e) { /* ignore */ }
+}
+
 // ============ EXTRA ACTIONS & PATH CONSUMPTION ============
 
 window.buyExtraAction = async function() {
@@ -1738,12 +1775,16 @@ async function init() {
     document.getElementById('my-referral-code').textContent = currentUser.referralCode;
   }
 
+  // 加载世界新闻播报
+  fetchNewsTicker();
+
   // Auto refresh
   setInterval(async () => {
     await fetchMe();
     await fetchMap();
     await fetchEconomy();
   }, 10000);
+  setInterval(fetchNewsTicker, 30000);
 }
 
 animate();

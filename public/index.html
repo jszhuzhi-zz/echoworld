@@ -90,6 +90,31 @@
     .ticker-value { font-size: 28px; font-weight: 800; font-family: 'Courier New', monospace; }
     .ticker-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 
+    /* News Ticker */
+    .news-ticker-bar {
+      background: rgba(17,24,39,0.9); border-bottom: 1px solid var(--border);
+      overflow: hidden; white-space: nowrap; position: relative; height: 36px;
+      display: flex; align-items: center;
+    }
+    .news-ticker-label {
+      flex-shrink: 0; padding: 0 14px; font-size: 11px; font-weight: 700;
+      color: var(--accent); background: var(--bg2); border-right: 1px solid var(--border);
+      height: 100%; display: flex; align-items: center; z-index: 1;
+    }
+    .news-ticker-content {
+      display: inline-block; animation: tickerScroll 60s linear infinite;
+      padding-left: 100%;
+    }
+    .news-ticker-content span {
+      display: inline-block; padding: 0 32px; font-size: 12px; color: var(--text2);
+    }
+    .news-ticker-content span .nt-time { color: var(--text2); opacity: 0.6; margin-right: 6px; }
+    .news-ticker-content span .nt-type { color: var(--accent); font-weight: 600; margin-right: 4px; }
+    @keyframes tickerScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
     /* Features */
     .features { padding: 80px 32px; max-width: 1100px; margin: 0 auto; }
     .features-title { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 12px; }
@@ -123,9 +148,7 @@
       display: inline-block; padding: 4px 12px; border-radius: 16px;
       font-size: 11px; font-weight: 600;
     }
-    .role-tag.admin { background: rgba(239,68,68,0.15); color: var(--red); }
     .role-tag.investor { background: rgba(245,158,11,0.15); color: var(--yellow); }
-    .role-tag.observer { background: rgba(59,130,246,0.15); color: var(--accent); }
 
     /* Live Board Preview */
     .preview { padding: 80px 32px; max-width: 1100px; margin: 0 auto; }
@@ -168,7 +191,6 @@
       <div class="nav-logo">EchoWorld</div>
       <div class="nav-links">
         <a href="/" class="active">首页</a>
-        <a href="/news">新闻</a>
         <a href="/game">游戏</a>
       </div>
     </div>
@@ -182,11 +204,11 @@
   <section class="hero">
     <div class="hero-content">
       <div class="hero-badge">AI Powered Economy Simulation</div>
-      <h1>AI 智能体大富翁<br>商业世界</h1>
-      <p>与 AI 智能体一起在虚拟经济世界中投资、建造、交易。<br>每个角色都有吃喝玩乐的生存需求，用你的策略征服排行榜。</p>
+      <h1>EchoWorld<br>无限商业世界</h1>
+      <p>在 AI 驱动的无限开放世界中掷骰冒险、建造设施、满足生存需求。<br>从小食摊到创业中心，用马斯洛需求层次征服经济排行榜。</p>
       <div class="hero-buttons">
         <a href="/login" class="btn-hero btn-hero-primary">立即加入游戏</a>
-        <a href="/news" class="btn-hero btn-hero-secondary">浏览世界新闻</a>
+        <a href="/login" class="btn-hero btn-hero-secondary">注册免费领 1000 CC</a>
       </div>
     </div>
   </section>
@@ -215,15 +237,38 @@
     </div>
   </div>
 
+  <!-- News Ticker -->
+  <div class="news-ticker-bar">
+    <div class="news-ticker-label">世界播报</div>
+    <div class="news-ticker-content" id="newsTicker">
+      <span style="color:var(--text2)">加载中...</span>
+    </div>
+  </div>
+
   <!-- Features -->
   <section class="features">
     <div class="features-title">游戏特色</div>
-    <div class="features-sub">一个由 AI 驱动的动态经济世界</div>
+    <div class="features-sub">一个由 AI 驱动的无限开放经济世界</div>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">🎲</div>
-        <h3>大富翁棋盘</h3>
-        <p>28格经典棋盘设计，掷骰子移动，建造建筑、市场交易、银行贷款，还有机遇和困境等你挑战。</p>
+        <h3>无限世界探索</h3>
+        <p>掷骰子在无限延伸的十字路网中移动，遇到岔路口自由选择方向，每一步都是全新冒险。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <h3>马斯洛建筑体系</h3>
+        <p>15 种建筑覆盖 5 层马斯洛需求：从小食摊、水站到学院、创业中心，建造设施赚取被动收入。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🍔</div>
+        <h3>生存需求</h3>
+        <p>角色需要维持饥饿、体力和快乐值，路过其他玩家的设施可以消费补给，但要付费给店主。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>升级与收入</h3>
+        <p>设施被使用次数越多等级越高，费用和效果随之提升。建一座繁华的商业帝国，获得源源不断的收入。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🤖</div>
@@ -231,50 +276,35 @@
         <p>与 AI 驱动的商业智能体竞争，它们拥有独特的性格和策略，会根据市场环境动态调整决策。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🍔</div>
-        <h3>生存需求</h3>
-        <p>每个角色每天需要消耗食物、能源和商品，满足不了生存需求将影响信用评分甚至破产。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🏗️</div>
-        <h3>建筑投资</h3>
-        <p>建造农场、工厂、商店、银行等 8 种建筑类型，升级建筑提高效率，每日获取被动收入。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <h3>动态市场</h3>
-        <p>5 种资源的实时市场定价系统，价格随供需波动。低买高卖，把握商机。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🏛️</div>
-        <h3>税收体系</h3>
-        <p>世界设有交易税和所得税，管理员控制税率和货币总量，维持经济平衡和财富再分配。</p>
+        <div class="feature-icon">📰</div>
+        <h3>世界新闻播报</h3>
+        <p>实时查看世界动态，建筑、交易、市场行情一目了然。即使未登录也能浏览滚动新闻。</p>
       </div>
     </div>
   </section>
 
-  <!-- Roles -->
+  <!-- How to Play -->
   <section class="roles">
     <div class="roles-inner">
-      <div class="roles-title">三种角色，三种体验</div>
+      <div class="roles-title">三步开始冒险</div>
       <div class="roles-grid">
         <div class="role-card">
-          <div class="role-icon">👑</div>
-          <h3>超级管理员</h3>
-          <p>掌控整个世界的规则制定者。设定税率、调控货币总量、监察所有实体动态、管理用户权限。</p>
-          <span class="role-tag admin">需要管理员账号</span>
+          <div class="role-icon">1️⃣</div>
+          <h3>注册领币</h3>
+          <p>免费注册即可获得 1000 CC 启动资金。填写邀请码，邀请人额外获得 100 CC 奖励。</p>
+          <span class="role-tag investor">30秒完成注册</span>
         </div>
         <div class="role-card">
-          <div class="role-icon">💰</div>
-          <h3>投资玩家</h3>
-          <p>在大富翁棋盘上掷骰子冒险！建造资产、市场交易、申请贷款，与 AI 和其他玩家一决高下。</p>
-          <span class="role-tag investor">注册即可参与</span>
+          <div class="role-icon">2️⃣</div>
+          <h3>掷骰探索</h3>
+          <p>掷骰子在无限世界中移动，遇到空地就能建造设施。路过别人的建筑可以消费补给。</p>
+          <span class="role-tag investor">每日 8 次行动</span>
         </div>
         <div class="role-card">
-          <div class="role-icon">👁️</div>
-          <h3>观察家</h3>
-          <p>不参与投资，但可以实时观看世界新闻、市场行情、财富排行。一个旁观者的上帝视角。</p>
-          <span class="role-tag observer">无需登录</span>
+          <div class="role-icon">3️⃣</div>
+          <h3>建造帝国</h3>
+          <p>从 L1 小食摊起步，一路升级到 L5 创业中心。设施被其他玩家消费时你自动获得收入。</p>
+          <span class="role-tag investor">15种建筑可选</span>
         </div>
       </div>
     </div>
@@ -299,10 +329,9 @@
   <!-- CTA -->
   <section class="cta">
     <h2>准备好开始了吗?</h2>
-    <p>加入 EchoWorld，在 AI 驱动的经济世界中一展身手</p>
+    <p>加入 EchoWorld，在 AI 驱动的无限世界中建造你的商业帝国</p>
     <div class="cta-buttons">
       <a href="/login" class="btn-hero btn-hero-primary">注册账号</a>
-      <a href="/news" class="btn-hero btn-hero-secondary">先看看新闻</a>
     </div>
   </section>
 
@@ -357,8 +386,25 @@
       } catch (e) { console.error(e); }
     }
 
+    async function loadNewsTicker() {
+      try {
+        const res = await fetch('/api/events?count=30');
+        const events = await res.json();
+        if (!events.length) return;
+        const el = document.getElementById('newsTicker');
+        el.innerHTML = events.map(ev => {
+          const d = ev.data || {};
+          const desc = d.description || d.reason || d.action || ev.type || '';
+          const time = ev.timestamp ? `D${ev.timestamp.day||'?'}` : '';
+          return `<span><span class="nt-time">${time}</span><span class="nt-type">${ev.type||''}</span>${desc}</span>`;
+        }).join('');
+      } catch(e) { /* ignore */ }
+    }
+
     loadLiveData();
+    loadNewsTicker();
     setInterval(loadLiveData, 10000);
+    setInterval(loadNewsTicker, 30000);
   </script>
 </body>
 </html>

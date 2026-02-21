@@ -86,8 +86,8 @@ export function createServer(world: World, port = 3000): express.Application {
     if (password.length < 6) {
       return res.status(400).json({ error: '密码至少6个字符' });
     }
-    // 只允许注册 investor 或 observer
-    const userRole = role === 'observer' ? 'observer' : 'investor';
+    // 注册统一为 investor
+    const userRole: 'investor' = 'investor';
 
     // 查找邀请者
     let inviterUserId: string | undefined;
