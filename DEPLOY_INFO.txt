@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 02:39:55 UTC
-Commit: c59f6f2e2b10d7acee843dc822224f51855c6d90
+部署时间: 2026-02-21 02:43:24 UTC
+Commit: 6d164c286ccb12d460cab2709172db3920018b2f
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -10,15 +10,15 @@ Commit: c59f6f2e2b10d7acee843dc822224f51855c6d90
   套餐: 体验版
 
 [1/5] 配置匿名登录...
-  CreateLoginConfig 成功: {"RequestId":"508975fd-47f3-436a-b5bb-2083dde24fef"}
-  CreateLoginConfig 成功: {"RequestId":"451c09c1-3a82-444a-ad39-95857639d314"}
+  CreateLoginConfig 成功: {"RequestId":"b1e94ce9-6b98-4fd0-84f7-994c39e529b1"}
+  CreateLoginConfig 成功: {"RequestId":"e6eed294-eff0-4788-940a-19e67f7c3e32"}
   ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The request is missing the required parameter `ServiceId`.
   登录配置: {
   "ConfigList": [],
-  "RequestId": "7ce1e328-42b5-494c-8203-51785a2db690"
+  "RequestId": "0a80269d-c20f-411b-9f00-a508ed57858d"
 }
   安全规则: {
-  "RequestId": "0450961a-e807-45cd-b88a-8575f6043e46",
+  "RequestId": "e2036e9a-6e78-46d5-996d-98a2589532f1",
   "SmsFreeQuotaList": [
     {
       "FreeQuota": 0,
@@ -62,7 +62,10 @@ found 0 vulnerabilities
   尝试关闭静态托管登录鉴权...
   ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The parameter `EnvId` is not recognized.
   上传 index.html 到 COS 存储...
-  COS 上传: The "paths[0]" argument must be of type string. Received undefined
+  COS 上传 (filePath): The "paths[0]" argument must be of type string. Received undefined
+  COS 上传 (fileContent): The "paths[0]" argument must be of type string. Received undefined
+  COS 临时链接 (30天): undefined
+  storage methods: uploadFile, uploadFiles, uploadFileCustom, uploadDirectory, uploadDirectoryCustom, uploadFilesCustom, createCloudDirectroy, createCloudDirectroyCustom, downloadFile, downloadDirectory, listDirectoryFiles, getTemporaryUrl, deleteFile, deleteFileCustom, getFileInfo, deleteDirectory, deleteDirectoryCustom, getStorageAcl, setStorageAcl, walkCloudDir, walkCloudDirCustom, walkLocalDir, getUploadMetadata, getWebsiteConfig, putBucketWebsite, getBucket, getCos, getCloudKey, cloudPathToFileId, getStorageConfig, uploadFilesWithRetry, downloadWithFilePath, determineDownLoadResultIsError
   检查静态托管状态...
   静态托管: {
   "Data": [
@@ -78,7 +81,7 @@ found 0 vulnerabilities
       "Region": "ap-shanghai"
     }
   ],
-  "RequestId": "f62a9fa1-905e-4089-af1c-5a534e39b25a"
+  "RequestId": "bb0e8d7e-3772-4101-8869-b9a836106793"
 }
 
 [5/5] 配置 HTTP 访问...
@@ -4932,7 +4935,7 @@ found 0 vulnerabilities
   },
   {
     "Key": "index.html",
-    "LastModified": "2026-02-21T02:39:27.000Z",
+    "LastModified": "2026-02-21T02:42:53.000Z",
     "ETag": "\"99d8a3992bf1533c1fb4beaab4411a25\"",
     "Size": "24740",
     "Owner": {
