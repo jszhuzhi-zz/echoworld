@@ -58,58 +58,24 @@ async function deploy() {
 
   // 1. 配置匿名登录 (前端 SDK 需要)
   console.log('\n[1/5] 配置匿名登录...');
-  try {
-    await manager.commonService().call({
-      Action: 'CreateLoginConfig',
-      Param: {
-        EnvId: ENV_ID,
-        Platform: 'ANONYMOUS',
-        PlatformId: 'anonymous',
-        Status: 'ENABLE',
-      },
-    });
-    console.log('  匿名登录已启用');
-  } catch (err) {
-    // May already be enabled or different API format
-    console.log('  CreateLoginConfig:', err.message);
-    // Try alternative approach
+
+  // Try multiple API formats to enable anonymous login
+  const loginApis = [
+    { Action: 'CreateLoginConfig', Param: { EnvId: ENV_ID, Platform: 'ANONYMOUS', PlatformId: 'anonymous', Status: 'ENABLE' } },
+    { Action: 'CreateLoginConfig', Param: { EnvId: ENV_ID, Platform: 'ANONYMOUS' } },
+    { Action: 'ModifyCloudBaseGWPrivilege', Param: { EnvId: ENV_ID, EnableService: true } },
+  ];
+
+  for (const api of loginApis) {
     try {
-      await manager.commonService().call({
-        Action: 'ModifyEnv',
-        Param: {
-          EnvId: ENV_ID,
-        },
-      });
-    } catch (e2) {}
+      const result = await manager.commonService().call(api);
+      console.log(`  ${api.Action} 成功:`, JSON.stringify(result));
+    } catch (err) {
+      console.log(`  ${api.Action}: ${err.message}`);
+    }
   }
 
-  // Add static hosting domain as authorized domain
-  try {
-    console.log('  添加授权域名:', STATIC_DOMAIN);
-    await manager.commonService().call({
-      Action: 'CreateAuthDomain',
-      Param: {
-        EnvId: ENV_ID,
-        Domains: [STATIC_DOMAIN],
-      },
-    });
-    console.log('  授权域名已添加');
-  } catch (err) {
-    console.log('  CreateAuthDomain:', err.message);
-  }
-
-  // Check current auth domains
-  try {
-    const authDomains = await manager.commonService().call({
-      Action: 'DescribeAuthDomains',
-      Param: { EnvId: ENV_ID },
-    });
-    console.log('  当前授权域名:', JSON.stringify(authDomains, null, 2));
-  } catch (err) {
-    console.log('  DescribeAuthDomains:', err.message);
-  }
-
-  // Check login configs
+  // Check what login methods are available
   try {
     const loginConfigs = await manager.commonService().call({
       Action: 'DescribeLoginConfigs',
@@ -118,6 +84,32 @@ async function deploy() {
     console.log('  登录配置:', JSON.stringify(loginConfigs, null, 2));
   } catch (err) {
     console.log('  DescribeLoginConfigs:', err.message);
+  }
+
+  // Check security rules for functions
+  try {
+    const secRules = await manager.commonService().call({
+      Action: 'DescribeSmsQuotas',
+      Param: { EnvId: ENV_ID },
+    });
+    console.log('  安全规则:', JSON.stringify(secRules, null, 2));
+  } catch (err) {
+    // Not critical
+  }
+
+  // Check auth domains (already configured from environment setup)
+  try {
+    const authDomains = await manager.commonService().call({
+      Action: 'DescribeAuthDomains',
+      Param: { EnvId: ENV_ID },
+    });
+    const domainList = authDomains.Domains || [];
+    console.log(`  授权域名 (${domainList.length}个):`);
+    for (const d of domainList) {
+      console.log(`    ${d.Domain} (${d.Type}, ${d.Status})`);
+    }
+  } catch (err) {
+    console.log('  DescribeAuthDomains:', err.message);
   }
 
   // 2. 打包函数代码
@@ -304,14 +296,41 @@ async function deploy() {
     }
   }
 
-  // Test static hosting URL
+  // List uploaded hosting files
+  try {
+    if (manager.hosting && typeof manager.hosting.listFiles === 'function') {
+      const files = await manager.hosting.listFiles();
+      console.log('\n静态托管文件:', JSON.stringify(files, null, 2));
+    }
+  } catch (err) {
+    console.log('  列出文件:', err.message);
+  }
+
+  // Test static hosting URL (with retries for CDN propagation)
   const staticUrl = `https://${STATIC_DOMAIN}`;
   console.log(`\n测试静态托管: ${staticUrl}`);
+  for (let i = 0; i < 3; i++) {
+    if (i > 0) {
+      console.log(`  等待 ${i * 5} 秒后重试...`);
+      await new Promise(r => setTimeout(r, i * 5000));
+    }
+    try {
+      const resp = await httpGet(staticUrl);
+      console.log(`  [尝试${i + 1}] HTTP ${resp.statusCode} (body length: ${resp.body.length})`);
+      if (resp.body.length > 0) {
+        console.log(`  Body preview: ${resp.body.substring(0, 300)}`);
+      }
+      if (resp.statusCode === 200) break;
+    } catch (err) {
+      console.log(`  [尝试${i + 1}] 测试失败: ${err.message}`);
+    }
+  }
+  // Also test index.html explicitly
   try {
-    const resp = await httpGet(staticUrl);
-    console.log(`  HTTP ${resp.statusCode}: ${resp.body.substring(0, 200)}`);
+    const resp2 = await httpGet(`${staticUrl}/index.html`);
+    console.log(`  /index.html: HTTP ${resp2.statusCode} (body length: ${resp2.body.length})`);
   } catch (err) {
-    console.log(`  测试失败: ${err.message}`);
+    console.log(`  /index.html 测试: ${err.message}`);
   }
 
   // Test HTTP access URL
