@@ -1,29 +1,14 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 02:59:15 UTC
-Commit: e91e6f1790b7c5c6027194451c34f662ea97fc10
+部署时间: 2026-02-21 03:23:05 UTC
+Commit: 6d389c8f68c99efa18f6c0ab83be1c25782dda95
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
 
-[0] 检查现有环境...
-  现有环境数: 1
-  - georgezhu-0gnrnw9ae9fca59a | 体验版 | prepayment | NORMAL
+[0] 环境信息
+  georgezhu-0gnrnw9ae9fca59a | 体验版 | NORMAL
 
-[1] 尝试创建按量计费环境...
-  尝试 #1: {"Source":"qcloud","FreeQuota":"basic","Alias":"echoworld-app"}
-  尝试 #1 失败: [CreatePostpayPackage] This env type is not available。Please choose another one
-  尝试 #2: {"Source":"qcloud","FreeQuota":"free","Alias":"echoworld-app"}
-  尝试 #2 失败: [CreatePostpayPackage] This env type is not available。Please choose another one
-  尝试 #3: {"Source":"qcloud","Alias":"echoworld-app"}
-  尝试 #3 失败: [CreatePostpayPackage] Your current request times equals to `3` in a second, which exceeds the frequency limit `2` for a second. Please reduce the frequency of calls.
-  尝试 #4: {"FreeQuota":"basic","Alias":"echoworld-app"}
-  尝试 #4 失败: [CreatePostpayPackage] Your current request times equals to `4` in a second, which exceeds the frequency limit `2` for a second. Please reduce the frequency of calls.
-
-  无法创建新环境，使用旧环境: georgezhu-0gnrnw9ae9fca59a
-
-  目标环境: georgezhu-0gnrnw9ae9fca59a
-
-[2/4] 打包函数代码...
+[1/4] 打包函数代码...
 
 added 71 packages, and audited 72 packages in 2s
 
@@ -33,21 +18,15 @@ added 71 packages, and audited 72 packages in 2s
 found 0 vulnerabilities
   函数包大小: 3.3M
 
-[3/4] 部署云函数...
+[2/4] 部署云函数...
 [echoworld] 部署方式: COS 上传
 [echoworld] 部署方式: COS 上传
   云函数部署成功!
 
-[4/4] 配置 HTTP 访问...
-  switchAuth: [ModifyCloudBaseGWPrivilege] 当前套餐无法执行此操作
-  路由 /echoworld 已配置
+[3/4] 配置静态托管...
   静态文件已上传
-
-========================================
-         部署结果
-========================================
-
-域名信息: {
+  hosting 方法: getInfo, enableService, findFiles, listFiles, destroyService, uploadFiles, deleteFiles, downloadFile, downloadDirectory, walkLocalDir, CreateHostingDomain, deleteHostingDomain, tcbCheckResource, tcbModifyAttribute, getWebsiteConfig, setWebsiteDocument, checkStatus, getHostingConfig, getCloudKey
+  DescribeCloudBaseGWService: {
   "AccessFlag": 1,
   "CustomRoutingRules": "",
   "DefaultDomain": "georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com",
@@ -55,25 +34,64 @@ found 0 vulnerabilities
   "EnableService": false,
   "EnableUnion": false,
   "OriginDomain": "georgezhu-0gnrnw9ae9fca59a.tcbaccess-in.tencentcloudbase.com",
-  "RequestId": "a87de231-f1fa-4b1f-b1a2-45e8bb9ef3a0",
+  "RequestId": "fb28d57e-e82b-4b6f-bba9-23f73f18911b",
   "ServiceSet": []
 }
+  DescribeHostingDomainTask: {
+  "RequestId": "c8764bf7-0d27-44eb-b5d9-e5df971b2db7",
+  "Status": "done"
+}
+  DescribeCloudBaseBuildService: [DescribeCloudBaseBuildService] The request is missing the required parameter `ServiceName`.
+  获取到 storage COS 实例
+  网站配置已设置 (storage COS)
+  Bucket ACL 设置为 public-read (storage)
+  当前网站配置: {
+  "WebsiteConfiguration": {
+    "IndexDocument": {
+      "Suffix": "index.html"
+    },
+    "ErrorDocument": {
+      "Key": "404.html"
+    }
+  },
+  "statusCode": 200,
+  "headers": {
+    "content-type": "application/xml",
+    "content-length": "170",
+    "connection": "keep-alive",
+    "date": "Sat, 21 Feb 2026 03:23:02 GMT",
+    "server": "tencent-cos",
+    "x-cos-request-id": "Njk5OTI1MTZfMzg4ZWI1MDlfNzI3NV8zNTBlOWRm"
+  },
+  "RequestId": "Njk5OTI1MTZfMzg4ZWI1MDlfNzI3NV8zNTBlOWRm"
+}
 
-HTTP 路由:
-  /api -> link-reit-api
-  /echoworld -> echoworld
-  EnableService: false
+[4/4] 配置匿名登录...
+  匿名登录已配置
+
+========== 测试 ==========
+  函数调用: {"RequestId":"512c44a4-ca7f-4ab6-b1b2-300df0980f7f","FunctionRequestId":"512c44a4-ca7f-4ab6-b1b2-300df0980f7f","InvokeResult":0,"Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unava
+
+  测试 https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  HTTP 418 | body: 0 bytes
+  headers: {
+  "content-length": "0",
+  "x-nws-log-uuid": "5311165943436144813",
+  "connection": "close",
+  "server": "TCB",
+  "date": "Sat, 21 Feb 2026 03:23:04 GMT",
+  "x-cache-lookup": "Return Directly"
+}
+
+  测试 https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com/index.html
+  HTTP 418 | body: 0 bytes
 
 ========================================
-  环境ID: georgezhu-0gnrnw9ae9fca59a
-  HTTP 服务: ✗ 未开通
+  部署完成!
+  环境: georgezhu-0gnrnw9ae9fca59a
   静态托管: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
-
-  HTTP 服务未开通，请在控制台手动开通:
-  https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
+  控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=georgezhu-0gnrnw9ae9fca59a
 ========================================
-
-控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=georgezhu-0gnrnw9ae9fca59a
 
 === 部署完成 ===
 
