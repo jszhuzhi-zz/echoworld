@@ -298,6 +298,27 @@ async function deploy() {
     console.log('  路由配置:', err.message);
   }
 
+  // 检查配额和余额
+  console.log('\n========== 配额检查 ==========');
+  const quotaApis = [
+    { Action: 'DescribeQuotaData', Param: { EnvId: ENV_ID } },
+    { Action: 'DescribeEnvFreeQuota', Param: { EnvId: ENV_ID } },
+    { Action: 'DescribeEnvLimit', Param: { EnvId: ENV_ID } },
+    { Action: 'DescribePostpayFreeQuotas', Param: { EnvId: ENV_ID } },
+    { Action: 'DescribePostpayPackageFreeQuotas', Param: { EnvId: ENV_ID } },
+    { Action: 'DescribeBillingInfo', Param: { EnvId: ENV_ID } },
+    { Action: 'DescribeExtraPkgBillingInfo', Param: { EnvId: ENV_ID } },
+    { Action: 'CheckTcbService', Param: {} },
+  ];
+  for (const api of quotaApis) {
+    try {
+      const r = await manager.commonService().call(api);
+      console.log(`  ${api.Action}:`, JSON.stringify(r, null, 2));
+    } catch (err) {
+      console.log(`  ${api.Action}: ${err.message}`);
+    }
+  }
+
   // 测试
   console.log('\n========== 测试 ==========');
 
@@ -309,24 +330,10 @@ async function deploy() {
     console.log('  函数调用:', err.message);
   }
 
-  // 再等待一下后重新测试
-  await new Promise(r => setTimeout(r, 3000));
-  try {
-    const fnResult = await manager.functions.invokeFunction(FUNCTION_NAME, {
-      httpMethod: 'GET',
-      path: '/api/world/time',
-      headers: {},
-      queryStringParameters: {},
-    });
-    console.log('  函数HTTP调用:', JSON.stringify(fnResult).substring(0, 300));
-  } catch (err) {
-    console.log('  函数HTTP调用:', err.message);
-  }
-
-  // 测试静态托管
+  // 测试静态托管 (TCB CDN 域名)
   const staticDomain = 'georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com';
   const staticUrl = `https://${staticDomain}`;
-  console.log(`\n  测试 ${staticUrl}`);
+  console.log(`\n  测试 TCB CDN: ${staticUrl}`);
   try {
     const resp = await httpGet(staticUrl);
     console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
@@ -337,12 +344,39 @@ async function deploy() {
     console.log(`  测试失败: ${err.message}`);
   }
 
-  console.log(`\n  测试 ${staticUrl}/index.html`);
+  // 测试 COS Website 直接访问 (绕过 TCB CDN)
+  const cosBucket = '39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149';
+  const cosWebsiteUrl = `https://${cosBucket}.cos-website.ap-shanghai.myqcloud.com`;
+  console.log(`\n  测试 COS Website: ${cosWebsiteUrl}`);
   try {
-    const resp = await httpGet(`${staticUrl}/index.html`);
+    const resp = await httpGet(cosWebsiteUrl);
     console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
-    if (resp.body.length > 0 && resp.body.length < 500) {
-      console.log(`  body: ${resp.body}`);
+    if (resp.body.length > 0 && resp.body.length < 1000) {
+      console.log(`  body: ${resp.body.substring(0, 500)}`);
+    }
+  } catch (err) {
+    console.log(`  测试失败: ${err.message}`);
+  }
+
+  console.log(`\n  测试 COS Website /index.html: ${cosWebsiteUrl}/index.html`);
+  try {
+    const resp = await httpGet(`${cosWebsiteUrl}/index.html`);
+    console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
+    if (resp.body.length > 0 && resp.body.length < 1000) {
+      console.log(`  body: ${resp.body.substring(0, 500)}`);
+    }
+  } catch (err) {
+    console.log(`  测试失败: ${err.message}`);
+  }
+
+  // 也测试 COS 普通端点
+  const cosUrl = `https://${cosBucket}.cos.ap-shanghai.myqcloud.com/index.html`;
+  console.log(`\n  测试 COS 直接: ${cosUrl}`);
+  try {
+    const resp = await httpGet(cosUrl);
+    console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
+    if (resp.body.length > 0 && resp.body.length < 1000) {
+      console.log(`  body: ${resp.body.substring(0, 500)}`);
     }
   } catch (err) {
     console.log(`  测试失败: ${err.message}`);
@@ -352,7 +386,9 @@ async function deploy() {
   console.log('\n========================================');
   console.log('  部署完成!');
   console.log(`  环境: ${ENV_ID}`);
-  console.log(`  静态托管: ${staticUrl}`);
+  console.log(`  TCB CDN: ${staticUrl}`);
+  console.log(`  COS Website: ${cosWebsiteUrl}`);
+  console.log(`  COS 直接: ${cosUrl}`);
   console.log(`  控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=${ENV_ID}`);
   console.log('========================================');
   console.log('\n=== 部署完成 ===');
