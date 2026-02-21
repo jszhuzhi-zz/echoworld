@@ -611,8 +611,9 @@ export function createServer(world: World, port = 3000): express.Application {
 
     entity.pay(template.cost);
 
+    const node = infiniteWorld.nodes.get(nodeId)!;
     res.json({
-      message: `建造了 ${result.building.name}，花费 ${template.cost} CC`,
+      message: `建造了 ${result.building.name} (${node.x},${node.y})，花费 ${template.cost} CC`,
       building: result.building,
       template: result.template,
       entity: entity.getSummary(),

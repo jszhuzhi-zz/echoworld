@@ -340,12 +340,6 @@
       <div class="wealth-section-title">我的资产</div>
       <div id="wp-buildings"><div style="font-size:11px;color:var(--text2)">暂无资产</div></div>
     </div>
-    <div class="wealth-section">
-      <div class="wealth-section-title">世界经济</div>
-      <div class="wealth-row"><span class="wlabel">世界总财富</span><span class="wval" id="wp-world-total">0 CC</span></div>
-      <div class="wealth-row"><span class="wlabel">世界国库</span><span class="wval" id="wp-treasury">0 CC</span></div>
-      <div class="wealth-row"><span class="wlabel">活跃玩家</span><span class="wval" id="wp-players">0</span></div>
-    </div>
     <button class="btn-recharge" onclick="closeWealthPage();openRechargeModal()">充值购买 CC 币</button>
     <div class="wealth-referral">
       <div style="font-size:10px;color:var(--text2);margin-bottom:4px">我的邀请码</div>
@@ -522,20 +516,6 @@ function levelGlow(level) {
   return 0.08 + level * 0.12; // Lv1=0.2, Lv2=0.32, Lv3=0.44, Lv4=0.56, Lv5=0.68
 }
 
-/** 根据lot坐标计算偏移方向（不依赖父节点查找）
- * lot总是在intersection的对角线方向(±1,±1)，intersection在SPACING(14)的倍数坐标
- * 所以lot的偏移方向 = lot坐标 - 最近的SPACING倍数坐标 */
-function calcLotOffset(x, y) {
-  const SPACING = 14;
-  // 最近的SPACING倍数坐标就是parent intersection的位置
-  const nearIntX = Math.round(x / SPACING) * SPACING;
-  const nearIntY = Math.round(y / SPACING) * SPACING;
-  const dx = x - nearIntX;
-  const dy = y - nearIntY;
-  const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  return { offX: (dx / len) * 0.5, offZ: (dy / len) * 0.5 };
-}
-
 /** 创建建筑3D模型 */
 function createBuilding3D(node, tpl) {
   const bldg = node.building;
@@ -546,9 +526,8 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  // 建筑向远离主路方向偏移，通过坐标计算（lot在奇数坐标，parent intersection在最近偶数坐标）
-  const { offX: bOffX, offZ: bOffZ } = calcLotOffset(node.x, node.y);
-  group.position.set(node.x + bOffX, 0, node.y + bOffZ);
+  // lot坐标已在intersection旁(±1,±1)，无需额外偏移
+  group.position.set(node.x, 0, node.y);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -823,6 +802,21 @@ function createBuilding3D(node, tpl) {
     group.add(beam);
   }
 
+  // 建筑名称标签
+  const labelCanvas = document.createElement('canvas');
+  labelCanvas.width = 256; labelCanvas.height = 48;
+  const labelCtx = labelCanvas.getContext('2d');
+  const labelText = `${tpl?.icon || ''} ${bldg.name}`;
+  labelCtx.fillStyle = '#e2e8f0';
+  labelCtx.font = 'bold 16px sans-serif';
+  labelCtx.textAlign = 'center';
+  labelCtx.fillText(labelText.slice(0, 14), 128, 28);
+  const labelTex = new THREE.CanvasTexture(labelCanvas);
+  const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true, depthTest: false }));
+  labelSprite.scale.set(2.5, 0.5, 1);
+  labelSprite.position.y = 1.6 + level * 0.15;
+  group.add(labelSprite);
+
   // Set shadow for all children
   group.traverse(child => {
     if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
@@ -849,12 +843,11 @@ function renderMap(nodes) {
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
     } else if (node.type === 'lot') {
-      // Empty lot: flat dashed outline, 向远离主路方向偏移
+      // Empty lot: flat outline, lot坐标已在intersection旁(±1,±1)
       const geo = new THREE.BoxGeometry(1.2, 0.05, 1.2);
       const mat = new THREE.MeshStandardMaterial({ color: 0x374151, transparent: true, opacity: 0.3 });
       mesh = new THREE.Mesh(geo, mat);
-      const { offX: lotOX, offZ: lotOZ } = calcLotOffset(node.x, node.y);
-      mesh.position.set(node.x + lotOX, 0.03, node.y + lotOZ);
+      mesh.position.set(node.x, 0.03, node.y);
       mesh.userData = { nodeId: node.id, type: 'lot', node };
       clickableMeshes.push(mesh);
     } else {
@@ -1138,7 +1131,7 @@ function updateMyBuildings(nodes) {
   const myBuildings = nodes.filter(n => n.building?.ownerId === currentUser?.entityId);
   document.getElementById('my-buildings').innerHTML = myBuildings.map(n => {
     const tpl = buildingCatalog.find(b => b.type === n.building.templateType);
-    return `<div class="building-item"><span class="b-icon">${tpl?.icon || '?'}</span><span class="b-name">${n.building.name}</span><span class="b-lv">Lv.${n.building.level}</span></div>`;
+    return `<div class="building-item"><span class="b-icon">${tpl?.icon || '?'}</span><span class="b-name">${n.building.name}</span><span class="b-lv">Lv.${n.building.level}</span><span style="font-size:9px;color:var(--text2);margin-left:auto">(${n.x},${n.y})</span></div>`;
   }).join('') || '<span style="font-size:11px;color:var(--text2)">暂无</span>';
 }
 
@@ -1401,6 +1394,7 @@ window.useBuilding = async function() {
     closeBuildingOverlay();
     document.getElementById('btn-consume').style.display = 'none';
     await fetchMap();
+    await fetchMe();
 
   } catch (e) {
     addLog('消费失败', 'danger');
@@ -1494,45 +1488,29 @@ window.openWealthPage = async function() {
   document.getElementById('wp-recharged').textContent = (currentUser?.totalRecharged ?? 0) + ' CC';
   document.getElementById('wp-referral').textContent = currentUser?.referralCode || '-';
 
-  // 加载建筑资产列表
-  try {
-    const res = await fetch(API + '/api/game/me', { headers: authHeaders() });
-    if (res.ok) {
-      const data = await res.json();
-      const buildings = data.buildings || [];
-      if (buildings.length > 0) {
-        document.getElementById('wp-buildings').innerHTML = buildings.map(b => {
-          const tpl = buildingCatalog.find(t => t.type === b.templateType);
-          const lvMult = 1 + (b.level - 1) * 0.3;
-          const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
-          return `<div class="wealth-asset">
-            <span class="wa-icon">${tpl?.icon || '🏗'}</span>
-            <div class="wa-info">
-              <div class="wa-name">${b.name} (Lv.${b.level})</div>
-              <div class="wa-detail">${tpl?.name || b.templateType} · 使用 ${b.usageCount || 0} 次</div>
-            </div>
-            <div class="wa-val">
-              <div class="wa-fee">${fee} CC/次</div>
-              <div class="wa-uses">累计收入 ~${fee * (b.usageCount || 0)} CC</div>
-            </div>
-          </div>`;
-        }).join('');
-      } else {
-        document.getElementById('wp-buildings').innerHTML = '<div style="font-size:11px;color:var(--text2)">暂无资产，建造设施获得被动收入</div>';
-      }
-    }
-  } catch (e) { /* ignore */ }
-
-  // 加载世界经济数据
-  try {
-    const res = await fetch(API + '/api/world/economy');
-    if (res.ok) {
-      const data = await res.json();
-      document.getElementById('wp-world-total').textContent = (data.totalWorldWealth ?? 0).toFixed(0) + ' CC';
-      document.getElementById('wp-treasury').textContent = (data.treasuryBalance ?? 0).toFixed(0) + ' CC';
-      document.getElementById('wp-players').textContent = data.playerCount ?? 0;
-    }
-  } catch (e) { /* ignore */ }
+  // 从地图数据获取我的建筑资产
+  const myBldgNodes = allNodes.filter(n => n.building?.ownerId === currentUser?.entityId);
+  if (myBldgNodes.length > 0) {
+    document.getElementById('wp-buildings').innerHTML = myBldgNodes.map(n => {
+      const b = n.building;
+      const tpl = buildingCatalog.find(t => t.type === b.templateType);
+      const lvMult = 1 + (b.level - 1) * 0.3;
+      const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+      return `<div class="wealth-asset">
+        <span class="wa-icon">${tpl?.icon || '🏗'}</span>
+        <div class="wa-info">
+          <div class="wa-name">${b.name} (Lv.${b.level})</div>
+          <div class="wa-detail">${tpl?.name || b.templateType} · (${n.x},${n.y}) · 使用 ${b.usageCount || 0} 次</div>
+        </div>
+        <div class="wa-val">
+          <div class="wa-fee">${fee} CC/次</div>
+          <div class="wa-uses">累计收入 ~${fee * (b.usageCount || 0)} CC</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('wp-buildings').innerHTML = '<div style="font-size:11px;color:var(--text2)">暂无资产，建造设施获得被动收入</div>';
+  }
 
   modal.classList.add('show');
 };
@@ -1612,6 +1590,7 @@ window.buyExtraAction = async function() {
     updateStats(data.stats);
     updateActions(data.state);
     myState = data.state;
+    await fetchMe();
   } catch (e) {
     addLog('购买行动失败', 'danger');
   }
