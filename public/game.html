@@ -38,16 +38,22 @@
     .btn-nav{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
     .btn-nav:hover{background:rgba(255,255,255,0.15);color:#fff}
 
-    /* === World News Ticker === */
-    #news-ticker{position:fixed;top:48px;left:0;right:0;z-index:19;height:28px;
-      background:rgba(10,14,23,0.85);border-bottom:1px solid var(--border);
-      overflow:hidden;display:flex;align-items:center;backdrop-filter:blur(4px)}
-    #news-ticker .nt-label{flex-shrink:0;padding:0 10px;font-size:10px;font-weight:700;
-      color:var(--accent);border-right:1px solid var(--border);height:100%;display:flex;align-items:center}
-    #news-ticker .nt-scroll{white-space:nowrap;display:inline-block;animation:ntScroll 80s linear infinite;padding-left:100%}
-    #news-ticker .nt-item{display:inline-block;padding:0 24px;font-size:11px;color:var(--text2)}
-    #news-ticker .nt-item .nt-type{color:var(--accent);font-weight:600;margin-right:4px}
-    @keyframes ntScroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+    /* === Stamina Confirm Modal === */
+    #stamina-confirm{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
+    #stamina-confirm.show{display:flex}
+    .stamina-content{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;
+      width:min(340px,calc(100vw - 32px));text-align:center}
+    .stamina-title{font-size:15px;font-weight:700;margin-bottom:12px}
+    .stamina-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+    .stamina-cost{display:flex;gap:12px;justify-content:center;margin-bottom:14px}
+    .stamina-cost .sc-item{font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;background:rgba(239,68,68,0.12);color:var(--red)}
+    .stamina-cost .sc-gain{background:rgba(59,130,246,0.12);color:var(--accent)}
+    .stamina-btns{display:flex;gap:8px;justify-content:center}
+    .stamina-btns button{padding:8px 24px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+    .stamina-btns .btn-confirm{background:var(--accent);color:white}
+    .stamina-btns .btn-confirm:hover{opacity:0.9}
+    .stamina-btns .btn-cancel{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
+    .log-item.broadcast{color:var(--accent);border-left:2px solid rgba(59,130,246,0.4)}
 
     /* === Bottom Action Bar === */
     #action-bar{position:fixed;z-index:15;bottom:16px;left:16px;right:16px;
@@ -224,14 +230,6 @@
   </div>
 </div>
 
-<!-- World News Ticker -->
-<div id="news-ticker">
-  <div class="nt-label">世界播报</div>
-  <div class="nt-scroll" id="newsTickerScroll">
-    <span class="nt-item" style="color:var(--text2)">加载中...</span>
-  </div>
-</div>
-
 <!-- Bottom Action Bar -->
 <div id="action-bar">
   <div class="action-group">
@@ -369,6 +367,13 @@
       <div class="wealth-section-title">我的资产</div>
       <div id="wp-buildings"><div style="font-size:11px;color:var(--text2)">暂无资产</div></div>
     </div>
+    <div class="wealth-section">
+      <div class="wealth-section-title">生命恢复</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="recoverHunger()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(239,68,68,0.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">🍔 恢复饥饿 +20<br><span style="font-size:10px;opacity:0.7">花费 80 CC</span></button>
+      </div>
+      <div style="font-size:9px;color:var(--text2);margin-top:6px;line-height:1.5">体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复</div>
+    </div>
     <button class="btn-recharge" onclick="closeWealthPage();openRechargeModal()">充值购买 CC 币</button>
     <div class="wealth-referral">
       <div style="font-size:10px;color:var(--text2);margin-bottom:4px">我的邀请码</div>
@@ -400,6 +405,24 @@
       <div class="recharge-opt" onclick="doRecharge(10000)"><div class="amount">10000</div><div class="label">CC</div></div>
     </div>
     <div style="font-size:10px;color:var(--text2);margin-top:8px">购买CC币可提前获得财富，投资资产后可财富增值</div>
+  </div>
+</div>
+
+<!-- Stamina Confirm Modal -->
+<div id="stamina-confirm">
+  <div class="stamina-content">
+    <div class="stamina-title">消耗体力兑换行动</div>
+    <div class="stamina-desc">消耗生命值来获得额外行动次数</div>
+    <div class="stamina-cost">
+      <span class="sc-item">🍔 -10</span>
+      <span class="sc-item">⚡ -10</span>
+      <span class="sc-item sc-gain">行动 +1</span>
+    </div>
+    <div id="stamina-warning" style="font-size:11px;color:var(--red);margin-bottom:10px;display:none"></div>
+    <div class="stamina-btns">
+      <button class="btn-confirm" onclick="confirmBuyAction()">确认兑换</button>
+      <button class="btn-cancel" onclick="closeStaminaConfirm()">取消</button>
+    </div>
   </div>
 </div>
 
@@ -921,23 +944,41 @@ function renderMap(nodes) {
     mapMeshGroup.add(mesh);
   }
 
-  // Draw road connections as thin lines (skip lot connections to keep clean)
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x283040, transparent: true, opacity: 0.4 });
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-  const drawnEdges = new Set();
+  // Draw continuous road strips for horizontal and vertical main roads
+  const ROAD_SPACING = 14;
+  const hRoads = new Map(); // y => {min, max}
+  const vRoads = new Map(); // x => {min, max}
   for (const node of nodes) {
-    if (node.type === 'lot') continue; // lot不画连接线
-    for (const cid of node.connections) {
-      const cn = nodeMap.get(cid);
-      if (!cn || cn.type === 'lot') continue; // 跳过到lot的连接线
-      const key = Math.min(node.id, cid) + '-' + Math.max(node.id, cid);
-      if (drawnEdges.has(key)) continue;
-      drawnEdges.add(key);
-      const pts = [new THREE.Vector3(node.x, 0.04, node.y), new THREE.Vector3(cn.x, 0.04, cn.y)];
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-      const line = new THREE.Line(lineGeo, lineMat);
-      mapMeshGroup.add(line);
+    if (node.type === 'lot') continue;
+    if (node.y % ROAD_SPACING === 0) {
+      const r = hRoads.get(node.y);
+      if (r) { r.min = Math.min(r.min, node.x); r.max = Math.max(r.max, node.x); }
+      else hRoads.set(node.y, { min: node.x, max: node.x });
     }
+    if (node.x % ROAD_SPACING === 0) {
+      const r = vRoads.get(node.x);
+      if (r) { r.min = Math.min(r.min, node.y); r.max = Math.max(r.max, node.y); }
+      else vRoads.set(node.x, { min: node.y, max: node.y });
+    }
+  }
+  const roadStripMat = new THREE.MeshStandardMaterial({ color: 0x1a2535, roughness: 0.85 });
+  for (const [y, r] of hRoads) {
+    const len = r.max - r.min;
+    if (len <= 0) continue;
+    const geo = new THREE.BoxGeometry(len + 1.4, 0.03, 1.2);
+    const mesh = new THREE.Mesh(geo, roadStripMat);
+    mesh.position.set((r.min + r.max) / 2, 0.015, y);
+    mesh.receiveShadow = true;
+    mapMeshGroup.add(mesh);
+  }
+  for (const [x, r] of vRoads) {
+    const len = r.max - r.min;
+    if (len <= 0) continue;
+    const geo = new THREE.BoxGeometry(1.2, 0.03, len + 1.4);
+    const mesh = new THREE.Mesh(geo, roadStripMat);
+    mesh.position.set(x, 0.015, (r.min + r.max) / 2);
+    mesh.receiveShadow = true;
+    mapMeshGroup.add(mesh);
   }
 }
 
@@ -1702,28 +1743,54 @@ async function fetchEconomy() {
   } catch (e) { /* ignore */ }
 }
 
-/** 获取世界新闻播报 */
-async function fetchNewsTicker() {
+/** 获取世界播报 → 显示在底部日志区域 */
+let _lastBroadcastTime = 0;
+async function fetchWorldBroadcast() {
   try {
-    const res = await fetch(API + '/api/events?count=30');
+    const res = await fetch(API + '/api/events?count=10');
     if (!res.ok) return;
     const events = await res.json();
     if (!events.length) return;
-    const el = document.getElementById('newsTickerScroll');
-    el.innerHTML = events.map(ev => {
-      const d = ev.data || {};
-      const desc = d.description || d.reason || d.action || '';
-      const t = (ev.type || '').toLowerCase();
-      const cat = t.includes('trade') || t.includes('transaction') ? 'trade' :
-                  t.includes('build') ? 'build' : t.includes('rule') ? 'rule' : '';
-      return `<span class="nt-item"><span class="nt-type">${ev.type||'event'}</span>${desc}</span>`;
-    }).join('');
+    // 只显示新事件 (通过时间戳去重)
+    const newEvents = events.filter(ev => {
+      const t = new Date(ev.timestamp || ev.time || 0).getTime();
+      return t > _lastBroadcastTime;
+    });
+    if (newEvents.length > 0) {
+      _lastBroadcastTime = Math.max(...newEvents.map(ev => new Date(ev.timestamp || ev.time || 0).getTime()));
+      for (const ev of newEvents.slice(-5)) {
+        const d = ev.data || {};
+        const desc = d.description || d.reason || d.action || '';
+        if (desc) addLog(`[播报] ${desc}`, 'broadcast');
+      }
+    }
   } catch(e) { /* ignore */ }
 }
 
 // ============ EXTRA ACTIONS & PATH CONSUMPTION ============
 
-window.buyExtraAction = async function() {
+/** 打开体力兑换确认弹窗 */
+window.buyExtraAction = function() {
+  const h = myState?.hunger ?? 0;
+  const e = myState?.energy ?? 0;
+  const warn = document.getElementById('stamina-warning');
+  if (h < 15 || e < 15) {
+    warn.textContent = `当前状态: 🍔${h} ⚡${e}，需要饥饿≥15且体力≥15`;
+    warn.style.display = 'block';
+  } else {
+    warn.textContent = `当前状态: 🍔${h} ⚡${e} → 兑换后: 🍔${h-10} ⚡${e-10}`;
+    warn.style.display = 'block';
+    warn.style.color = 'var(--text2)';
+  }
+  document.getElementById('stamina-confirm').classList.add('show');
+};
+
+window.closeStaminaConfirm = function() {
+  document.getElementById('stamina-confirm').classList.remove('show');
+};
+
+window.confirmBuyAction = async function() {
+  closeStaminaConfirm();
   try {
     const res = await fetch(API + '/api/world/buy-action', { method: 'POST', headers: authHeaders() });
     if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
@@ -1739,6 +1806,22 @@ window.buyExtraAction = async function() {
 };
 
 // 路过消费现在在 animateSteps 中实时处理，不再需要旧的 panel 逻辑
+
+/** 在财富页面花费CC恢复饥饿 (比建筑消费贵) */
+window.recoverHunger = async function() {
+  try {
+    const res = await fetch(API + '/api/world/recover-hunger', { method: 'POST', headers: authHeaders() });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || '恢复失败', 'warn'); return; }
+    const data = await res.json();
+    addLog(data.message, 'good');
+    updateStats(data.stats);
+    updateMoney(data.entity);
+    myState = data.state;
+    myEntity = data.entity;
+  } catch (e) {
+    addLog('恢复失败', 'danger');
+  }
+};
 
 // ============ CLICK HANDLER ============
 renderer.domElement.addEventListener('click', (event) => {
@@ -1830,8 +1913,8 @@ async function init() {
     document.getElementById('my-referral-code').textContent = currentUser.referralCode;
   }
 
-  // 加载世界新闻播报
-  fetchNewsTicker();
+  // 加载世界播报
+  fetchWorldBroadcast();
 
   // Auto refresh
   setInterval(async () => {
@@ -1839,7 +1922,7 @@ async function init() {
     await fetchMap();
     await fetchEconomy();
   }, 10000);
-  setInterval(fetchNewsTicker, 30000);
+  setInterval(fetchWorldBroadcast, 15000);
 }
 
 animate();

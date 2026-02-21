@@ -704,6 +704,38 @@ export function createServer(world: World, port = 3000): express.Application {
     });
   });
 
+  /** 花费CC恢复饥饿 (比建筑消费贵) */
+  app.post('/api/world/recover-hunger', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: '角色不存在' });
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (!state?.alive) return res.status(400).json({ error: '角色已死亡' });
+
+    const cost = 80;
+    const recovery = 20;
+    if (entity.getSummary().currency < cost) {
+      return res.status(400).json({ error: `资金不足，需要 ${cost} CC` });
+    }
+    if (state.hunger >= 100) {
+      return res.status(400).json({ error: '饥饿值已满' });
+    }
+
+    entity.pay(cost);
+    // 费用归入国库
+    const treasury = getTreasury();
+    if (treasury) treasury.receive(cost);
+    state.hunger = Math.min(100, state.hunger + recovery);
+
+    res.json({
+      message: `花费 ${cost} CC 恢复饥饿 +${recovery}`,
+      stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
+      entity: entity.getSummary(),
+      state,
+    });
+  });
+
   /** 消耗健康值换取额外行动次数 */
   app.post('/api/world/buy-action', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);

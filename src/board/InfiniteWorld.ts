@@ -661,6 +661,10 @@ export class InfiniteWorld {
   resetDailyActions(): void {
     for (const state of this.players.values()) {
       state.actionsToday = 0;
+      // 每日自动恢复体力 (饥饿不自动恢复，需消费建筑或花费CC)
+      if (state.alive) {
+        state.energy = Math.min(100, state.energy + 20);
+      }
     }
   }
 
