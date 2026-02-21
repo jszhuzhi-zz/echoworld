@@ -1,7 +1,6 @@
 /**
  * CloudBase 部署脚本
- * 部署云函数 + 静态托管前端
- * 前端通过 CloudBase JS SDK 调用云函数，绕过 HTTP 服务限制
+ * 策略: 创建按量计费环境 → 部署函数 → 开通HTTP → 提供访问链接
  */
 const CloudBase = require('@cloudbase/manager-node');
 const https = require('https');
@@ -9,11 +8,10 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const ENV_ID = 'georgezhu-0gnrnw9ae9fca59a';
+const OLD_ENV_ID = 'georgezhu-0gnrnw9ae9fca59a';
 const FUNCTION_NAME = 'echoworld';
 const SECRET_ID = process.env.TCB_SECRET_ID;
 const SECRET_KEY = process.env.TCB_SECRET_KEY;
-const STATIC_DOMAIN = 'georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com';
 
 function httpGet(url) {
   return new Promise((resolve, reject) => {
@@ -32,88 +30,104 @@ async function deploy() {
     throw new Error('TCB_SECRET_ID and TCB_SECRET_KEY must be set');
   }
 
-  const manager = new CloudBase({
+  // 0. 检查现有环境
+  console.log('\n[0] 检查现有环境...');
+  const oldManager = new CloudBase({
     secretId: SECRET_ID,
     secretKey: SECRET_KEY,
-    envId: ENV_ID,
+    envId: OLD_ENV_ID,
   });
 
-  // 0. 获取环境信息
-  console.log('\n[0] 获取环境信息...');
-  let planName = '';
+  let allEnvs = [];
+  let targetEnvId = null;
+  let targetManager = null;
+
   try {
-    const envInfo = await manager.commonService().call({
+    const envInfo = await oldManager.commonService().call({
       Action: 'DescribeEnvs',
-      Param: { EnvId: ENV_ID },
+      Param: {},
     });
-    if (envInfo && envInfo.EnvList && envInfo.EnvList[0]) {
-      const env = envInfo.EnvList[0];
-      planName = env.PackageName || '';
-      console.log(`  环境: ${env.EnvId} 状态: ${env.Status}`);
-      console.log(`  套餐: ${planName}`);
+    allEnvs = envInfo.EnvList || [];
+    console.log(`  现有环境数: ${allEnvs.length}`);
+    for (const env of allEnvs) {
+      console.log(`  - ${env.EnvId} | ${env.PackageName} | ${env.PayMode} | ${env.Status}`);
+    }
+
+    // 查找是否已有按量计费环境
+    const postpayEnv = allEnvs.find(e =>
+      e.PayMode === 'postpay' || e.PayMode === 'postpayment' ||
+      e.PackageName !== '体验版'
+    );
+    if (postpayEnv) {
+      console.log(`  找到非体验版环境: ${postpayEnv.EnvId} (${postpayEnv.PackageName})`);
+      targetEnvId = postpayEnv.EnvId;
     }
   } catch (err) {
-    console.log('  获取环境信息:', err.message);
+    console.log('  查询环境:', err.message);
   }
 
-  // 1. 配置匿名登录 (前端 SDK 需要)
-  console.log('\n[1/5] 配置匿名登录...');
+  // 1. 如果没有按量计费环境，尝试创建
+  if (!targetEnvId) {
+    console.log('\n[1] 尝试创建按量计费环境...');
+    const newEnvAlias = 'echoworld-app';
 
-  // Try multiple API formats to enable anonymous login
-  const loginApis = [
-    { Action: 'CreateLoginConfig', Param: { EnvId: ENV_ID, Platform: 'ANONYMOUS', PlatformId: 'anonymous', Status: 'ENABLE' } },
-    { Action: 'CreateLoginConfig', Param: { EnvId: ENV_ID, Platform: 'ANONYMOUS' } },
-    { Action: 'ModifyCloudBaseGWPrivilege', Param: { EnvId: ENV_ID, EnableService: true } },
-  ];
+    // Try different CreatePostpayPackage parameter combinations
+    const attempts = [
+      { Source: 'qcloud', FreeQuota: 'basic', Alias: newEnvAlias },
+      { Source: 'qcloud', FreeQuota: 'free', Alias: newEnvAlias },
+      { Source: 'qcloud', Alias: newEnvAlias },
+      { FreeQuota: 'basic', Alias: newEnvAlias },
+    ];
 
-  for (const api of loginApis) {
-    try {
-      const result = await manager.commonService().call(api);
-      console.log(`  ${api.Action} 成功:`, JSON.stringify(result));
-    } catch (err) {
-      console.log(`  ${api.Action}: ${err.message}`);
+    for (let i = 0; i < attempts.length; i++) {
+      try {
+        console.log(`  尝试 #${i + 1}:`, JSON.stringify(attempts[i]));
+        const result = await oldManager.commonService().call({
+          Action: 'CreatePostpayPackage',
+          Param: attempts[i],
+        });
+        console.log('  创建成功:', JSON.stringify(result));
+        if (result.EnvId) {
+          targetEnvId = result.EnvId;
+        } else if (result.TranId) {
+          console.log('  交易ID:', result.TranId);
+          // Wait for environment creation
+          console.log('  等待环境创建...');
+          await new Promise(r => setTimeout(r, 10000));
+          // Re-check environments
+          const envInfo2 = await oldManager.commonService().call({
+            Action: 'DescribeEnvs',
+            Param: {},
+          });
+          const newEnv = (envInfo2.EnvList || []).find(e => !allEnvs.some(o => o.EnvId === e.EnvId));
+          if (newEnv) {
+            targetEnvId = newEnv.EnvId;
+            console.log('  新环境ID:', targetEnvId);
+          }
+        }
+        break;
+      } catch (err) {
+        console.log(`  尝试 #${i + 1} 失败:`, err.message);
+      }
     }
   }
 
-  // Check what login methods are available
-  try {
-    const loginConfigs = await manager.commonService().call({
-      Action: 'DescribeLoginConfigs',
-      Param: { EnvId: ENV_ID },
-    });
-    console.log('  登录配置:', JSON.stringify(loginConfigs, null, 2));
-  } catch (err) {
-    console.log('  DescribeLoginConfigs:', err.message);
+  // 如果创建新环境失败，回退到旧环境
+  if (!targetEnvId) {
+    console.log('\n  无法创建新环境，使用旧环境:', OLD_ENV_ID);
+    targetEnvId = OLD_ENV_ID;
   }
 
-  // Check security rules for functions
-  try {
-    const secRules = await manager.commonService().call({
-      Action: 'DescribeSmsQuotas',
-      Param: { EnvId: ENV_ID },
-    });
-    console.log('  安全规则:', JSON.stringify(secRules, null, 2));
-  } catch (err) {
-    // Not critical
-  }
+  console.log(`\n  目标环境: ${targetEnvId}`);
 
-  // Check auth domains (already configured from environment setup)
-  try {
-    const authDomains = await manager.commonService().call({
-      Action: 'DescribeAuthDomains',
-      Param: { EnvId: ENV_ID },
-    });
-    const domainList = authDomains.Domains || [];
-    console.log(`  授权域名 (${domainList.length}个):`);
-    for (const d of domainList) {
-      console.log(`    ${d.Domain} (${d.Type}, ${d.Status})`);
-    }
-  } catch (err) {
-    console.log('  DescribeAuthDomains:', err.message);
-  }
+  targetManager = new CloudBase({
+    secretId: SECRET_ID,
+    secretKey: SECRET_KEY,
+    envId: targetEnvId,
+  });
 
   // 2. 打包函数代码
-  console.log('\n[2/5] 打包函数代码...');
+  console.log('\n[2/4] 打包函数代码...');
   const projectDir = path.resolve(__dirname, '..');
   const fnRoot = '/tmp/echoworld-functions';
   const fnDir = path.join(fnRoot, FUNCTION_NAME);
@@ -149,7 +163,7 @@ async function deploy() {
   console.log(`  函数包大小: ${totalSize}`);
 
   // 3. 部署云函数
-  console.log('\n[3/5] 部署云函数...');
+  console.log('\n[3/4] 部署云函数...');
   const funcConfig = {
     func: {
       name: FUNCTION_NAME,
@@ -166,18 +180,16 @@ async function deploy() {
     functionRootPath: fnRoot,
   };
 
-  console.log('  使用 COS 上传方式...');
   try {
-    await manager.functions.createFunction(funcConfig);
+    await targetManager.functions.createFunction(funcConfig);
     console.log('  云函数部署成功!');
   } catch (err) {
     if (err.message && err.message.includes('already exists')) {
       console.log('  函数已存在，尝试更新...');
       try {
-        await manager.functions.deleteFunction({ functionName: FUNCTION_NAME });
-        console.log('  旧函数已删除');
+        await targetManager.functions.deleteFunction({ functionName: FUNCTION_NAME });
         await new Promise(r => setTimeout(r, 2000));
-        await manager.functions.createFunction(funcConfig);
+        await targetManager.functions.createFunction(funcConfig);
         console.log('  云函数重新创建成功!');
       } catch (err2) {
         console.error('  重新创建失败:', err2.message);
@@ -189,151 +201,20 @@ async function deploy() {
     }
   }
 
-  // 4. 部署静态托管 (前端面板)
-  console.log('\n[4/5] 部署静态托管...');
-  const publicDir = path.join(projectDir, 'public');
-
-  try {
-    // Try using hosting module
-    if (manager.hosting && typeof manager.hosting.uploadFiles === 'function') {
-      console.log('  使用 hosting.uploadFiles()...');
-      await manager.hosting.uploadFiles({
-        localPath: publicDir,
-        cloudPath: '/',
-      });
-      console.log('  静态文件已上传');
-    } else if (manager.hosting && typeof manager.hosting.deployFiles === 'function') {
-      console.log('  使用 hosting.deployFiles()...');
-      await manager.hosting.deployFiles({
-        localPath: publicDir,
-        cloudPath: '/',
-      });
-      console.log('  静态文件已部署');
-    } else {
-      // Try common service to upload to hosting
-      console.log('  hosting 模块不可用，尝试其他方式...');
-      console.log('  manager.hosting methods:', manager.hosting ? Object.keys(manager.hosting) : 'N/A');
-
-      // List available methods on the hosting module
-      if (manager.hosting) {
-        const proto = Object.getPrototypeOf(manager.hosting);
-        const methods = Object.getOwnPropertyNames(proto).filter(n => n !== 'constructor');
-        console.log('  hosting prototype methods:', methods);
-      }
-
-      // Try calling hosting deploy via different method names
-      const methodNames = ['uploadFiles', 'deployFiles', 'upload', 'deploy', 'uploadLocalFiles'];
-      for (const method of methodNames) {
-        if (manager.hosting && typeof manager.hosting[method] === 'function') {
-          console.log(`  尝试 hosting.${method}()...`);
-          try {
-            await manager.hosting[method]({
-              localPath: publicDir,
-              cloudPath: '/',
-            });
-            console.log(`  hosting.${method}() 成功!`);
-            break;
-          } catch (e) {
-            console.log(`  hosting.${method}(): ${e.message}`);
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.log('  静态托管部署:', err.message);
-  }
-
-  // Try to disable auth on static hosting (so pages load without login)
-  try {
-    console.log('  尝试关闭静态托管登录鉴权...');
-    await manager.commonService().call({
-      Action: 'ModifyCloudBaseGWPrivilege',
-      Param: {
-        EnvId: ENV_ID,
-        ServiceId: ENV_ID,
-        EnableService: true,
-      },
-    });
-  } catch (err) {
-    console.log('  ModifyCloudBaseGWPrivilege:', err.message);
-  }
-
-  // Upload to COS storage (alternative to static hosting)
-  const COS_CDN = '6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la';
-  try {
-    console.log('  上传 index.html 到 COS 存储...');
-    await manager.storage.uploadFile({
-      localPath: path.join(publicDir, 'index.html'),
-      cloudPath: 'echoworld/index.html',
-    });
-    console.log(`  COS 上传成功!`);
-  } catch (err) {
-    console.log('  COS 上传 (localPath):', err.message);
-    // Try uploadDirectory as fallback
-    try {
-      console.log('  尝试 uploadDirectory...');
-      await manager.storage.uploadDirectory({
-        localPath: publicDir,
-        cloudPath: 'echoworld/',
-      });
-      console.log('  目录上传成功!');
-    } catch (err2) {
-      console.log('  uploadDirectory:', err2.message);
-    }
-  }
-
-  // Generate signed temporary URL (works regardless of CDN geo-restrictions)
-  try {
-    const fileId = await manager.storage.cloudPathToFileId('echoworld/index.html');
-    console.log(`  文件ID: ${fileId}`);
-    const urls = await manager.storage.getTemporaryUrl([
-      { cloudPath: 'echoworld/index.html', maxAge: 86400 * 30 },
-    ]);
-    if (urls && urls.length > 0 && urls[0].url) {
-      console.log(`  COS 签名链接 (30天有效):`);
-      console.log(`  ${urls[0].url}`);
-    }
-  } catch (err) {
-    console.log('  获取签名链接:', err.message);
-  }
-
-  // Verify upload
-  try {
-    const files = await manager.storage.listDirectoryFiles({ cloudPath: 'echoworld/' });
-    console.log(`  COS echoworld/ 文件数: ${files.length}`);
-    for (const f of files.slice(0, 5)) {
-      console.log(`    ${f.Key} (${f.Size} bytes)`);
-    }
-  } catch (err) {
-    console.log('  列出COS文件:', err.message);
-  }
-
-  // Check static hosting status
-  try {
-    console.log('  检查静态托管状态...');
-    const hostingInfo = await manager.commonService().call({
-      Action: 'DescribeStaticStore',
-      Param: { EnvId: ENV_ID },
-    });
-    console.log('  静态托管:', JSON.stringify(hostingInfo, null, 2));
-  } catch (err) {
-    console.log('  DescribeStaticStore:', err.message);
-  }
-
-  // 5. 配置 HTTP 访问 & 创建路由
-  console.log('\n[5/5] 配置 HTTP 访问...');
+  // 4. 开通 HTTP 访问 & 创建路由
+  console.log('\n[4/4] 配置 HTTP 访问...');
   let httpEnabled = false;
 
   try {
-    await manager.access.switchAuth(true);
+    await targetManager.access.switchAuth(true);
     httpEnabled = true;
-    console.log('  HTTP 访问服务已开通!');
+    console.log('  HTTP 服务已开通!');
   } catch (err) {
     console.log('  switchAuth:', err.message);
   }
 
   try {
-    await manager.access.createAccess({
+    await targetManager.access.createAccess({
       path: '/echoworld',
       name: FUNCTION_NAME,
       type: 1,
@@ -348,12 +229,26 @@ async function deploy() {
     }
   }
 
-  // 获取最终状态
+  // 也部署到静态托管
+  try {
+    const publicDir = path.join(projectDir, 'public');
+    if (targetManager.hosting && typeof targetManager.hosting.uploadFiles === 'function') {
+      await targetManager.hosting.uploadFiles({
+        localPath: publicDir,
+        cloudPath: '/',
+      });
+      console.log('  静态文件已上传');
+    }
+  } catch (err) {
+    console.log('  静态托管:', err.message);
+  }
+
+  // 获取结果
   console.log('\n========================================');
   console.log('         部署结果');
   console.log('========================================');
 
-  const fnList = await manager.functions.listFunctions().catch(() => null);
+  const fnList = await targetManager.functions.listFunctions().catch(() => null);
   if (fnList && fnList.Functions) {
     console.log('\n云函数:');
     for (const fn of fnList.Functions) {
@@ -361,77 +256,76 @@ async function deploy() {
     }
   }
 
-  // List uploaded hosting files
-  try {
-    if (manager.hosting && typeof manager.hosting.listFiles === 'function') {
-      const files = await manager.hosting.listFiles();
-      console.log('\n静态托管文件:', JSON.stringify(files, null, 2));
-    }
-  } catch (err) {
-    console.log('  列出文件:', err.message);
-  }
-
-  // Test static hosting URL (with retries for CDN propagation)
-  const staticUrl = `https://${STATIC_DOMAIN}`;
-  console.log(`\n测试静态托管: ${staticUrl}`);
-  for (let i = 0; i < 3; i++) {
-    if (i > 0) {
-      console.log(`  等待 ${i * 5} 秒后重试...`);
-      await new Promise(r => setTimeout(r, i * 5000));
-    }
-    try {
-      const resp = await httpGet(staticUrl);
-      console.log(`  [尝试${i + 1}] HTTP ${resp.statusCode} (body length: ${resp.body.length})`);
-      if (resp.body.length > 0) {
-        console.log(`  Body preview: ${resp.body.substring(0, 300)}`);
-      }
-      if (resp.statusCode === 200) break;
-    } catch (err) {
-      console.log(`  [尝试${i + 1}] 测试失败: ${err.message}`);
-    }
-  }
-  // Also test index.html explicitly
-  try {
-    const resp2 = await httpGet(`${staticUrl}/index.html`);
-    console.log(`  /index.html: HTTP ${resp2.statusCode} (body length: ${resp2.body.length})`);
-  } catch (err) {
-    console.log(`  /index.html 测试: ${err.message}`);
-  }
-
-  // Test COS storage URL
-  const cosUrl = `https://${COS_CDN}/echoworld/index.html`;
-  console.log(`\n测试 COS URL: ${cosUrl}`);
-  try {
-    const resp = await httpGet(cosUrl);
-    console.log(`  HTTP ${resp.statusCode} (body length: ${resp.body.length})`);
-    if (resp.body.length > 0) {
-      console.log(`  Body preview: ${resp.body.substring(0, 200)}`);
-    }
-  } catch (err) {
-    console.log(`  COS URL 测试: ${err.message}`);
-  }
-
-  // Test HTTP access URL
   let domain = '';
-  let httpEnabled2 = false;
   try {
-    const domainResult = await manager.access.getDomainList();
+    const domainResult = await targetManager.access.getDomainList();
     domain = domainResult.DefaultDomain || '';
-    httpEnabled2 = domainResult.EnableService === true;
+    httpEnabled = domainResult.EnableService === true;
+    console.log('\n域名信息:', JSON.stringify(domainResult, null, 2));
   } catch (err) {}
 
-  const httpUrl = `https://${domain || ENV_ID + '.service.tcloudbase.com'}/echoworld`;
+  try {
+    const gwList = await targetManager.access.getAccessList();
+    console.log('\nHTTP 路由:');
+    if (gwList && gwList.APISet) {
+      for (const api of gwList.APISet) {
+        console.log(`  ${api.Path} -> ${api.Name}`);
+      }
+    }
+    console.log('  EnableService:', gwList.EnableService);
+  } catch (err) {}
+
+  // 获取静态托管域名
+  let staticDomain = '';
+  try {
+    const envInfo = await targetManager.commonService().call({
+      Action: 'DescribeEnvs',
+      Param: { EnvId: targetEnvId },
+    });
+    if (envInfo.EnvList && envInfo.EnvList[0] && envInfo.EnvList[0].StaticStorages) {
+      staticDomain = envInfo.EnvList[0].StaticStorages[0]?.StaticDomain || '';
+    }
+  } catch (err) {}
+
+  const httpUrl = `https://${domain || targetEnvId + '.service.tcloudbase.com'}/echoworld`;
+
+  // 测试 URL
+  if (httpEnabled) {
+    console.log(`\n测试: ${httpUrl}`);
+    try {
+      const resp = await httpGet(httpUrl);
+      console.log(`  HTTP ${resp.statusCode}: ${resp.body.substring(0, 200)}`);
+    } catch (err) {
+      console.log(`  测试失败: ${err.message}`);
+    }
+
+    const apiUrl = `${httpUrl}/api/world/time`;
+    console.log(`测试 API: ${apiUrl}`);
+    try {
+      const resp = await httpGet(apiUrl);
+      console.log(`  HTTP ${resp.statusCode}: ${resp.body.substring(0, 200)}`);
+    } catch (err) {
+      console.log(`  API 测试失败: ${err.message}`);
+    }
+  }
 
   console.log('\n========================================');
-  console.log('  部署完成! 访问地址:');
-  console.log(`  1. 静态托管: https://${STATIC_DOMAIN}`);
-  console.log(`  2. COS存储: ${cosUrl}`);
-  if (httpEnabled2) {
-    console.log(`  3. HTTP 访问: ${httpUrl}`);
+  console.log(`  环境ID: ${targetEnvId}`);
+  console.log(`  HTTP 服务: ${httpEnabled ? '✓ 已开通' : '✗ 未开通'}`);
+  if (httpEnabled && domain) {
+    console.log(`\n  ✓ 访问地址: https://${domain}/echoworld`);
+    console.log(`  ✓ API地址: https://${domain}/echoworld/api/world`);
+  }
+  if (staticDomain) {
+    console.log(`  静态托管: https://${staticDomain}`);
+  }
+  if (!httpEnabled) {
+    console.log(`\n  HTTP 服务未开通，请在控制台手动开通:`);
+    console.log(`  https://console.cloud.tencent.com/tcb/env/access?envId=${targetEnvId}`);
   }
   console.log('========================================');
 
-  console.log(`\n控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=${ENV_ID}`);
+  console.log(`\n控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=${targetEnvId}`);
   console.log('\n=== 部署完成 ===');
 }
 
