@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoWorld - 投资游戏</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e17; --bg2: #111827; --bg3: #1f2937; --border: #374151;
+      --text: #e5e7eb; --text2: #9ca3af; --accent: #3b82f6; --accent2: #8b5cf6;
+      --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --orange: #f97316;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    nav {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border); padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-left { display: flex; align-items: center; gap: 24px; }
+    .nav-logo {
+      font-size: 20px; font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a {
+      color: var(--text2); text-decoration: none; padding: 6px 14px;
+      border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-links a.active { color: white; background: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-user { font-size: 13px; color: var(--text2); }
+    .nav-user strong { color: var(--yellow); }
+    .btn-logout {
+      padding: 5px 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px; color: var(--red); font-size: 12px; cursor: pointer;
+    }
+    .btn-logout:hover { background: rgba(239,68,68,0.25); }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 600; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .stat-box {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 24px; flex: 1; min-width: 160px; text-align: center;
+    }
+    .stat-box .label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+    .stat-box .value { font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; }
+    .stat-box .value.money { color: var(--yellow); }
+    .stat-box .value.green { color: var(--green); }
+    .stat-box .value.blue { color: var(--accent); }
+
+    /* Resources */
+    .resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .resource-card {
+      background: var(--bg3); border-radius: 8px; padding: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .resource-name { font-size: 13px; font-weight: 500; }
+    .resource-amount { font-size: 15px; font-weight: 600; color: var(--green); font-family: monospace; }
+
+    /* Market */
+    .market-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px;
+      background: var(--bg3); border-radius: 8px; margin-bottom: 8px;
+    }
+    .market-item .name { flex: 1; font-size: 14px; font-weight: 500; }
+    .market-item .price { font-size: 16px; font-weight: 700; color: var(--yellow); font-family: monospace; min-width: 80px; text-align: right; }
+    .market-item .actions { display: flex; gap: 6px; }
+
+    .btn {
+      padding: 8px 18px; border: none; border-radius: 6px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-green { background: var(--green); color: white; }
+    .btn-red { background: var(--red); color: white; }
+    .btn-blue { background: var(--accent); color: white; }
+    .btn-yellow { background: var(--yellow); color: #000; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Buildings */
+    .building-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px;
+      background: var(--bg3); border-radius: 8px; margin-bottom: 8px;
+    }
+    .building-item .info { flex: 1; }
+    .building-item .info .name { font-size: 14px; font-weight: 500; }
+    .building-item .info .detail { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .building-item .level { font-size: 18px; font-weight: 700; color: var(--accent2); min-width: 60px; text-align: center; }
+
+    /* Input */
+    .input-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-group label { font-size: 11px; color: var(--text2); }
+    .input-group input, .input-group select {
+      padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 13px; outline: none;
+    }
+    .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+
+    /* Trade modal */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; min-width: 360px; max-width: 90vw;
+    }
+    .modal h3 { font-size: 16px; margin-bottom: 16px; }
+    .modal .input-group { margin-bottom: 12px; }
+    .modal .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+    /* Leaderboard */
+    .lb-row {
+      display: flex; align-items: center; gap: 10px; padding: 6px 0;
+      border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 13px;
+    }
+    .lb-row .rank { width: 24px; font-weight: 700; color: var(--text2); }
+    .lb-row .name { flex: 1; }
+    .lb-row .money { color: var(--yellow); font-family: monospace; }
+    .lb-row.me { background: rgba(59,130,246,0.1); border-radius: 6px; padding: 6px 8px; }
+
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
+      border-radius: 8px; font-size: 13px; z-index: 9999;
+      animation: slideIn 0.3s ease; display: none;
+    }
+    .toast.success { background: rgba(16,185,129,0.9); color: white; }
+    .toast.error { background: rgba(239,68,68,0.9); color: white; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .scroll-box { max-height: 350px; overflow-y: auto; }
+    .scroll-box::-webkit-scrollbar { width: 4px; }
+    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <div class="nav-logo">EchoWorld</div>
+      <div class="nav-links">
+        <a href="/">总览</a>
+        <a href="/admin">管理</a>
+        <a href="/game" class="active">游戏</a>
+        <a href="/news">新闻</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user">投资者: <strong id="navUsername">-</strong></span>
+      <button class="btn-logout" onclick="logout()">退出</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Player Stats -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-box"><div class="label">资金</div><div class="value money" id="myMoney">-</div></div>
+      <div class="stat-box"><div class="label">建筑数</div><div class="value blue" id="myBuildings">-</div></div>
+      <div class="stat-box"><div class="label">排名</div><div class="value green" id="myRank">-</div></div>
+      <div class="stat-box"><div class="label">世界日期</div><div class="value" id="worldDay" style="color:var(--text)">-</div></div>
+    </div>
+
+    <div class="grid-2">
+      <!-- My Resources -->
+      <div class="card">
+        <div class="card-title">我的资源</div>
+        <div class="resource-grid" id="myResources">
+          <div style="color:var(--text2);font-size:13px;">加载中...</div>
+        </div>
+      </div>
+
+      <!-- Market Prices & Trading -->
+      <div class="card">
+        <div class="card-title">市场交易</div>
+        <div class="scroll-box" id="marketList">
+          <div style="color:var(--text2);font-size:13px;">加载中...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Buildings -->
+      <div class="card">
+        <div class="card-title">我的建筑</div>
+        <div class="scroll-box" id="myBuildingList">
+          <div style="color:var(--text2);font-size:13px;">加载中...</div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="card-title" style="font-size:13px;">建造新建筑</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>类型</label>
+              <select id="buildType">
+                <option value="farm">农场 (Farm)</option>
+                <option value="factory">工厂 (Factory)</option>
+                <option value="shop">商店 (Shop)</option>
+                <option value="house">住宅 (House)</option>
+                <option value="warehouse">仓库 (Warehouse)</option>
+              </select>
+            </div>
+            <button class="btn btn-blue" onclick="buildBuilding()">建造</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banking & Leaderboard -->
+      <div>
+        <div class="card">
+          <div class="card-title">银行服务</div>
+          <div class="input-row" style="margin-bottom:10px;">
+            <div class="input-group">
+              <label>贷款金额</label>
+              <input type="number" id="loanAmount" placeholder="1000" style="width:120px">
+            </div>
+            <button class="btn btn-yellow" onclick="requestLoan()">申请贷款</button>
+          </div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>存款金额</label>
+              <input type="number" id="depositAmount" placeholder="500" style="width:120px">
+            </div>
+            <button class="btn btn-green" onclick="makeDeposit()">存入银行</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">排行榜</div>
+          <div class="scroll-box" id="leaderboard">
+            <div style="color:var(--text2);font-size:13px;">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Modal -->
+  <div class="modal-overlay" id="tradeModal">
+    <div class="modal">
+      <h3 id="tradeTitle">交易</h3>
+      <div class="input-group">
+        <label>数量</label>
+        <input type="number" id="tradeAmount" placeholder="1" min="1" value="1">
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-top:8px;">
+        预估: <strong id="tradeEstimate">-</strong>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-red btn-sm" onclick="closeTradeModal()">取消</button>
+        <button class="btn btn-green btn-sm" id="tradeConfirmBtn" onclick="confirmTrade()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '';
+    let token = localStorage.getItem('echoworld_token');
+    let currentUser = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
+
+    if (!token || !currentUser || currentUser.role !== 'investor') {
+      if (currentUser?.role === 'admin') { window.location.href = '/admin'; }
+      else if (currentUser?.role === 'observer') { window.location.href = '/news'; }
+      else { window.location.href = '/login'; }
+    }
+    document.getElementById('navUsername').textContent = currentUser?.username || '-';
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    }
+    function logout() {
+      localStorage.removeItem('echoworld_token');
+      localStorage.removeItem('echoworld_user');
+      window.location.href = '/login';
+    }
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    let myEntity = null;
+    let marketPrices = {};
+    let tradeInfo = { action: '', resource: '', price: 0 };
+
+    // ========== My Status ==========
+    async function loadMyStatus() {
+      try {
+        const res = await fetch(API + '/api/game/me', { headers: authHeaders() });
+        if (!res.ok) throw new Error('获取状态失败');
+        const data = await res.json();
+        myEntity = data.entity;
+
+        document.getElementById('myMoney').textContent = '$' + myEntity.money.toFixed(0);
+        document.getElementById('myBuildings').textContent = data.buildings.length;
+
+        // Resources
+        const rc = document.getElementById('myResources');
+        const resources = myEntity.resources || {};
+        const resKeys = Object.keys(resources);
+        if (resKeys.length === 0) {
+          rc.innerHTML = '<div style="color:var(--text2);font-size:13px;">暂无资源</div>';
+        } else {
+          rc.innerHTML = resKeys.map(k => `
+            <div class="resource-card">
+              <span class="resource-name">${k}</span>
+              <span class="resource-amount">${resources[k]}</span>
+            </div>
+          `).join('');
+        }
+
+        // Buildings
+        const bc = document.getElementById('myBuildingList');
+        if (data.buildings.length === 0) {
+          bc.innerHTML = '<div style="color:var(--text2);font-size:13px;">暂无建筑，快去建造吧！</div>';
+        } else {
+          bc.innerHTML = data.buildings.map(b => `
+            <div class="building-item">
+              <div class="info">
+                <div class="name">${b.type} - ${b.name || b.id.slice(0,8)}</div>
+                <div class="detail">状态: ${b.condition?.toFixed(0) || '-'}% | 收入: $${(b.income || 0).toFixed(0)}/天</div>
+              </div>
+              <div class="level">Lv.${b.level || 1}</div>
+              <button class="btn btn-blue btn-sm" onclick="upgradeBuilding('${b.id}')">升级</button>
+            </div>
+          `).join('');
+        }
+
+        // Rank
+        await loadLeaderboard();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ========== World Time ==========
+    async function loadWorldTime() {
+      try {
+        const res = await fetch(API + '/api/world/time');
+        const data = await res.json();
+        document.getElementById('worldDay').textContent = `Day ${data.time.day}`;
+      } catch (e) {}
+    }
+
+    // ========== Market ==========
+    async function loadMarket() {
+      try {
+        const res = await fetch(API + '/api/market/prices');
+        marketPrices = await res.json();
+        const mc = document.getElementById('marketList');
+        const priceEntries = Object.entries(marketPrices);
+        if (priceEntries.length === 0) {
+          mc.innerHTML = '<div style="color:var(--text2)">暂无市场数据</div>';
+          return;
+        }
+        mc.innerHTML = priceEntries.map(([resource, price]) => `
+          <div class="market-item">
+            <span class="name">${resource}</span>
+            <span class="price">$${(typeof price === 'number' ? price : price.price || 0).toFixed(2)}</span>
+            <div class="actions">
+              <button class="btn btn-green btn-sm" onclick="openTrade('buy','${resource}',${typeof price === 'number' ? price : price.price || 0})">买入</button>
+              <button class="btn btn-red btn-sm" onclick="openTrade('sell','${resource}',${typeof price === 'number' ? price : price.price || 0})">卖出</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // ========== Trade ==========
+    function openTrade(action, resource, price) {
+      tradeInfo = { action, resource, price };
+      document.getElementById('tradeTitle').textContent = `${action === 'buy' ? '买入' : '卖出'} ${resource}`;
+      document.getElementById('tradeAmount').value = 1;
+      updateTradeEstimate();
+      document.getElementById('tradeModal').classList.add('open');
+    }
+    function closeTradeModal() {
+      document.getElementById('tradeModal').classList.remove('open');
+    }
+    function updateTradeEstimate() {
+      const amt = parseInt(document.getElementById('tradeAmount').value) || 0;
+      const total = (amt * tradeInfo.price).toFixed(2);
+      document.getElementById('tradeEstimate').textContent =
+        `${amt} x $${tradeInfo.price.toFixed(2)} = $${total}`;
+    }
+    document.getElementById('tradeAmount').addEventListener('input', updateTradeEstimate);
+
+    async function confirmTrade() {
+      const amount = parseInt(document.getElementById('tradeAmount').value);
+      if (!amount || amount <= 0) return showToast('请输入有效数量', 'error');
+      const url = tradeInfo.action === 'buy' ? '/api/game/buy' : '/api/game/sell';
+      try {
+        const res = await fetch(API + url, {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ resource: tradeInfo.resource, amount })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error);
+        }
+        showToast(`${tradeInfo.action === 'buy' ? '买入' : '卖出'}成功！`);
+        closeTradeModal();
+        loadMyStatus();
+        loadMarket();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    // ========== Building ==========
+    async function buildBuilding() {
+      const type = document.getElementById('buildType').value;
+      try {
+        const res = await fetch(API + '/api/game/build', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ type })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('建造成功！');
+        loadMyStatus();
+      } catch (e) {
+        showToast('建造失败: ' + e.message, 'error');
+      }
+    }
+
+    async function upgradeBuilding(id) {
+      try {
+        const res = await fetch(API + `/api/game/buildings/${id}/upgrade`, {
+          method: 'POST', headers: authHeaders()
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('升级成功！');
+        loadMyStatus();
+      } catch (e) {
+        showToast('升级失败: ' + e.message, 'error');
+      }
+    }
+
+    // ========== Banking ==========
+    async function requestLoan() {
+      const amount = parseFloat(document.getElementById('loanAmount').value);
+      if (!amount || amount <= 0) return showToast('请输入有效金额', 'error');
+      try {
+        const res = await fetch(API + '/api/game/loan', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ amount })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('贷款申请成功！');
+        loadMyStatus();
+      } catch (e) {
+        showToast('贷款失败: ' + e.message, 'error');
+      }
+    }
+
+    async function makeDeposit() {
+      const amount = parseFloat(document.getElementById('depositAmount').value);
+      if (!amount || amount <= 0) return showToast('请输入有效金额', 'error');
+      try {
+        const res = await fetch(API + '/api/game/deposit', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ amount })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('存款成功！');
+        loadMyStatus();
+      } catch (e) {
+        showToast('存款失败: ' + e.message, 'error');
+      }
+    }
+
+    // ========== Leaderboard ==========
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch(API + '/api/entities/leaderboard?limit=20');
+        const data = await res.json();
+        const lc = document.getElementById('leaderboard');
+        lc.innerHTML = data.map((e, i) => `
+          <div class="lb-row ${e.id === currentUser?.entityId ? 'me' : ''}">
+            <span class="rank">${i + 1}</span>
+            <span class="name">${e.name}${e.id === currentUser?.entityId ? ' (我)' : ''}</span>
+            <span class="money">$${e.money.toFixed(0)}</span>
+          </div>
+        `).join('');
+
+        // Find my rank
+        const myIdx = data.findIndex(e => e.id === currentUser?.entityId);
+        document.getElementById('myRank').textContent = myIdx >= 0 ? `#${myIdx + 1}` : '-';
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== Init ==========
+    function refreshAll() {
+      loadMyStatus();
+      loadWorldTime();
+      loadMarket();
+    }
+    refreshAll();
+    setInterval(loadWorldTime, 5000);
+    setInterval(() => { loadMyStatus(); loadMarket(); }, 15000);
+  </script>
+</body>
+</html>

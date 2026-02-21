@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoWorld - 登录</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e17; --bg2: #111827; --bg3: #1f2937; --border: #374151;
+      --text: #e5e7eb; --text2: #9ca3af; --accent: #3b82f6; --accent2: #8b5cf6;
+      --green: #10b981; --red: #ef4444; --yellow: #f59e0b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-container {
+      width: 100%; max-width: 420px; padding: 20px;
+    }
+    .logo-section {
+      text-align: center; margin-bottom: 32px;
+    }
+    .logo-section h1 {
+      font-size: 32px; font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .logo-section p { color: var(--text2); margin-top: 8px; font-size: 14px; }
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 28px;
+    }
+    .tabs {
+      display: flex; gap: 0; margin-bottom: 24px;
+      background: var(--bg3); border-radius: 8px; padding: 3px;
+    }
+    .tab {
+      flex: 1; padding: 10px; text-align: center; cursor: pointer;
+      border: none; background: none; color: var(--text2); font-size: 14px;
+      border-radius: 6px; font-weight: 500; transition: all 0.2s;
+    }
+    .tab.active { background: var(--accent); color: white; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 13px; color: var(--text2);
+      margin-bottom: 6px; font-weight: 500;
+    }
+    .form-group input, .form-group select {
+      width: 100%; padding: 10px 14px; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 14px; outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--accent);
+    }
+    .form-group select option { background: var(--bg3); }
+    .btn-primary {
+      width: 100%; padding: 12px; background: var(--accent);
+      border: none; border-radius: 8px; color: white; font-size: 15px;
+      font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      color: var(--red); padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 16px; display: none;
+    }
+    .success-msg {
+      background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+      color: var(--green); padding: 10px 14px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 16px; display: none;
+    }
+    .role-cards { display: flex; gap: 8px; }
+    .role-card {
+      flex: 1; padding: 12px 8px; background: var(--bg3);
+      border: 2px solid var(--border); border-radius: 8px;
+      text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .role-card.selected { border-color: var(--accent); background: rgba(59,130,246,0.1); }
+    .role-card .role-icon { font-size: 24px; margin-bottom: 4px; }
+    .role-card .role-name { font-size: 13px; font-weight: 600; }
+    .role-card .role-desc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .guest-link {
+      text-align: center; margin-top: 16px;
+    }
+    .guest-link a {
+      color: var(--text2); font-size: 13px; text-decoration: none;
+    }
+    .guest-link a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo-section">
+      <h1>EchoWorld</h1>
+      <p>AI智能体商业世界 - 超级大富翁</p>
+    </div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('login')">登录</button>
+        <button class="tab" onclick="switchTab('register')">注册</button>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="success-msg" id="successMsg"></div>
+
+      <!-- Login Form -->
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" id="loginUsername" placeholder="请输入用户名" required>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="loginPassword" placeholder="请输入密码" required>
+        </div>
+        <button type="submit" class="btn-primary" id="loginBtn">登录</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" style="display:none" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" id="regUsername" placeholder="2-20个字符" required minlength="2" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="regPassword" placeholder="至少6个字符" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label>选择角色</label>
+          <div class="role-cards">
+            <div class="role-card selected" onclick="selectRole('investor')" id="roleInvestor">
+              <div class="role-icon">💰</div>
+              <div class="role-name">投资者</div>
+              <div class="role-desc">参与投资游戏</div>
+            </div>
+            <div class="role-card" onclick="selectRole('observer')" id="roleObserver">
+              <div class="role-icon">👁️</div>
+              <div class="role-name">观察家</div>
+              <div class="role-desc">浏览新闻动态</div>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="regBtn">注册</button>
+      </form>
+    </div>
+    <div class="guest-link">
+      <a href="/">← 返回世界总览</a> &nbsp;|&nbsp; <a href="/news">游客模式浏览新闻</a>
+    </div>
+  </div>
+
+  <script>
+    let selectedRole = 'investor';
+
+    // Check if already logged in
+    (function checkAuth() {
+      const token = localStorage.getItem('echoworld_token');
+      const user = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
+      if (token && user) {
+        redirectByRole(user.role);
+      }
+    })();
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('errorMsg').style.display = 'none';
+      document.getElementById('successMsg').style.display = 'none';
+      if (tab === 'login') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+      }
+    }
+
+    function selectRole(role) {
+      selectedRole = role;
+      document.getElementById('roleInvestor').classList.toggle('selected', role === 'investor');
+      document.getElementById('roleObserver').classList.toggle('selected', role === 'observer');
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg; el.style.display = 'block';
+      document.getElementById('successMsg').style.display = 'none';
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('successMsg');
+      el.textContent = msg; el.style.display = 'block';
+      document.getElementById('errorMsg').style.display = 'none';
+    }
+
+    function redirectByRole(role) {
+      if (role === 'admin') window.location.href = '/admin';
+      else if (role === 'investor') window.location.href = '/game';
+      else window.location.href = '/news';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true; btn.textContent = '登录中...';
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('loginUsername').value,
+            password: document.getElementById('loginPassword').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        localStorage.setItem('echoworld_token', data.token);
+        localStorage.setItem('echoworld_user', JSON.stringify(data.user));
+        showSuccess('登录成功，正在跳转...');
+        setTimeout(() => redirectByRole(data.user.role), 500);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = '登录';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('regBtn');
+      btn.disabled = true; btn.textContent = '注册中...';
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('regUsername').value,
+            password: document.getElementById('regPassword').value,
+            role: selectedRole,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        localStorage.setItem('echoworld_token', data.token);
+        localStorage.setItem('echoworld_user', JSON.stringify(data.user));
+        showSuccess('注册成功，正在跳转...');
+        setTimeout(() => redirectByRole(data.user.role), 500);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = '注册';
+      }
+    }
+  </script>
+</body>
+</html>

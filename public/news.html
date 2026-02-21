@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoWorld - 世界新闻</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e17; --bg2: #111827; --bg3: #1f2937; --border: #374151;
+      --text: #e5e7eb; --text2: #9ca3af; --accent: #3b82f6; --accent2: #8b5cf6;
+      --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --orange: #f97316;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    nav {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border); padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-left { display: flex; align-items: center; gap: 24px; }
+    .nav-logo {
+      font-size: 20px; font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a {
+      color: var(--text2); text-decoration: none; padding: 6px 14px;
+      border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-links a.active { color: white; background: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-user { font-size: 13px; color: var(--text2); }
+    .btn-login {
+      padding: 5px 12px; background: var(--accent); border: none;
+      border-radius: 6px; color: white; font-size: 12px; cursor: pointer; text-decoration: none;
+    }
+    .btn-login:hover { opacity: 0.9; }
+    .btn-logout {
+      padding: 5px 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px; color: var(--red); font-size: 12px; cursor: pointer;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .grid-sidebar { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+    @media (max-width: 900px) { .grid-sidebar { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 600; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px;
+      background: rgba(59,130,246,0.15); color: var(--accent);
+    }
+
+    /* World info bar */
+    .world-bar {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; align-items: center;
+    }
+    .world-stat {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 18px; font-size: 13px;
+    }
+    .world-stat .label { color: var(--text2); font-size: 11px; }
+    .world-stat .val { font-weight: 700; font-family: monospace; margin-top: 2px; }
+
+    /* Event timeline */
+    .event-list { list-style: none; }
+    .event-item {
+      position: relative; padding: 12px 12px 12px 28px; margin-bottom: 2px;
+      border-radius: 8px; transition: background 0.2s;
+    }
+    .event-item:hover { background: rgba(255,255,255,0.02); }
+    .event-item::before {
+      content: ''; position: absolute; left: 10px; top: 18px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+    }
+    .event-item.trade::before { background: var(--yellow); }
+    .event-item.build::before { background: var(--green); }
+    .event-item.rule::before { background: var(--accent2); }
+    .event-item.bank::before { background: var(--orange); }
+    .event-item.agent::before { background: var(--red); }
+
+    .event-time { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
+    .event-type {
+      display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px;
+      background: rgba(59,130,246,0.15); color: var(--accent); margin-right: 6px;
+      font-weight: 600; text-transform: uppercase;
+    }
+    .event-content { font-size: 13px; line-height: 1.5; }
+
+    /* Leaderboard */
+    .lb-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 0;
+      border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 13px;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank {
+      width: 26px; height: 26px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px;
+    }
+    .lb-rank.top1 { background: var(--yellow); color: #000; }
+    .lb-rank.top2 { background: #94a3b8; color: #000; }
+    .lb-rank.top3 { background: #b45309; color: white; }
+    .lb-rank.other { background: var(--bg3); color: var(--text2); }
+    .lb-name { flex: 1; font-weight: 500; }
+    .lb-money { color: var(--yellow); font-family: monospace; font-weight: 600; }
+
+    /* Market prices */
+    .price-row {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 13px;
+    }
+    .price-row:last-child { border-bottom: none; }
+    .price-name { flex: 1; font-weight: 500; }
+    .price-val { color: var(--yellow); font-family: monospace; font-weight: 600; }
+    .price-change { font-size: 12px; font-weight: 600; }
+    .price-change.up { color: var(--green); }
+    .price-change.down { color: var(--red); }
+
+    .scroll-box { max-height: 600px; overflow-y: auto; }
+    .scroll-box::-webkit-scrollbar { width: 4px; }
+    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .filter-bar { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 4px 12px; border: 1px solid var(--border); background: none;
+      border-radius: 16px; color: var(--text2); font-size: 12px; cursor: pointer;
+    }
+    .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.1); }
+    .filter-btn:hover { border-color: var(--accent); }
+
+    .empty-state { text-align: center; padding: 40px; color: var(--text2); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <div class="nav-logo">EchoWorld</div>
+      <div class="nav-links">
+        <a href="/">总览</a>
+        <a href="/admin">管理</a>
+        <a href="/game">游戏</a>
+        <a href="/news" class="active">新闻</a>
+      </div>
+    </div>
+    <div class="nav-right" id="navRight">
+      <a href="/login" class="btn-login">登录 / 注册</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- World Bar -->
+    <div class="world-bar" id="worldBar">
+      <div class="world-stat"><div class="label">状态</div><div class="val" id="wStatus">-</div></div>
+      <div class="world-stat"><div class="label">世界日期</div><div class="val" id="wDay">-</div></div>
+      <div class="world-stat"><div class="label">实体数</div><div class="val" id="wEntities">-</div></div>
+      <div class="world-stat"><div class="label">总财富</div><div class="val" id="wWealth" style="color:var(--yellow)">-</div></div>
+      <div class="world-stat"><div class="label">建筑数</div><div class="val" id="wBuildings" style="color:var(--green)">-</div></div>
+    </div>
+
+    <div class="grid-sidebar">
+      <!-- Main: Events -->
+      <div>
+        <div class="card">
+          <div class="card-title">世界新闻 <span class="badge" id="eventCount">0</span></div>
+          <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterEvents('all')">全部</button>
+            <button class="filter-btn" onclick="filterEvents('trade')">交易</button>
+            <button class="filter-btn" onclick="filterEvents('build')">建筑</button>
+            <button class="filter-btn" onclick="filterEvents('rule')">规则</button>
+            <button class="filter-btn" onclick="filterEvents('bank')">银行</button>
+            <button class="filter-btn" onclick="filterEvents('agent')">智能体</button>
+          </div>
+          <div class="scroll-box" id="eventList">
+            <div class="empty-state">加载中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar: Leaderboard + Market -->
+      <div>
+        <div class="card">
+          <div class="card-title">财富排行榜</div>
+          <div id="leaderboard">
+            <div style="color:var(--text2);font-size:13px;">加载中...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">市场行情</div>
+          <div id="marketPrices">
+            <div style="color:var(--text2);font-size:13px;">加载中...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">银行数据</div>
+          <div id="bankInfo">
+            <div style="color:var(--text2);font-size:13px;">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let token = localStorage.getItem('echoworld_token');
+    let currentUser = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
+    let allEvents = [];
+    let currentFilter = 'all';
+
+    // Show user info if logged in
+    if (token && currentUser) {
+      document.getElementById('navRight').innerHTML = `
+        <span class="nav-user">${currentUser.username} (${
+          currentUser.role === 'admin' ? '管理员' : currentUser.role === 'investor' ? '投资者' : '观察家'
+        })</span>
+        <button class="btn-logout" onclick="logout()">退出</button>
+      `;
+    }
+
+    function logout() {
+      localStorage.removeItem('echoworld_token');
+      localStorage.removeItem('echoworld_user');
+      window.location.reload();
+    }
+
+    // ========== World Status ==========
+    async function loadWorldInfo() {
+      try {
+        const [timeRes, entRes, buildRes] = await Promise.all([
+          fetch(API + '/api/world/time'),
+          fetch(API + '/api/entities'),
+          fetch(API + '/api/buildings')
+        ]);
+        const time = await timeRes.json();
+        const entities = await entRes.json();
+        const buildings = await buildRes.json();
+
+        document.getElementById('wStatus').textContent = time.running ? '运行中' : '已暂停';
+        document.getElementById('wStatus').style.color = time.running ? 'var(--green)' : 'var(--red)';
+        document.getElementById('wDay').textContent = `Day ${time.time.day}, ${time.time.hour}:00`;
+        document.getElementById('wEntities').textContent = entities.length;
+        document.getElementById('wBuildings').textContent = buildings.length;
+
+        const totalWealth = entities.reduce((sum, e) => sum + e.money, 0);
+        document.getElementById('wWealth').textContent = '$' + totalWealth.toFixed(0);
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== Events ==========
+    async function loadEvents() {
+      try {
+        const res = await fetch(API + '/api/events?count=100');
+        allEvents = await res.json();
+        document.getElementById('eventCount').textContent = allEvents.length;
+        renderEvents();
+      } catch (e) {
+        document.getElementById('eventList').innerHTML = '<div class="empty-state">无法加载事件</div>';
+      }
+    }
+
+    function categorizeEvent(event) {
+      const t = (event.type || '').toLowerCase();
+      if (t.includes('trade') || t.includes('buy') || t.includes('sell') || t.includes('transaction')) return 'trade';
+      if (t.includes('build') || t.includes('construct') || t.includes('upgrade')) return 'build';
+      if (t.includes('rule') || t.includes('policy')) return 'rule';
+      if (t.includes('bank') || t.includes('loan') || t.includes('deposit') || t.includes('tax')) return 'bank';
+      if (t.includes('agent') || t.includes('decision') || t.includes('ai') || t.includes('brain')) return 'agent';
+      return 'other';
+    }
+
+    function filterEvents(category) {
+      currentFilter = category;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderEvents();
+    }
+
+    function renderEvents() {
+      const filtered = currentFilter === 'all' ? allEvents :
+        allEvents.filter(e => categorizeEvent(e) === currentFilter);
+
+      if (filtered.length === 0) {
+        document.getElementById('eventList').innerHTML = '<div class="empty-state">暂无此类事件</div>';
+        return;
+      }
+
+      document.getElementById('eventList').innerHTML = '<ul class="event-list">' +
+        filtered.slice(0, 100).map(ev => {
+          const cat = categorizeEvent(ev);
+          const time = ev.timestamp ? `Day ${ev.timestamp.day || '?'}, ${ev.timestamp.hour || '?'}:00` : '';
+          const data = ev.data || {};
+          let desc = '';
+          if (typeof data === 'string') {
+            desc = data;
+          } else if (data.description) {
+            desc = data.description;
+          } else if (data.reason) {
+            desc = data.reason;
+          } else {
+            // Build a description from event data
+            const parts = [];
+            if (data.entityName || data.entity) parts.push(data.entityName || data.entity);
+            if (data.action) parts.push(data.action);
+            if (data.amount) parts.push(`$${data.amount}`);
+            if (data.resource) parts.push(data.resource);
+            if (data.type) parts.push(data.type);
+            if (data.ruleName) parts.push(`规则: ${data.ruleName}`);
+            if (data.oldValue !== undefined && data.newValue !== undefined) parts.push(`${data.oldValue} -> ${data.newValue}`);
+            desc = parts.join(' | ') || JSON.stringify(data).slice(0, 120);
+          }
+          return `
+            <li class="event-item ${cat}">
+              <div class="event-time">${time}</div>
+              <span class="event-type">${ev.type || 'event'}</span>
+              <span class="event-content">${desc}</span>
+            </li>
+          `;
+        }).join('') + '</ul>';
+    }
+
+    // ========== Leaderboard ==========
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch(API + '/api/entities/leaderboard?limit=10');
+        const data = await res.json();
+        document.getElementById('leaderboard').innerHTML = data.map((e, i) => `
+          <div class="lb-row">
+            <div class="lb-rank ${i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : 'other'}">${i + 1}</div>
+            <span class="lb-name">${e.name}</span>
+            <span class="lb-money">$${e.money.toFixed(0)}</span>
+          </div>
+        `).join('') || '<div style="color:var(--text2)">暂无数据</div>';
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== Market ==========
+    async function loadMarketPrices() {
+      try {
+        const res = await fetch(API + '/api/market/prices');
+        const prices = await res.json();
+        const entries = Object.entries(prices);
+        document.getElementById('marketPrices').innerHTML = entries.map(([name, price]) => {
+          const p = typeof price === 'number' ? price : price.price || 0;
+          return `
+            <div class="price-row">
+              <span class="price-name">${name}</span>
+              <span class="price-val">$${p.toFixed(2)}</span>
+            </div>
+          `;
+        }).join('') || '<div style="color:var(--text2)">暂无数据</div>';
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== Bank ==========
+    async function loadBankInfo() {
+      try {
+        const res = await fetch(API + '/api/bank');
+        const data = await res.json();
+        document.getElementById('bankInfo').innerHTML = `
+          <div class="price-row"><span class="price-name">利率</span><span class="price-val">${((data.interestRate || 0) * 100).toFixed(1)}%</span></div>
+          <div class="price-row"><span class="price-name">总贷款</span><span class="price-val" style="color:var(--red)">$${(data.totalLoans || 0).toFixed(0)}</span></div>
+          <div class="price-row"><span class="price-name">总存款</span><span class="price-val" style="color:var(--green)">$${(data.totalDeposits || 0).toFixed(0)}</span></div>
+          <div class="price-row"><span class="price-name">税收总额</span><span class="price-val" style="color:var(--orange)">$${(data.totalTaxCollected || 0).toFixed(0)}</span></div>
+        `;
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== Init ==========
+    function refreshAll() {
+      loadWorldInfo();
+      loadEvents();
+      loadLeaderboard();
+      loadMarketPrices();
+      loadBankInfo();
+    }
+    refreshAll();
+    setInterval(loadWorldInfo, 5000);
+    setInterval(loadEvents, 10000);
+    setInterval(() => { loadLeaderboard(); loadMarketPrices(); loadBankInfo(); }, 15000);
+  </script>
+</body>
+</html>

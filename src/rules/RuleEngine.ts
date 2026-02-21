@@ -273,6 +273,15 @@ export class RuleEngine {
     this.rules.set(rule.name, rule);
   }
 
+  /** 修改规则值 (管理员用) */
+  setRuleValue(name: string, value: number): void {
+    const rule = this.rules.get(name);
+    if (!rule) throw new Error(`规则 "${name}" 不存在`);
+    const clamped = Math.max(rule.minValue, Math.min(rule.maxValue, value));
+    rule.value = clamped;
+    rule.version++;
+  }
+
   /** 获取规则摘要 */
   getSummary(): RuleEngineSummary {
     const rules: Record<string, { value: number; version: number }> = {};

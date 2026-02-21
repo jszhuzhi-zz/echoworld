@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoWorld - 管理控制台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e17; --bg2: #111827; --bg3: #1f2937; --border: #374151;
+      --text: #e5e7eb; --text2: #9ca3af; --accent: #3b82f6; --accent2: #8b5cf6;
+      --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --orange: #f97316;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    /* Nav */
+    nav {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border); padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-left { display: flex; align-items: center; gap: 24px; }
+    .nav-logo {
+      font-size: 20px; font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a {
+      color: var(--text2); text-decoration: none; padding: 6px 14px;
+      border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-links a.active { color: white; background: var(--accent); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-user { font-size: 13px; color: var(--text2); }
+    .nav-user strong { color: var(--yellow); }
+    .btn-logout {
+      padding: 5px 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px; color: var(--red); font-size: 12px; cursor: pointer;
+    }
+    .btn-logout:hover { background: rgba(239,68,68,0.25); }
+
+    /* Layout */
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 600; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px;
+      background: rgba(59,130,246,0.15); color: var(--accent);
+    }
+
+    /* World Controls */
+    .world-status {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .status-item { font-size: 14px; color: var(--text2); }
+    .status-item strong { color: var(--text); }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block; margin-right: 4px;
+    }
+    .status-dot.running { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.stopped { background: var(--red); }
+
+    .ctrl-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      padding: 8px 18px; border: none; border-radius: 6px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-green { background: var(--green); color: white; }
+    .btn-red { background: var(--red); color: white; }
+    .btn-blue { background: var(--accent); color: white; }
+    .btn-yellow { background: var(--yellow); color: #000; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; color: var(--text2); border-bottom: 1px solid var(--border); font-weight: 500; }
+    td { padding: 8px 10px; border-bottom: 1px solid rgba(55,65,81,0.4); }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Inputs */
+    .input-row { display: flex; gap: 8px; margin-top: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-group label { font-size: 11px; color: var(--text2); }
+    .input-group input, .input-group select {
+      padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 13px; outline: none;
+    }
+    .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+
+    /* Rule sliders */
+    .rule-row {
+      display: flex; align-items: center; gap: 12px; padding: 8px 0;
+      border-bottom: 1px solid rgba(55,65,81,0.3);
+    }
+    .rule-row:last-child { border-bottom: none; }
+    .rule-name { width: 200px; font-size: 13px; font-weight: 500; }
+    .rule-name small { display: block; color: var(--text2); font-size: 11px; font-weight: 400; }
+    .rule-slider { flex: 1; }
+    .rule-slider input[type="range"] {
+      width: 100%; accent-color: var(--accent); cursor: pointer;
+    }
+    .rule-value {
+      width: 70px; text-align: right; font-size: 14px;
+      font-weight: 600; color: var(--accent); font-family: 'Courier New', monospace;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
+      border-radius: 8px; font-size: 13px; z-index: 9999;
+      animation: slideIn 0.3s ease; display: none;
+    }
+    .toast.success { background: rgba(16,185,129,0.9); color: white; }
+    .toast.error { background: rgba(239,68,68,0.9); color: white; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* Scrollable */
+    .scroll-box { max-height: 400px; overflow-y: auto; }
+    .scroll-box::-webkit-scrollbar { width: 4px; }
+    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .entity-bar { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(55,65,81,0.3); }
+    .entity-bar .name { font-weight: 500; font-size: 13px; min-width: 100px; }
+    .entity-bar .money { color: var(--yellow); font-size: 13px; font-family: monospace; min-width: 80px; text-align: right; }
+    .wealth-bar { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+    .wealth-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.5s; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <div class="nav-logo">EchoWorld</div>
+      <div class="nav-links">
+        <a href="/">总览</a>
+        <a href="/admin" class="active">管理</a>
+        <a href="/game">游戏</a>
+        <a href="/news">新闻</a>
+      </div>
+    </div>
+    <div class="nav-right">
+      <span class="nav-user">管理员: <strong id="navUsername">-</strong></span>
+      <button class="btn-logout" onclick="logout()">退出</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- World Control -->
+    <div class="card">
+      <div class="card-title">世界控制</div>
+      <div class="world-status" id="worldStatus">
+        <span class="status-item"><span class="status-dot stopped" id="statusDot"></span> <strong id="statusText">加载中...</strong></span>
+        <span class="status-item">日期: <strong id="worldDay">-</strong></span>
+        <span class="status-item">时间: <strong id="worldHour">-</strong></span>
+        <span class="status-item">Tick: <strong id="worldTick">-</strong></span>
+        <span class="status-item">实体数: <strong id="entityCount">-</strong></span>
+      </div>
+      <div class="ctrl-btns">
+        <button class="btn btn-green" onclick="worldAction('start')">启动世界</button>
+        <button class="btn btn-red" onclick="worldAction('stop')">暂停世界</button>
+        <button class="btn btn-blue" onclick="worldAction('tick')">手动Tick</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Rules -->
+      <div class="card">
+        <div class="card-title">世界规则 <span class="badge" id="ruleCount">0</span></div>
+        <div class="scroll-box" id="rulesContainer">
+          <div style="color:var(--text2);font-size:13px;">加载中...</div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div class="card">
+        <div class="card-title">用户管理 <span class="badge" id="userCount">0</span></div>
+        <div class="scroll-box">
+          <table>
+            <thead><tr><th>用户名</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody id="usersTable"><tr><td colspan="4" style="color:var(--text2)">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Entities -->
+      <div class="card">
+        <div class="card-title">实体排行 (财富)</div>
+        <div class="scroll-box" id="entitiesContainer">
+          <div style="color:var(--text2);font-size:13px;">加载中...</div>
+        </div>
+      </div>
+
+      <!-- Money Management & Agent Creation -->
+      <div>
+        <div class="card">
+          <div class="card-title">资金管理</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>实体</label>
+              <select id="moneyEntity" style="min-width:140px"></select>
+            </div>
+            <div class="input-group">
+              <label>金额 (正数发放/负数扣除)</label>
+              <input type="number" id="moneyAmount" placeholder="1000" style="width:120px">
+            </div>
+            <button class="btn btn-yellow" onclick="adjustMoney()">执行</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">创建AI智能体</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>名称</label>
+              <input type="text" id="agentName" placeholder="Agent名称" style="width:140px">
+            </div>
+            <div class="input-group">
+              <label>使用LLM</label>
+              <select id="agentLLM"><option value="false">否</option><option value="true">是</option></select>
+            </div>
+            <button class="btn btn-blue" onclick="createAgent()">创建</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '';
+    let token = localStorage.getItem('echoworld_token');
+    let currentUser = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
+
+    // Auth check
+    if (!token || !currentUser || currentUser.role !== 'admin') {
+      window.location.href = '/login';
+    }
+    document.getElementById('navUsername').textContent = currentUser?.username || '-';
+
+    function authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+    }
+
+    function logout() {
+      localStorage.removeItem('echoworld_token');
+      localStorage.removeItem('echoworld_user');
+      window.location.href = '/login';
+    }
+
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    // ========== World Status ==========
+    async function loadWorldStatus() {
+      try {
+        const [timeRes, entRes] = await Promise.all([
+          fetch(API + '/api/world/time'),
+          fetch(API + '/api/entities')
+        ]);
+        const time = await timeRes.json();
+        const entities = await entRes.json();
+
+        document.getElementById('worldDay').textContent = time.time.day;
+        document.getElementById('worldHour').textContent = time.time.hour;
+        document.getElementById('worldTick').textContent = time.time.tick;
+        document.getElementById('entityCount').textContent = entities.length;
+
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusText');
+        if (time.running) {
+          dot.className = 'status-dot running'; txt.textContent = '运行中';
+        } else {
+          dot.className = 'status-dot stopped'; txt.textContent = '已暂停';
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function worldAction(action) {
+      try {
+        const res = await fetch(API + `/api/admin/world/${action}`, {
+          method: 'POST', headers: authHeaders()
+        });
+        const data = await res.json();
+        showToast(`世界${action === 'start' ? '已启动' : action === 'stop' ? '已暂停' : 'Tick完成'}`);
+        loadWorldStatus();
+      } catch (e) {
+        showToast('操作失败: ' + e.message, 'error');
+      }
+    }
+
+    // ========== Rules ==========
+    async function loadRules() {
+      try {
+        const res = await fetch(API + '/api/rules');
+        const data = await res.json();
+        const allRules = await fetch(API + '/api/rules/history').then(r => r.json());
+
+        // We need full rule objects, let's get them from the world snapshot
+        const worldRes = await fetch(API + '/api/world');
+        const world = await worldRes.json();
+        const rules = world.rules?.rules || [];
+
+        document.getElementById('ruleCount').textContent = rules.length || Object.keys(data.rules).length;
+
+        if (rules.length > 0) {
+          renderRulesFromArray(rules);
+        } else {
+          renderRulesFromSummary(data.rules);
+        }
+      } catch (e) {
+        console.error(e);
+        document.getElementById('rulesContainer').innerHTML = '<div style="color:var(--red)">加载失败</div>';
+      }
+    }
+
+    function renderRulesFromArray(rules) {
+      const c = document.getElementById('rulesContainer');
+      c.innerHTML = rules.map(r => `
+        <div class="rule-row">
+          <div class="rule-name">${r.name}<small>${r.description || r.category}</small></div>
+          <div class="rule-slider">
+            <input type="range" min="${r.minValue}" max="${r.maxValue}" step="${r.adjustStep}"
+              value="${r.value}" oninput="previewRule('${r.name}', this.value)"
+              onchange="setRule('${r.name}', this.value)">
+          </div>
+          <div class="rule-value" id="rv-${r.name}">${r.value}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderRulesFromSummary(rulesMap) {
+      const c = document.getElementById('rulesContainer');
+      c.innerHTML = Object.entries(rulesMap).map(([name, info]) => `
+        <div class="rule-row">
+          <div class="rule-name">${name}<small>v${info.version}</small></div>
+          <div class="rule-slider">
+            <input type="range" min="0" max="1" step="0.01"
+              value="${info.value}" oninput="previewRule('${name}', this.value)"
+              onchange="setRule('${name}', this.value)">
+          </div>
+          <div class="rule-value" id="rv-${name}">${info.value}</div>
+        </div>
+      `).join('');
+    }
+
+    function previewRule(name, value) {
+      const el = document.getElementById('rv-' + name);
+      if (el) el.textContent = parseFloat(value).toFixed(4);
+    }
+
+    async function setRule(name, value) {
+      try {
+        await fetch(API + '/api/admin/rules', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ ruleName: name, value: parseFloat(value) })
+        });
+        showToast(`规则 ${name} 已更新为 ${value}`);
+      } catch (e) {
+        showToast('修改失败: ' + e.message, 'error');
+      }
+    }
+
+    // ========== Users ==========
+    async function loadUsers() {
+      try {
+        const res = await fetch(API + '/api/admin/users', { headers: authHeaders() });
+        const users = await res.json();
+        document.getElementById('userCount').textContent = users.length;
+        const tbody = document.getElementById('usersTable');
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>${u.username}</td>
+            <td>
+              <select onchange="changeRole('${u.id}', this.value)" ${u.username === 'admin' ? 'disabled' : ''}>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理员</option>
+                <option value="investor" ${u.role === 'investor' ? 'selected' : ''}>投资者</option>
+                <option value="observer" ${u.role === 'observer' ? 'selected' : ''}>观察家</option>
+              </select>
+            </td>
+            <td style="font-size:12px;color:var(--text2)">${new Date(u.createdAt).toLocaleDateString()}</td>
+            <td>${u.username !== 'admin' ? `<button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}','${u.username}')">删除</button>` : '-'}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function changeRole(userId, role) {
+      try {
+        await fetch(API + `/api/admin/users/${userId}/role`, {
+          method: 'PUT', headers: authHeaders(),
+          body: JSON.stringify({ role })
+        });
+        showToast('角色已更新');
+      } catch (e) {
+        showToast('更新失败', 'error');
+      }
+    }
+
+    async function deleteUser(userId, username) {
+      if (!confirm(`确定删除用户 ${username}?`)) return;
+      try {
+        await fetch(API + `/api/admin/users/${userId}`, {
+          method: 'DELETE', headers: authHeaders()
+        });
+        showToast('用户已删除');
+        loadUsers();
+      } catch (e) {
+        showToast('删除失败', 'error');
+      }
+    }
+
+    // ========== Entities ==========
+    let allEntities = [];
+    async function loadEntities() {
+      try {
+        const res = await fetch(API + '/api/entities');
+        allEntities = await res.json();
+        allEntities.sort((a, b) => b.money - a.money);
+        const maxMoney = Math.max(...allEntities.map(e => e.money), 1);
+
+        const c = document.getElementById('entitiesContainer');
+        c.innerHTML = allEntities.map(e => `
+          <div class="entity-bar">
+            <span class="name">${e.name}</span>
+            <div class="wealth-bar"><div class="wealth-bar-fill" style="width:${(e.money/maxMoney*100).toFixed(1)}%"></div></div>
+            <span class="money">$${e.money.toFixed(0)}</span>
+          </div>
+        `).join('');
+
+        // Update money entity select
+        const sel = document.getElementById('moneyEntity');
+        sel.innerHTML = allEntities.map(e => `<option value="${e.id}">${e.name} ($${e.money.toFixed(0)})</option>`).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    // ========== Money ==========
+    async function adjustMoney() {
+      const entityId = document.getElementById('moneyEntity').value;
+      const amount = parseFloat(document.getElementById('moneyAmount').value);
+      if (!entityId || isNaN(amount)) return showToast('请填写完整', 'error');
+      try {
+        const res = await fetch(API + '/api/admin/money', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ entityId, amount })
+        });
+        const data = await res.json();
+        showToast(`资金调整成功: ${data.name} 现有 $${data.money.toFixed(0)}`);
+        loadEntities();
+      } catch (e) {
+        showToast('操作失败', 'error');
+      }
+    }
+
+    // ========== Agent ==========
+    async function createAgent() {
+      const name = document.getElementById('agentName').value.trim();
+      const useLLM = document.getElementById('agentLLM').value === 'true';
+      if (!name) return showToast('请输入名称', 'error');
+      try {
+        const res = await fetch(API + '/api/admin/agents', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ name, useLLM })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast(`智能体 ${name} 已创建`);
+        document.getElementById('agentName').value = '';
+        loadEntities();
+      } catch (e) {
+        showToast('创建失败: ' + e.message, 'error');
+      }
+    }
+
+    // ========== Init ==========
+    function refreshAll() {
+      loadWorldStatus();
+      loadRules();
+      loadUsers();
+      loadEntities();
+    }
+    refreshAll();
+    setInterval(loadWorldStatus, 5000);
+    setInterval(loadEntities, 10000);
+  </script>
+</body>
+</html>
