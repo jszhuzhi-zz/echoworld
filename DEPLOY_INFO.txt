@@ -1,9 +1,9 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 07:38:10 UTC
-Commit: d6c73fd1085589b210c5828684b0c8a4c85b13d8
+部署时间: 2026-02-21 10:42:12 UTC
+Commit: 84293f3e0d7aeac807031f179cba02f9d6169d75
 部署目标: 轻量服务器 129.211.14.208:3000
 访问地址: http://129.211.14.208:3000
-部署状态: FIREWALL_NEEDED
+部署状态: SUCCESS
 
 --- 部署日志 ---
 === [1] Upload package ===
@@ -13,60 +13,9 @@ Upload done
 Warning: Permanently added '129.211.14.208' (ED25519) to the list of known hosts.
 OS: NAME="OpenCloudOS"
 VERSION="9.4"
-Installing Node.js 20 (binary)...
 Node: v20.18.2
 NPM: 10.8.2
-Installing PM2...
-
-added 133 packages in 17s
-
-13 packages are looking for funding
-  run `npm fund` for details
-npm notice
-npm notice New major version of npm available! 10.8.2 -> 11.10.1
-npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
-npm notice To update run: npm install -g npm@11.10.1
-npm notice
-PM2: 
-                        -------------
-
-__/\\\\\\\\\\\\\____/\\\\____________/\\\\____/\\\\\\\\\_____
- _\/\\\/////////\\\_\/\\\\\\________/\\\\\\__/\\\///////\\\___
-  _\/\\\_______\/\\\_\/\\\//\\\____/\\\//\\\_\///______\//\\\__
-   _\/\\\\\\\\\\\\\/__\/\\\\///\\\/\\\/_\/\\\___________/\\\/___
-    _\/\\\/////////____\/\\\__\///\\\/___\/\\\________/\\\//_____
-     _\/\\\_____________\/\\\____\///_____\/\\\_____/\\\//________
-      _\/\\\_____________\/\\\_____________\/\\\___/\\\/___________
-       _\/\\\_____________\/\\\_____________\/\\\__/\\\\\\\\\\\\\\\_
-        _\///______________\///______________\///__\///////////////__
-
-
-                          Runtime Edition
-
-        PM2 is a Production Process Manager for Node.js applications
-                     with a built-in Load Balancer.
-
-                Start and Daemonize any application:
-                $ pm2 start app.js
-
-                Load Balance 4 instances of api.js:
-                $ pm2 start api.js -i 4
-
-                Monitor in production:
-                $ pm2 monitor
-
-                Make pm2 auto-boot at server restart:
-                $ pm2 startup
-
-                To go further checkout:
-                http://pm2.io/
-
-
-                        -------------
-
-[PM2] Spawning PM2 daemon with pm2_home=/root/.pm2
-[PM2] PM2 Successfully daemonized
-6.0.14
+PM2: 6.0.14
 === [3] Deploy app ===
 Warning: Permanently added '129.211.14.208' (ED25519) to the list of known hosts.
 Extracting package...
@@ -75,13 +24,18 @@ Installing production dependencies...
 
 Run `npm audit` for details.
 Stopping old process...
+[PM2] Applying action deleteProcessId on app [echoworld](ids: [ 0 ])
+[PM2] [echoworld](0) ✓
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
 Starting EchoWorld...
 [PM2] Starting /opt/echoworld/dist/index.js in fork_mode (1 instance)
 [PM2] Done.
 ┌────┬──────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
 │ id │ name         │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
 ├────┼──────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 0  │ echoworld    │ default     │ 0.1.0   │ fork    │ 7453     │ 0s     │ 0    │ online    │ 0%       │ 36.9mb   │ root     │ disabled │
+│ 0  │ echoworld    │ default     │ 0.1.0   │ fork    │ 49824    │ 0s     │ 0    │ online    │ 0%       │ 22.2mb   │ root     │ disabled │
 └────┴──────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
 [PM2] Saving current process list...
 [PM2] Successfully saved in /root/.pm2/dump.pm2
@@ -129,13 +83,10 @@ $ pm2 unstartup systemd
 ┌────┬──────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
 │ id │ name         │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
 ├────┼──────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 0  │ echoworld    │ default     │ 0.1.0   │ fork    │ 7453     │ 1s     │ 0    │ online    │ 0%       │ 59.6mb   │ root     │ disabled │
+│ 0  │ echoworld    │ default     │ 0.1.0   │ fork    │ 49824    │ 1s     │ 0    │ online    │ 0%       │ 64.6mb   │ root     │ disabled │
 └────┴──────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
 API test:
 {"time":{"day":1,"hour":0,"tick":3},"formatted":"Day 1, 00:00 (Tick #3)","running":true}
 Deploy complete! URL: http://129.211.14.208:3000
 === SSH deploy finished ===
 
-
-如果无法访问，请在腾讯云轻量服务器控制台开放 3000 端口 (TCP)
-控制台: https://console.cloud.tencent.com/lighthouse/instance/detail?id=lhins-fa84ogo8
