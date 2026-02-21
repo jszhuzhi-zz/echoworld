@@ -3,795 +3,917 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EchoWorld - 大富翁</title>
+  <title>EchoWorld - 3D</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #0a0e17; --bg2: #111827; --bg3: #1f2937; --border: #374151;
-      --text: #e5e7eb; --text2: #9ca3af; --accent: #3b82f6; --accent2: #8b5cf6;
-      --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --orange: #f97316;
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#0a0e17;--bg2:#111827;--bg3:#1f2937;--border:#374151;--text:#e5e7eb;--text2:#9ca3af;
+      --accent:#3b82f6;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--orange:#f97316;--purple:#a855f7}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+      background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+
+    /* === 3D Canvas === */
+    #canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+
+    /* === UI Overlays === */
+    .ui-overlay{position:fixed;z-index:10;pointer-events:none}
+    .ui-overlay>*{pointer-events:auto}
+
+    /* Top Bar */
+    #top-bar{top:0;left:0;right:0;padding:10px 16px;display:flex;justify-content:space-between;align-items:flex-start}
+    .top-left{display:flex;flex-direction:column;gap:6px}
+    .logo{font-size:16px;font-weight:700;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .stat-bar{display:flex;align-items:center;gap:6px;font-size:11px;width:180px}
+    .stat-bar .label{width:24px;text-align:center}
+    .stat-bar .bar{flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden}
+    .stat-bar .fill{height:100%;border-radius:4px;transition:width .5s}
+    .stat-bar .val{width:28px;text-align:right;font-size:10px;color:var(--text2)}
+    .fill-hunger{background:linear-gradient(90deg,#ef4444,#f97316)}
+    .fill-energy{background:linear-gradient(90deg,#3b82f6,#06b6d4)}
+    .fill-happy{background:linear-gradient(90deg,#a855f7,#ec4899)}
+    .top-center{text-align:center}
+    .pos-info{font-size:12px;color:var(--text2);background:rgba(0,0,0,0.6);padding:4px 14px;border-radius:12px;backdrop-filter:blur(8px)}
+    .top-right{display:flex;gap:8px;align-items:center}
+    .money-badge{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:4px 12px;border-radius:12px;font-weight:700;font-size:13px}
+    .action-badge{background:rgba(59,130,246,0.2);color:var(--accent);padding:4px 10px;border-radius:10px;font-size:11px;border:1px solid rgba(59,130,246,0.3)}
+    .btn-sm{padding:4px 10px;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;transition:all .2s}
+    .btn-nav{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
+    .btn-nav:hover{background:rgba(255,255,255,0.15);color:#fff}
+
+    /* Bottom Action Bar */
+    #action-bar{bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center}
+    .btn-dice{width:64px;height:64px;border-radius:16px;border:2px solid var(--accent);background:rgba(59,130,246,0.15);
+      color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      backdrop-filter:blur(8px);transition:all .3s;position:relative}
+    .btn-dice:hover{background:rgba(59,130,246,0.3);transform:scale(1.08)}
+    .btn-dice:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .btn-dice .dice-num{font-size:32px;font-weight:900}
+    .dir-btn{padding:10px 18px;border-radius:12px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
+      color:#fff;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s}
+    .dir-btn:hover{background:rgba(16,185,129,0.35);transform:translateY(-2px)}
+
+    /* Right Panel */
+    #right-panel{top:10px;right:10px;bottom:10px;width:220px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+    .panel-card{background:rgba(17,24,39,0.85);border:1px solid var(--border);border-radius:10px;padding:10px;backdrop-filter:blur(8px)}
+    .panel-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+    .lb-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px}
+    .lb-rank{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:var(--bg3);color:var(--text2)}
+    .t1{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000}.t2{background:#94a3b8;color:#000}.t3{background:#b45309;color:#fff}
+    .lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .lb-money{color:var(--yellow);font-weight:600;font-size:10px}
+    .building-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.05)}
+    .building-item .b-icon{font-size:16px}.building-item .b-name{flex:1}.building-item .b-lv{color:var(--accent);font-weight:700;font-size:10px}
+
+    /* Game Log */
+    #game-log{bottom:16px;left:16px;width:300px;max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+    .log-item{font-size:10px;color:var(--text2);background:rgba(0,0,0,0.5);padding:3px 8px;border-radius:6px;backdrop-filter:blur(4px)}
+    .log-item.warn{color:var(--yellow);border-left:2px solid var(--yellow)}
+    .log-item.danger{color:var(--red);border-left:2px solid var(--red)}
+    .log-item.good{color:var(--green);border-left:2px solid var(--green)}
+
+    /* Building Action Overlay */
+    #building-overlay{bottom:100px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:8px;
+      background:rgba(17,24,39,0.9);border:1px solid var(--border);border-radius:14px;padding:14px 20px;backdrop-filter:blur(10px);min-width:240px}
+    #building-overlay.show{display:flex}
+    .bo-title{font-size:14px;font-weight:700}.bo-desc{font-size:11px;color:var(--text2);text-align:center}
+    .bo-effects{display:flex;gap:10px;font-size:11px;font-weight:600}
+    .bo-effects .eff{padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--green)}
+    .btn-use{padding:8px 24px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+    .btn-use-pay{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
+    .btn-use-pay:hover{transform:scale(1.05)}
+    .btn-use-skip{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
+
+    /* Build Modal */
+    #build-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
+    #build-modal.show{display:flex}
+    .modal-content{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;width:420px;max-height:80vh;overflow-y:auto}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:12px}
+    .maslow-group{margin-bottom:12px}
+    .maslow-label{font-size:11px;font-weight:700;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:6px}
+    .build-option{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+    .build-option:hover{background:rgba(255,255,255,0.05);border-color:var(--border)}
+    .build-option .bo-icon{font-size:24px}
+    .build-option .bo-info{flex:1}
+    .build-option .bo-info .name{font-size:13px;font-weight:600}
+    .build-option .bo-info .desc{font-size:10px;color:var(--text2)}
+    .build-option .bo-cost{font-weight:700;color:var(--yellow);font-size:12px}
+    .btn-close-modal{float:right;background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer}
+
+    /* Dead overlay */
+    #dead-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;flex-direction:column;gap:16px}
+    #dead-overlay.show{display:flex}
+    .dead-title{font-size:28px;font-weight:900;color:var(--red)}
+    .dead-msg{font-size:14px;color:var(--text2);text-align:center;max-width:300px}
+    .btn-respawn{padding:12px 36px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--green),#06b6d4);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    @media(max-width:640px){
+      #right-panel{display:none}
+      #game-log{width:calc(100% - 32px)}
+      .stat-bar{width:140px}
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden;
-    }
-    /* Nav */
-    nav { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
-    .nav-left { display: flex; align-items: center; gap: 20px; }
-    .nav-logo { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .nav-links { display: flex; gap: 2px; }
-    .nav-links a { color: var(--text2); text-decoration: none; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-    .nav-links a.active { color: white; background: var(--accent); }
-    .nav-right { display: flex; align-items: center; gap: 10px; }
-    .nav-user { font-size: 12px; color: var(--text2); }
-    .nav-user strong { color: var(--yellow); }
-    .btn-logout { padding: 4px 10px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 5px; color: var(--red); font-size: 11px; cursor: pointer; }
-
-    /* Layout */
-    .game-layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; max-width: 1400px; margin: 0 auto; padding: 16px; }
-    @media (max-width: 1100px) { .game-layout { grid-template-columns: 1fr; } }
-
-    /* ====== BOARD ====== */
-    .board-wrapper { position: relative; }
-    .board {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      gap: 2px;
-      aspect-ratio: 1;
-      max-width: 720px;
-      margin: 0 auto;
-      background: var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    /* Tile */
-    .tile {
-      position: relative;
-      background: var(--bg2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2px;
-      min-height: 0;
-      cursor: pointer;
-      transition: all 0.15s;
-      overflow: hidden;
-    }
-    .tile:hover { z-index: 2; transform: scale(1.08); box-shadow: 0 0 12px rgba(59,130,246,0.4); }
-    .tile.current-tile { box-shadow: inset 0 0 0 2px var(--yellow), 0 0 8px rgba(245,158,11,0.5); z-index: 1; }
-    .tile-color { position: absolute; top: 0; left: 0; right: 0; height: 4px; }
-    .tile-icon { font-size: 16px; line-height: 1; margin-top: 4px; }
-    .tile-name { font-size: 8px; font-weight: 600; text-align: center; line-height: 1.1; margin-top: 1px; color: var(--text); }
-    .tile-cost { font-size: 7px; color: var(--yellow); font-weight: 600; }
-    .tile.corner { background: var(--bg3); }
-    .tile.corner .tile-icon { font-size: 20px; }
-    .tile.corner .tile-name { font-size: 9px; }
-
-    /* Player tokens on tile */
-    .tile-players { display: flex; flex-wrap: wrap; gap: 1px; position: absolute; bottom: 1px; left: 1px; right: 1px; justify-content: center; }
-    .token {
-      width: 12px; height: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 6px; font-weight: 700; color: white; border: 1px solid rgba(255,255,255,0.3);
-      flex-shrink: 0;
-    }
-    .token.me { border: 2px solid var(--yellow); box-shadow: 0 0 4px var(--yellow); }
-
-    /* Board center */
-    .board-center {
-      grid-column: 2 / 8;
-      grid-row: 2 / 8;
-      background: radial-gradient(ellipse at center, #1a2332 0%, #0f172a 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      text-align: center;
-      gap: 12px;
-    }
-    .center-title {
-      font-size: 22px; font-weight: 700;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa, #f59e0b);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .center-subtitle { font-size: 11px; color: var(--text2); }
-
-    /* Dice */
-    .dice-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .dice-display { display: flex; gap: 8px; align-items: center; }
-    .dice {
-      width: 52px; height: 52px; background: white; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; font-weight: 900; color: #1f2937;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      transition: transform 0.3s;
-    }
-    .dice.rolling { animation: diceRoll 0.5s ease; }
-    @keyframes diceRoll {
-      0% { transform: rotate(0deg) scale(1); }
-      25% { transform: rotate(90deg) scale(1.1); }
-      50% { transform: rotate(180deg) scale(1); }
-      75% { transform: rotate(270deg) scale(1.1); }
-      100% { transform: rotate(360deg) scale(1); }
-    }
-    .btn-roll {
-      padding: 10px 32px; background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none; border-radius: 8px; color: white; font-size: 15px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
-    }
-    .btn-roll:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
-    .btn-roll:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-    .actions-left { font-size: 11px; color: var(--text2); }
-    .actions-left strong { color: var(--yellow); }
-
-    /* Tile info popup */
-    .tile-info-panel {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
-      padding: 12px; margin-top: 6px; display: none;
-    }
-    .tile-info-panel.open { display: block; }
-    .tile-info-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .tile-info-header .icon { font-size: 24px; }
-    .tile-info-header .name { font-size: 16px; font-weight: 600; }
-    .tile-info-desc { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
-    .tile-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    /* ====== RIGHT PANEL ====== */
-    .side-panel { display: flex; flex-direction: column; gap: 12px; }
-    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-    .card-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-    .card-title .badge { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(59,130,246,0.15); color: var(--accent); }
-
-    /* Stats mini */
-    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .mini-stat { background: var(--bg3); border-radius: 6px; padding: 8px; text-align: center; }
-    .mini-stat .label { font-size: 10px; color: var(--text2); }
-    .mini-stat .val { font-size: 16px; font-weight: 700; font-family: monospace; }
-    .mini-stat .val.money { color: var(--yellow); }
-    .mini-stat .val.green { color: var(--green); }
-    .mini-stat .val.blue { color: var(--accent); }
-    .mini-stat .val.red { color: var(--red); }
-
-    /* Resources bar */
-    .res-bar { display: flex; gap: 4px; flex-wrap: wrap; }
-    .res-item { background: var(--bg3); border-radius: 6px; padding: 4px 8px; font-size: 11px; display: flex; gap: 4px; align-items: center; }
-    .res-item .rname { color: var(--text2); }
-    .res-item .rval { font-weight: 600; color: var(--green); font-family: monospace; }
-
-    /* Needs */
-    .need-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12px; }
-    .need-row .nname { width: 50px; color: var(--text2); }
-    .need-bar { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
-    .need-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
-    .need-bar-fill.high { background: var(--green); }
-    .need-bar-fill.mid { background: var(--yellow); }
-    .need-bar-fill.low { background: var(--red); }
-
-    /* Buildings list */
-    .bld-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 12px; }
-    .bld-item:last-child { border-bottom: none; }
-    .bld-item .bname { flex: 1; }
-    .bld-item .blevel { color: var(--accent2); font-weight: 700; }
-
-    /* Leaderboard */
-    .lb-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(55,65,81,0.2); font-size: 12px; }
-    .lb-row:last-child { border-bottom: none; }
-    .lb-rank { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
-    .lb-rank.t1 { background: var(--yellow); color: #000; }
-    .lb-rank.t2 { background: #94a3b8; color: #000; }
-    .lb-rank.t3 { background: #b45309; color: white; }
-    .lb-rank.tn { background: var(--bg3); color: var(--text2); }
-    .lb-name { flex: 1; font-size: 11px; }
-    .lb-money { color: var(--yellow); font-family: monospace; font-size: 11px; }
-    .lb-row.me { background: rgba(59,130,246,0.1); border-radius: 4px; padding: 4px 6px; }
-
-    /* Event log */
-    .event-log { max-height: 200px; overflow-y: auto; }
-    .event-log::-webkit-scrollbar { width: 3px; }
-    .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    .log-item { padding: 4px 0; border-bottom: 1px solid rgba(55,65,81,0.2); font-size: 11px; color: var(--text2); }
-    .log-item .log-time { color: var(--accent); font-weight: 600; }
-    .log-item .log-msg { color: var(--text); }
-
-    /* Buttons */
-    .btn { padding: 6px 14px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-green { background: var(--green); color: white; }
-    .btn-red { background: var(--red); color: white; }
-    .btn-blue { background: var(--accent); color: white; }
-    .btn-yellow { background: var(--yellow); color: #000; }
-    .btn-sm { padding: 4px 10px; font-size: 11px; }
-    .btn:hover { opacity: 0.85; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* Modal */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 320px; max-width: 90vw; }
-    .modal h3 { font-size: 15px; margin-bottom: 12px; }
-    .modal .input-group { margin-bottom: 10px; }
-    .modal .input-group label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
-    .modal .input-group input { width: 100%; padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; outline: none; }
-    .modal .btn-row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
-
-    /* Toast */
-    .toast { position: fixed; bottom: 16px; right: 16px; padding: 10px 18px; border-radius: 8px; font-size: 12px; z-index: 9999; display: none; animation: slideIn 0.3s ease; }
-    .toast.success { background: rgba(16,185,129,0.9); color: white; }
-    .toast.error { background: rgba(239,68,68,0.9); color: white; }
-    .toast.info { background: rgba(59,130,246,0.9); color: white; }
-    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    /* Effect overlay */
-    .effect-overlay {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-size: 32px; font-weight: 900; z-index: 999;
-      pointer-events: none; opacity: 0; transition: all 0.5s;
-    }
-    .effect-overlay.show {
-      opacity: 1; animation: effectPop 1.5s ease forwards;
-    }
-    @keyframes effectPop {
-      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-      20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-      80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      100% { transform: translate(-50%, -70%) scale(1); opacity: 0; }
-    }
-
-    .scroll-box { max-height: 180px; overflow-y: auto; }
-    .scroll-box::-webkit-scrollbar { width: 3px; }
-    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
 <body>
-  <nav>
-    <div class="nav-left">
-      <div class="nav-logo">EchoWorld</div>
-      <div class="nav-links">
-        <a href="/">总览</a>
-        <a href="/admin">管理</a>
-        <a href="/game" class="active">游戏</a>
-        <a href="/news">新闻</a>
-      </div>
+
+<div id="canvas-container"></div>
+
+<!-- Top Bar -->
+<div id="top-bar" class="ui-overlay">
+  <div class="top-left">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="logo">EchoWorld 3D</span>
+      <a href="/" class="btn-sm btn-nav">首页</a>
+      <a href="/news" class="btn-sm btn-nav">新闻</a>
     </div>
-    <div class="nav-right">
-      <span class="nav-user"><strong id="navUsername">-</strong></span>
-      <button class="btn-logout" onclick="logout()">退出</button>
-    </div>
-  </nav>
+    <div class="stat-bar"><span class="label">🍔</span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
+    <div class="stat-bar"><span class="label">⚡</span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
+    <div class="stat-bar"><span class="label">😊</span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
+  </div>
+  <div class="top-center">
+    <div class="pos-info" id="pos-info">加载中...</div>
+  </div>
+  <div class="top-right">
+    <div class="money-badge" id="money-badge">0 CC</div>
+    <div class="action-badge" id="action-badge">行动 0/8</div>
+    <button class="btn-sm btn-nav" onclick="location.href='/login'" id="btn-logout">退出</button>
+  </div>
+</div>
 
-  <div class="game-layout">
-    <!-- LEFT: Board -->
-    <div class="board-wrapper">
-      <div class="board" id="board">
-        <!-- Tiles generated by JS -->
-      </div>
+<!-- Bottom Action Bar -->
+<div id="action-bar" class="ui-overlay">
+  <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
+  <div id="direction-buttons" style="display:flex;gap:8px"></div>
+  <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
+</div>
 
-      <!-- Tile action panel -->
-      <div class="tile-info-panel" id="tileInfo">
-        <div class="tile-info-header">
-          <span class="icon" id="tileInfoIcon">-</span>
-          <span class="name" id="tileInfoName">-</span>
-        </div>
-        <div class="tile-info-desc" id="tileInfoDesc">-</div>
-        <div class="tile-actions" id="tileInfoActions"></div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Side Panel -->
-    <div class="side-panel">
-      <!-- My Status -->
-      <div class="card">
-        <div class="card-title">我的状态</div>
-        <div class="mini-stats">
-          <div class="mini-stat"><div class="label">资金</div><div class="val money" id="myMoney">-</div></div>
-          <div class="mini-stat"><div class="label">排名</div><div class="val green" id="myRank">-</div></div>
-          <div class="mini-stat"><div class="label">建筑</div><div class="val blue" id="myBuildings">0</div></div>
-          <div class="mini-stat"><div class="label">存活</div><div class="val" id="mySurvival" style="color:var(--text)">0天</div></div>
-        </div>
-      </div>
-
-      <!-- Survival Needs -->
-      <div class="card">
-        <div class="card-title">生存需求</div>
-        <div id="needsContainer">
-          <div class="need-row">
-            <span class="nname">食物</span>
-            <div class="need-bar"><div class="need-bar-fill high" id="needFood" style="width:100%"></div></div>
-          </div>
-          <div class="need-row">
-            <span class="nname">能源</span>
-            <div class="need-bar"><div class="need-bar-fill high" id="needEnergy" style="width:100%"></div></div>
-          </div>
-          <div class="need-row">
-            <span class="nname">商品</span>
-            <div class="need-bar"><div class="need-bar-fill high" id="needGoods" style="width:100%"></div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resources -->
-      <div class="card">
-        <div class="card-title">我的资源</div>
-        <div class="res-bar" id="myResources">-</div>
-      </div>
-
-      <!-- My Buildings -->
-      <div class="card">
-        <div class="card-title">我的建筑 <span class="badge" id="bldCount">0</span></div>
-        <div class="scroll-box" id="myBuildingList">
-          <div style="color:var(--text2);font-size:11px;">暂无建筑</div>
-        </div>
-      </div>
-
-      <!-- Leaderboard -->
-      <div class="card">
-        <div class="card-title">排行榜</div>
-        <div class="scroll-box" id="leaderboard">-</div>
-      </div>
-
-      <!-- Game Log -->
-      <div class="card">
-        <div class="card-title">行动日志</div>
-        <div class="event-log" id="gameLog">
-          <div class="log-item"><span class="log-msg" style="color:var(--text2)">等待行动...</span></div>
-        </div>
-      </div>
+<!-- Right Panel -->
+<div id="right-panel" class="ui-overlay">
+  <div class="panel-card">
+    <div class="panel-title">排行榜</div>
+    <div id="leaderboard">-</div>
+  </div>
+  <div class="panel-card">
+    <div class="panel-title">我的建筑</div>
+    <div id="my-buildings"><span style="font-size:11px;color:var(--text2)">暂无</span></div>
+  </div>
+  <div class="panel-card">
+    <div class="panel-title">马斯洛需求层次</div>
+    <div style="font-size:10px;line-height:1.6;color:var(--text2)">
+      <div><span style="color:#4ade80">L1 生理</span> 食物/水/住所</div>
+      <div><span style="color:#60a5fa">L2 安全</span> 医疗/药品/储蓄</div>
+      <div><span style="color:#fbbf24">L3 社交</span> 茶馆/酒吧/社区</div>
+      <div><span style="color:#f97316">L4 尊重</span> 餐厅/酒店/银行</div>
+      <div><span style="color:#a855f7">L5 实现</span> 学院/艺术馆/创业</div>
     </div>
   </div>
+</div>
 
-  <!-- Action Modal -->
-  <div class="modal-overlay" id="actionModal">
-    <div class="modal">
-      <h3 id="modalTitle">操作</h3>
-      <div id="modalBody"></div>
-      <div class="btn-row">
-        <button class="btn btn-red btn-sm" onclick="closeModal()">取消</button>
-        <button class="btn btn-green btn-sm" id="modalConfirm" onclick="confirmModalAction()">确认</button>
-      </div>
+<!-- Building Action Overlay -->
+<div id="building-overlay" class="ui-overlay">
+  <div class="bo-title" id="bo-title"></div>
+  <div class="bo-desc" id="bo-desc"></div>
+  <div class="bo-effects" id="bo-effects"></div>
+  <div style="display:flex;gap:10px">
+    <button class="btn-use btn-use-pay" id="btn-use-building" onclick="useBuilding()">消费</button>
+    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()">跳过</button>
+  </div>
+</div>
+
+<!-- Build Modal -->
+<div id="build-modal">
+  <div class="modal-content">
+    <button class="btn-close-modal" onclick="closeBuildModal()">&times;</button>
+    <div class="modal-title">选择建筑类型</div>
+    <div id="build-list"></div>
+    <div style="margin-top:10px">
+      <label style="font-size:11px;color:var(--text2)">自定义名称 (可选)</label>
+      <input id="build-custom-name" type="text" placeholder="留空使用默认名" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;margin-top:4px">
     </div>
   </div>
+</div>
 
-  <div class="effect-overlay" id="effectOverlay"></div>
-  <div class="toast" id="toast"></div>
+<!-- Dead Overlay -->
+<div id="dead-overlay">
+  <div class="dead-title">角色死亡</div>
+  <div class="dead-msg" id="dead-msg">你的生命值已耗尽，损失50%资产。</div>
+  <button class="btn-respawn" onclick="respawn()">在起点重生</button>
+</div>
 
-  <script>
-    // ============ CONFIG ============
-    const PLAYER_COLORS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16','#64748b','#a855f7','#14b8a6'];
-    const RESOURCE_ICONS = { food: '🍎', material: '🪨', goods: '📱', energy: '⚡', labor: '👷' };
-    const RESOURCE_NAMES = { food: '食物', material: '原料', goods: '商品', energy: '能源', labor: '劳动力' };
+<!-- Game Log -->
+<div id="game-log" class="ui-overlay"></div>
 
-    // ============ AUTH ============
-    const API = '';
-    let token = localStorage.getItem('echoworld_token');
-    let currentUser = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
-    if (!token || !currentUser || currentUser.role !== 'investor') {
-      if (currentUser?.role === 'admin') window.location.href = '/admin';
-      else if (currentUser?.role === 'observer') window.location.href = '/news';
-      else window.location.href = '/login';
+<!-- Three.js -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============ CONFIG ============
+const API = location.origin;
+const token = localStorage.getItem('echoworld_token');
+if (!token) location.href = '/login';
+const MASLOW_COLORS = { 1: 0x4ade80, 2: 0x60a5fa, 3: 0xfbbf24, 4: 0xf97316, 5: 0xa855f7 };
+const NODE_COLORS = { start: 0x10b981, tax: 0xef4444, welfare: 0x3b82f6, event: 0xfbbf24, intersection: 0x475569, road: 0x283040, lot: 0x1e293b };
+const PLAYER_COLORS = ['#22d3ee','#f472b6','#a78bfa','#fb923c','#4ade80','#e879f9','#fbbf24','#38bdf8'];
+
+let currentUser = null, myState = null, myEntity = null, allNodes = [], allPlayers = [];
+let buildingCatalog = [], selectedBuildNodeId = null;
+let pendingDirections = null;
+const logs = [];
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+}
+
+// ============ THREE.js SCENE ============
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e17);
+scene.fog = new THREE.FogExp2(0x0a0e17, 0.018);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 28, 18);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x334466, 2.0));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+dirLight.position.set(30, 50, 20);
+dirLight.castShadow = true;
+dirLight.shadow.camera.near = 0.1;
+dirLight.shadow.camera.far = 120;
+dirLight.shadow.camera.left = -60;
+dirLight.shadow.camera.right = 60;
+dirLight.shadow.camera.top = 60;
+dirLight.shadow.camera.bottom = -60;
+dirLight.shadow.mapSize.set(2048, 2048);
+scene.add(dirLight);
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(300, 300),
+  new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Grid
+const grid = new THREE.GridHelper(300, 150, 0x1a2332, 0x131b2b);
+grid.position.y = 0.01;
+scene.add(grid);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI / 2.3;
+controls.minDistance = 6;
+controls.maxDistance = 55;
+controls.target.set(0, 0, 0);
+
+// Meshes
+let mapMeshGroup = new THREE.Group();
+scene.add(mapMeshGroup);
+let playerMeshGroup = new THREE.Group();
+scene.add(playerMeshGroup);
+let directionMeshGroup = new THREE.Group();
+scene.add(directionMeshGroup);
+let pathMeshGroup = new THREE.Group();
+scene.add(pathMeshGroup);
+
+// Raycaster for clicking
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const clickableMeshes = [];
+
+// ============ RENDER FUNCTIONS ============
+
+function renderMap(nodes) {
+  // Dispose old
+  while (mapMeshGroup.children.length) {
+    const m = mapMeshGroup.children[0];
+    m.geometry?.dispose();
+    m.material?.dispose();
+    mapMeshGroup.remove(m);
+  }
+  clickableMeshes.length = 0;
+
+  for (const node of nodes) {
+    let mesh;
+    if (node.building) {
+      // Building: colored box, height by level
+      const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
+      const ml = tpl?.maslowLevel || 1;
+      const h = 0.6 + node.building.level * 0.5;
+      const color = MASLOW_COLORS[ml] || 0x888888;
+      const geo = new THREE.BoxGeometry(1.3, h, 1.3);
+      const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.15, roughness: 0.4 });
+      mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(node.x, h / 2, node.y);
+      mesh.castShadow = true;
+      mesh.userData = { nodeId: node.id, type: 'building', node };
+      clickableMeshes.push(mesh);
+    } else if (node.type === 'lot') {
+      // Empty lot: flat dashed outline
+      const geo = new THREE.BoxGeometry(1.2, 0.05, 1.2);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x374151, transparent: true, opacity: 0.3 });
+      mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(node.x, 0.03, node.y);
+      mesh.userData = { nodeId: node.id, type: 'lot', node };
+      clickableMeshes.push(mesh);
+    } else {
+      // Road/intersection/special
+      const isSpecial = ['start', 'tax', 'welfare', 'event'].includes(node.type);
+      const isInter = node.type === 'intersection';
+      const size = isSpecial ? 1.8 : isInter ? 1.6 : 1.4;
+      const height = isSpecial ? 0.12 : 0.06;
+      const color = NODE_COLORS[node.type] || NODE_COLORS.road;
+      const geo = new THREE.BoxGeometry(size, height, size);
+      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+      mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(node.x, height / 2, node.y);
+      mesh.receiveShadow = true;
+      mesh.userData = { nodeId: node.id, type: node.type, node };
+      clickableMeshes.push(mesh);
     }
-    document.getElementById('navUsername').textContent = currentUser?.username || '-';
-    function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
-    function logout() { localStorage.removeItem('echoworld_token'); localStorage.removeItem('echoworld_user'); window.location.href = '/login'; }
+    mapMeshGroup.add(mesh);
+  }
 
-    // ============ STATE ============
-    let boardTiles = [];
-    let boardPlayers = [];
-    let myBoardState = null;
-    let myEntity = null;
-    let myBuildings = [];
-    let marketPrices = {};
-    let entityMap = {};      // id -> {name, color}
-    let gameLog = [];
-    let modalAction = null;
-
-    // ============ TOAST / EFFECT ============
-    function showToast(msg, type = 'success') {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
-      clearTimeout(t._timer);
-      t._timer = setTimeout(() => t.style.display = 'none', 3000);
+  // Draw road connections as thin lines
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x283040, transparent: true, opacity: 0.4 });
+  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const drawnEdges = new Set();
+  for (const node of nodes) {
+    for (const cid of node.connections) {
+      const key = Math.min(node.id, cid) + '-' + Math.max(node.id, cid);
+      if (drawnEdges.has(key)) continue;
+      drawnEdges.add(key);
+      const cn = nodeMap.get(cid);
+      if (!cn) continue;
+      const pts = [new THREE.Vector3(node.x, 0.04, node.y), new THREE.Vector3(cn.x, 0.04, cn.y)];
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      const line = new THREE.Line(lineGeo, lineMat);
+      mapMeshGroup.add(line);
     }
-    function showEffect(text, color) {
-      const el = document.getElementById('effectOverlay');
-      el.textContent = text; el.style.color = color || 'var(--yellow)';
-      el.className = 'effect-overlay show';
-      setTimeout(() => el.className = 'effect-overlay', 1500);
+  }
+}
+
+function renderPlayers(players) {
+  while (playerMeshGroup.children.length) {
+    const m = playerMeshGroup.children[0];
+    m.geometry?.dispose();
+    m.material?.dispose();
+    playerMeshGroup.remove(m);
+  }
+
+  const nodeMap = new Map(allNodes.map(n => [n.id, n]));
+  for (let i = 0; i < players.length; i++) {
+    const p = players[i];
+    const node = nodeMap.get(p.nodeId);
+    if (!node) continue;
+    const isMe = p.entityId === currentUser?.entityId;
+    const radius = isMe ? 0.4 : 0.25;
+    const pColor = isMe ? 0x22d3ee : parseInt(PLAYER_COLORS[i % PLAYER_COLORS.length].replace('#',''), 16);
+    const geo = new THREE.SphereGeometry(radius, 16, 16);
+    const mat = new THREE.MeshStandardMaterial({ color: pColor, emissive: pColor, emissiveIntensity: isMe ? 0.6 : 0.2, roughness: 0.3 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(node.x, isMe ? 0.55 : 0.4, node.y);
+    mesh.castShadow = true;
+    playerMeshGroup.add(mesh);
+
+    // Name label (sprite)
+    const canvas = document.createElement('canvas');
+    canvas.width = 128; canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = isMe ? '#22d3ee' : '#9ca3af';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText((p.name || '?').slice(0, 8), 64, 20);
+    const tex = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(2, 0.5, 1);
+    sprite.position.set(node.x, isMe ? 1.2 : 1.0, node.y);
+    playerMeshGroup.add(sprite);
+  }
+}
+
+function showDirectionArrows(directions) {
+  clearDirectionArrows();
+  const nodeMap = new Map(allNodes.map(n => [n.id, n]));
+  const myNode = myState ? nodeMap.get(myState.nodeId) : null;
+  if (!myNode) return;
+
+  for (const d of directions) {
+    const dx = d.x - myNode.x, dy = d.y - myNode.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) continue;
+
+    // Arrow cone
+    const geo = new THREE.ConeGeometry(0.3, 0.8, 8);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 0.6, transparent: true, opacity: 0.8 });
+    const arrow = new THREE.Mesh(geo, mat);
+    const mx = myNode.x + dx * 0.6, my = myNode.y + dy * 0.6;
+    arrow.position.set(mx, 1.2, my);
+    // Rotate to point in direction
+    const angle = Math.atan2(dx, dy);
+    arrow.rotation.set(0, 0, 0);
+    arrow.rotation.order = 'YXZ';
+    arrow.rotation.y = angle;
+    arrow.rotation.x = Math.PI / 2;
+    arrow.userData = { directionNodeId: d.nodeId, label: d.label };
+    directionMeshGroup.add(arrow);
+    clickableMeshes.push(arrow);
+  }
+}
+
+function clearDirectionArrows() {
+  while (directionMeshGroup.children.length) {
+    const m = directionMeshGroup.children[0];
+    m.geometry?.dispose();
+    m.material?.dispose();
+    directionMeshGroup.remove(m);
+  }
+  clickableMeshes.splice(0, clickableMeshes.length, ...clickableMeshes.filter(m => !m.userData?.directionNodeId));
+}
+
+function animatePath(pathPoints) {
+  while (pathMeshGroup.children.length) {
+    const m = pathMeshGroup.children[0];
+    m.geometry?.dispose();
+    m.material?.dispose();
+    pathMeshGroup.remove(m);
+  }
+  for (let i = 0; i < pathPoints.length; i++) {
+    const p = pathPoints[i];
+    const geo = new THREE.SphereGeometry(0.12, 8, 8);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 0.8, transparent: true, opacity: 0.6 });
+    const dot = new THREE.Mesh(geo, mat);
+    dot.position.set(p.x, 0.3, p.y);
+    pathMeshGroup.add(dot);
+  }
+  // Fade out after 3s
+  setTimeout(() => {
+    while (pathMeshGroup.children.length) {
+      const m = pathMeshGroup.children[0];
+      m.geometry?.dispose();
+      m.material?.dispose();
+      pathMeshGroup.remove(m);
     }
-    function addLog(msg) {
-      gameLog.unshift({ time: new Date().toLocaleTimeString(), msg });
-      if (gameLog.length > 50) gameLog.pop();
-      renderLog();
+  }, 3000);
+}
+
+// ============ CAMERA ============
+function focusCamera(x, y, animate = true) {
+  const target = new THREE.Vector3(x, 0, y);
+  if (animate) {
+    const startTarget = controls.target.clone();
+    const startPos = camera.position.clone();
+    const endPos = new THREE.Vector3(x, camera.position.y, y + 18);
+    let t = 0;
+    function anim() {
+      t += 0.03;
+      if (t > 1) t = 1;
+      const ease = t * (2 - t);
+      controls.target.lerpVectors(startTarget, target, ease);
+      camera.position.lerpVectors(startPos, endPos, ease);
+      if (t < 1) requestAnimationFrame(anim);
     }
-    function renderLog() {
-      document.getElementById('gameLog').innerHTML = gameLog.map(l =>
-        `<div class="log-item"><span class="log-time">[${l.time}]</span> <span class="log-msg">${l.msg}</span></div>`
-      ).join('');
+    anim();
+  } else {
+    controls.target.copy(target);
+    camera.position.set(x, 28, y + 18);
+  }
+}
+
+// ============ UI UPDATES ============
+function updateStats(stats) {
+  const h = stats?.hunger ?? 0, e = stats?.energy ?? 0, hp = stats?.happiness ?? 0;
+  document.getElementById('bar-hunger').style.width = h + '%';
+  document.getElementById('bar-energy').style.width = e + '%';
+  document.getElementById('bar-happy').style.width = hp + '%';
+  document.getElementById('val-hunger').textContent = h;
+  document.getElementById('val-energy').textContent = e;
+  document.getElementById('val-happy').textContent = hp;
+  // Warning colors
+  document.getElementById('bar-hunger').parentElement.parentElement.style.opacity = h <= 20 ? '1' : '0.85';
+  document.getElementById('bar-energy').parentElement.parentElement.style.opacity = e <= 15 ? '1' : '0.85';
+}
+
+function updateMoney(entity) {
+  document.getElementById('money-badge').textContent = (entity?.currency ?? 0).toFixed(0) + ' CC';
+}
+
+function updateActions(state) {
+  document.getElementById('action-badge').textContent = `行动 ${state?.actionsToday ?? 0}/${state?.maxActions ?? 8}`;
+  document.getElementById('btn-roll').disabled = !state?.alive || (state?.actionsToday ?? 0) >= (state?.maxActions ?? 8) || state?.pendingRoll !== null;
+}
+
+function updatePosInfo(node) {
+  if (!node) return;
+  const labels = { start: '起点 🚀', tax: '税务站 💸', welfare: '福利站 🎁', event: '随机事件 🎲', intersection: '十字路口', road: '道路', lot: '空地' };
+  let text = labels[node.type] || node.type;
+  text += ` (${node.x}, ${node.y})`;
+  if (node.building) text = `${node.building.name} ${buildingCatalog.find(b => b.type === node.building.templateType)?.icon || ''} Lv.${node.building.level}`;
+  document.getElementById('pos-info').textContent = text;
+}
+
+function addLog(msg, type = '') {
+  logs.push({ msg, type, time: new Date().toLocaleTimeString() });
+  if (logs.length > 50) logs.shift();
+  const el = document.getElementById('game-log');
+  el.innerHTML = logs.slice(-12).map(l =>
+    `<div class="log-item ${l.type}">[${l.time}] ${l.msg}</div>`
+  ).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateLeaderboard(players) {
+  const sorted = [...players].sort((a, b) => (b.money ?? 0) - (a.money ?? 0)).slice(0, 8);
+  document.getElementById('leaderboard').innerHTML = sorted.map((p, i) =>
+    `<div class="lb-row"><div class="lb-rank ${i===0?'t1':i===1?'t2':i===2?'t3':''}">${i+1}</div><span class="lb-name">${p.name}${p.entityId === currentUser?.entityId ? ' (我)' : ''}</span><span class="lb-money">${(p.money ?? 0).toFixed(0)} CC</span></div>`
+  ).join('') || '<span style="font-size:11px;color:var(--text2)">暂无</span>';
+}
+
+function updateMyBuildings(nodes) {
+  const myBuildings = nodes.filter(n => n.building?.ownerId === currentUser?.entityId);
+  document.getElementById('my-buildings').innerHTML = myBuildings.map(n => {
+    const tpl = buildingCatalog.find(b => b.type === n.building.templateType);
+    return `<div class="building-item"><span class="b-icon">${tpl?.icon || '?'}</span><span class="b-name">${n.building.name}</span><span class="b-lv">Lv.${n.building.level}</span></div>`;
+  }).join('') || '<span style="font-size:11px;color:var(--text2)">暂无</span>';
+}
+
+function showBuildingOverlay(node) {
+  const b = node.building;
+  if (!b || b.ownerId === currentUser?.entityId) return;
+  const tpl = buildingCatalog.find(t => t.type === b.templateType);
+  if (!tpl) return;
+  const lvMult = 1 + (b.level - 1) * 0.3;
+  const fee = Math.floor(tpl.baseFee * lvMult);
+  document.getElementById('bo-title').textContent = `${tpl.icon} ${b.name} (Lv.${b.level}) - ${b.ownerName}`;
+  document.getElementById('bo-desc').textContent = `${tpl.description} | 费用: ${fee} CC`;
+  const effectsHtml = Object.entries(tpl.effects).map(([k, v]) => {
+    const eMult = 1 + (b.level - 1) * 0.2;
+    const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
+    return `<span class="eff">${names[k] || k} +${Math.floor(v * eMult)}</span>`;
+  }).join('');
+  document.getElementById('bo-effects').innerHTML = effectsHtml;
+  document.getElementById('btn-use-building').textContent = `消费 ${fee} CC`;
+  document.getElementById('building-overlay').classList.add('show');
+}
+
+function closeBuildingOverlay() {
+  document.getElementById('building-overlay').classList.remove('show');
+}
+
+// ============ API CALLS ============
+
+async function fetchMe() {
+  try {
+    const [meRes, userRes] = await Promise.all([
+      fetch(API + '/api/world/me', { headers: authHeaders() }),
+      fetch(API + '/api/auth/me', { headers: authHeaders() }),
+    ]);
+    if (!meRes.ok) throw new Error('me failed');
+    const meData = await meRes.json();
+    currentUser = await userRes.json();
+    myState = meData.state;
+    myEntity = meData.entity;
+    updateStats(myState);
+    updateMoney(myEntity);
+    updateActions(myState);
+    updatePosInfo(meData.node);
+
+    // Check death
+    if (!myState.alive) {
+      document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // ============ BOARD LAYOUT ============
-    // Position → grid cell mapping for 8x8 board
-    function getTileGridPosition(id) {
-      // Bottom row L→R: ids 0-7 → row 8, col 1-8
-      if (id >= 0 && id <= 7) return { row: 8, col: id + 1 };
-      // Right col B→T: ids 8-13 → col 8, row 7 down to 2
-      if (id >= 8 && id <= 13) return { row: 7 - (id - 8), col: 8 };
-      // Top row R→L: ids 14-21 → row 1, col 8 down to 1
-      if (id >= 14 && id <= 21) return { row: 1, col: 8 - (id - 14) };
-      // Left col T→B: ids 22-27 → col 1, row 2-7
-      if (id >= 22 && id <= 27) return { row: id - 20, col: 1 };
-      return { row: 1, col: 1 };
+    // Check building on current tile
+    if (meData.node?.building && meData.node.building.ownerId !== currentUser.entityId) {
+      showBuildingOverlay(meData.node);
     }
 
-    function isCorner(id) { return id === 0 || id === 7 || id === 14 || id === 21; }
+    // Show build button if near empty lots
+    const hasNearbyLots = meData.nearbyLots && meData.nearbyLots.length > 0;
+    document.getElementById('btn-build').style.display = hasNearbyLots ? 'block' : 'none';
 
-    function buildBoard(tiles, players) {
-      const board = document.getElementById('board');
-      board.innerHTML = '';
+    return meData;
+  } catch (e) {
+    console.error('fetchMe error:', e);
+    addLog('加载状态失败', 'danger');
+  }
+}
 
-      // Build entity color map
-      let colorIdx = 0;
-      players.forEach(p => {
-        if (!entityMap[p.entityId]) {
-          entityMap[p.entityId] = { name: p.name || '?', color: PLAYER_COLORS[colorIdx % PLAYER_COLORS.length] };
-          colorIdx++;
-        } else {
-          entityMap[p.entityId].name = p.name || entityMap[p.entityId].name;
-        }
-      });
+async function fetchMap() {
+  try {
+    const node = myState ? allNodes.find(n => n.id === myState.nodeId) : null;
+    const cx = node?.x ?? 0, cy = node?.y ?? 0;
+    const res = await fetch(API + `/api/world/map?cx=${cx}&cy=${cy}&r=22`, { headers: authHeaders() });
+    const data = await res.json();
+    allNodes = data.nodes;
+    allPlayers = data.players;
+    renderMap(allNodes);
+    renderPlayers(allPlayers);
+    updateLeaderboard(allPlayers);
+    updateMyBuildings(allNodes);
+  } catch (e) {
+    console.error('fetchMap error:', e);
+  }
+}
 
-      // Build player position map
-      const posMap = {};
-      players.forEach(p => {
-        if (!posMap[p.position]) posMap[p.position] = [];
-        posMap[p.position].push(p.entityId);
-      });
+async function fetchCatalog() {
+  try {
+    const res = await fetch(API + '/api/world/buildings-catalog');
+    buildingCatalog = await res.json();
+  } catch (e) { console.error(e); }
+}
 
-      // Render tiles
-      tiles.forEach(tile => {
-        const pos = getTileGridPosition(tile.id);
-        const div = document.createElement('div');
-        div.className = 'tile' + (isCorner(tile.id) ? ' corner' : '');
-        div.style.gridRow = pos.row;
-        div.style.gridColumn = pos.col;
-        div.dataset.tileId = tile.id;
-        div.onclick = () => showTileInfo(tile);
+// ============ GAME ACTIONS ============
 
-        // Highlight current position
-        if (myBoardState && myBoardState.position === tile.id) {
-          div.classList.add('current-tile');
-        }
+window.rollDice = async function() {
+  try {
+    const res = await fetch(API + '/api/world/roll', { method: 'POST', headers: authHeaders() });
+    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    const data = await res.json();
 
-        // Color strip
-        const colorStrip = document.createElement('div');
-        colorStrip.className = 'tile-color';
-        colorStrip.style.background = tile.color;
-        div.appendChild(colorStrip);
+    addLog(`掷出 ${data.roll} 点`, 'good');
 
-        // Icon
-        const icon = document.createElement('div');
-        icon.className = 'tile-icon';
-        icon.textContent = tile.icon;
-        div.appendChild(icon);
+    // Show dice number on button
+    const btn = document.getElementById('btn-roll');
+    btn.innerHTML = `<span class="dice-num">${data.roll}</span>`;
+    btn.disabled = true;
 
-        // Name
-        const name = document.createElement('div');
-        name.className = 'tile-name';
-        name.textContent = tile.name;
-        div.appendChild(name);
-
-        // Cost
-        if (tile.cost) {
-          const cost = document.createElement('div');
-          cost.className = 'tile-cost';
-          cost.textContent = tile.cost + ' CC';
-          div.appendChild(cost);
-        }
-
-        // Player tokens
-        const playersHere = posMap[tile.id] || [];
-        if (playersHere.length > 0) {
-          const tokensDiv = document.createElement('div');
-          tokensDiv.className = 'tile-players';
-          playersHere.forEach(eid => {
-            const em = entityMap[eid] || { name: '?', color: '#666' };
-            const tok = document.createElement('div');
-            tok.className = 'token' + (eid === currentUser?.entityId ? ' me' : '');
-            tok.style.background = em.color;
-            tok.textContent = em.name.charAt(0);
-            tok.title = em.name;
-            tokensDiv.appendChild(tok);
-          });
-          div.appendChild(tokensDiv);
-        }
-
-        board.appendChild(div);
-      });
-
-      // Center area
-      const center = document.createElement('div');
-      center.className = 'board-center';
-      center.innerHTML = `
-        <div class="center-title">EchoWorld</div>
-        <div class="center-subtitle">AI 大富翁 | Day <span id="centerDay">-</span></div>
-        <div class="dice-area">
-          <div class="dice-display">
-            <div class="dice" id="diceDisplay">?</div>
-          </div>
-          <button class="btn-roll" id="btnRoll" onclick="rollDice()">掷骰子</button>
-          <div class="actions-left">今日行动: <strong id="actionsUsed">0</strong> / <strong id="actionsMax">6</strong></div>
-        </div>
-      `;
-      board.appendChild(center);
+    // Show direction buttons
+    pendingDirections = data.directions;
+    const dirDiv = document.getElementById('direction-buttons');
+    dirDiv.innerHTML = '';
+    for (const d of data.directions) {
+      const b = document.createElement('button');
+      b.className = 'dir-btn';
+      b.textContent = d.label;
+      b.onclick = () => chooseDirection(d.nodeId);
+      dirDiv.appendChild(b);
     }
 
-    // ============ TILE INFO ============
-    function showTileInfo(tile) {
-      document.getElementById('tileInfoIcon').textContent = tile.icon;
-      document.getElementById('tileInfoName').textContent = tile.name + (tile.cost ? ` (${tile.cost} CC)` : '');
-      document.getElementById('tileInfoDesc').textContent = tile.description;
+    // Show 3D arrows
+    showDirectionArrows(data.directions);
 
-      const actionsDiv = document.getElementById('tileInfoActions');
-      actionsDiv.innerHTML = '';
+  } catch (e) {
+    addLog('掷骰子失败', 'danger');
+  }
+};
 
-      // Only show actions if it's our current tile
-      const isMyTile = myBoardState && myBoardState.position === tile.id;
-      if (isMyTile) {
-        if (tile.type === 'property' && tile.buildingType) {
-          actionsDiv.innerHTML = `<button class="btn btn-blue btn-sm" onclick="boardAction('build')">建造 ${tile.name} (${tile.cost} CC)</button>`;
-        } else if (tile.type === 'market' && tile.resourceType) {
-          actionsDiv.innerHTML = `
-            <button class="btn btn-green btn-sm" onclick="openTradeModal('buy','${tile.resourceType}')">买入${RESOURCE_NAMES[tile.resourceType]||tile.resourceType}</button>
-            <button class="btn btn-red btn-sm" onclick="openTradeModal('sell','${tile.resourceType}')">卖出${RESOURCE_NAMES[tile.resourceType]||tile.resourceType}</button>
-          `;
-        } else if (tile.type === 'bank') {
-          if (tile.name.includes('贷')) {
-            actionsDiv.innerHTML = `<button class="btn btn-yellow btn-sm" onclick="openBankModal('loan')">申请贷款</button>`;
-          } else {
-            actionsDiv.innerHTML = `<button class="btn btn-green btn-sm" onclick="openBankModal('deposit')">存款</button>`;
-          }
-        }
-      } else {
-        actionsDiv.innerHTML = '<span style="font-size:11px;color:var(--text2)">移动到此格才能操作</span>';
+async function chooseDirection(directionNodeId) {
+  try {
+    document.getElementById('direction-buttons').innerHTML = '';
+    clearDirectionArrows();
+
+    const res = await fetch(API + '/api/world/move', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ directionNodeId }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    const data = await res.json();
+
+    // Animate path
+    animatePath(data.path);
+
+    // Focus camera on new position
+    const fn = data.finalNode;
+    focusCamera(fn.x, fn.y);
+
+    // Update state
+    myState = data.state;
+    myEntity = data.entity;
+    updateStats(data.stats);
+    updateMoney(data.entity);
+    updateActions(data.state);
+    updatePosInfo(data.finalNode);
+
+    // Log messages
+    for (const msg of data.messages) {
+      const type = msg.includes('警告') || msg.includes('⚠') ? 'warn' : msg.includes('死亡') || msg.includes('损失') ? 'danger' : msg.includes('获得') || msg.includes('福利') ? 'good' : '';
+      addLog(msg, type);
+    }
+
+    // Reset dice button
+    document.getElementById('btn-roll').innerHTML = '<span>🎲</span>';
+
+    // Check death
+    if (!data.stats.alive) {
+      document.getElementById('dead-overlay').classList.add('show');
+    }
+
+    // Check building
+    closeBuildingOverlay();
+    if (data.finalNode.building && data.finalNode.building.ownerId !== currentUser?.entityId) {
+      showBuildingOverlay(data.finalNode);
+    }
+
+    // Refresh map
+    await fetchMap();
+    await fetchMe();
+
+  } catch (e) {
+    addLog('移动失败', 'danger');
+  }
+}
+
+window.useBuilding = async function() {
+  try {
+    const res = await fetch(API + '/api/world/use-building', { method: 'POST', headers: authHeaders() });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || '使用失败', 'warn'); return; }
+    const data = await res.json();
+
+    for (const msg of data.messages) {
+      const type = msg.includes('升级') ? 'good' : '';
+      addLog(msg, type);
+    }
+
+    updateStats(data.stats);
+    updateMoney(data.entity);
+    closeBuildingOverlay();
+    await fetchMap();
+
+  } catch (e) {
+    addLog('消费失败', 'danger');
+  }
+};
+
+window.openBuildModal = function() {
+  const modal = document.getElementById('build-modal');
+  const list = document.getElementById('build-list');
+  const groups = {};
+  const levelNames = { 1: 'L1 生理需求', 2: 'L2 安全需求', 3: 'L3 社交需求', 4: 'L4 尊重需求', 5: 'L5 自我实现' };
+  const levelColors = { 1: '#4ade80', 2: '#60a5fa', 3: '#fbbf24', 4: '#f97316', 5: '#a855f7' };
+
+  for (const b of buildingCatalog) {
+    if (!groups[b.maslowLevel]) groups[b.maslowLevel] = [];
+    groups[b.maslowLevel].push(b);
+  }
+
+  list.innerHTML = '';
+  for (const [lvl, items] of Object.entries(groups).sort((a, b) => Number(a[0]) - Number(b[0]))) {
+    const group = document.createElement('div');
+    group.className = 'maslow-group';
+    group.innerHTML = `<div class="maslow-label" style="color:${levelColors[lvl]}">${levelNames[lvl]}</div>`;
+    for (const b of items) {
+      const opt = document.createElement('div');
+      opt.className = 'build-option';
+      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${b.name}</div><div class="desc">${b.description}${b.baseFee > 0 ? ` | 使用费: ${b.baseFee} CC` : ''}</div></div><span class="bo-cost">${b.cost} CC</span>`;
+      opt.onclick = () => doBuild(b.type);
+      group.appendChild(opt);
+    }
+    list.appendChild(group);
+  }
+  modal.classList.add('show');
+};
+
+window.closeBuildModal = function() {
+  document.getElementById('build-modal').classList.remove('show');
+};
+
+async function doBuild(templateType) {
+  try {
+    // Find nearest empty lot from current position
+    const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
+    const meData = await meRes.json();
+    const lots = meData.nearbyLots;
+    if (!lots || lots.length === 0) { addLog('附近没有空地', 'warn'); return; }
+
+    const nodeId = lots[0].id;
+    const customName = document.getElementById('build-custom-name').value.trim() || undefined;
+
+    const res = await fetch(API + '/api/world/build', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId, templateType, customName }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || '建造失败', 'warn'); return; }
+    const data = await res.json();
+
+    addLog(data.message, 'good');
+    updateMoney(data.entity);
+    closeBuildModal();
+    await fetchMap();
+    await fetchMe();
+
+  } catch (e) {
+    addLog('建造失败', 'danger');
+  }
+}
+
+window.respawn = async function() {
+  try {
+    const res = await fetch(API + '/api/world/respawn', { method: 'POST', headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById('dead-overlay').classList.remove('show');
+    myState = data.state;
+    updateStats(data.state);
+    updateMoney(data.entity);
+    updateActions(data.state);
+    addLog(data.message, 'good');
+
+    const node = allNodes.find(n => n.id === data.state.nodeId);
+    if (node) focusCamera(node.x, node.y);
+
+    await fetchMap();
+
+  } catch (e) {
+    addLog('重生失败', 'danger');
+  }
+};
+
+// ============ CLICK HANDLER ============
+renderer.domElement.addEventListener('click', (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects([...directionMeshGroup.children, ...mapMeshGroup.children]);
+  if (intersects.length > 0) {
+    const obj = intersects[0].object;
+    // Direction arrow click
+    if (obj.userData?.directionNodeId) {
+      chooseDirection(obj.userData.directionNodeId);
+      return;
+    }
+    // Node click
+    if (obj.userData?.node) {
+      const node = obj.userData.node;
+      updatePosInfo(node);
+      if (node.building && node.building.ownerId !== currentUser?.entityId) {
+        showBuildingOverlay(node);
       }
-
-      document.getElementById('tileInfo').classList.add('open');
     }
+  }
+});
 
-    // ============ DICE ROLL ============
-    async function rollDice() {
-      const btn = document.getElementById('btnRoll');
-      btn.disabled = true;
+// ============ RESIZE ============
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
-      // Animate dice
-      const dice = document.getElementById('diceDisplay');
-      dice.classList.add('rolling');
-      let animInterval = setInterval(() => {
-        dice.textContent = Math.floor(Math.random() * 6) + 1;
-      }, 80);
+// ============ ANIMATION LOOP ============
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
 
-      try {
-        const res = await fetch(API + '/api/board/roll', { method: 'POST', headers: authHeaders() });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+  // Pulsing direction arrows
+  for (const arrow of directionMeshGroup.children) {
+    arrow.position.y = 1.2 + Math.sin(t * 3) * 0.15;
+    if (arrow.material) arrow.material.opacity = 0.5 + Math.sin(t * 4) * 0.3;
+  }
 
-        // Stop animation, show result
-        clearInterval(animInterval);
-        dice.textContent = data.roll || '!';
-        setTimeout(() => dice.classList.remove('rolling'), 500);
+  controls.update();
+  renderer.render(scene, camera);
+}
 
-        // Update board state
-        myBoardState = data.boardState;
-        document.getElementById('actionsUsed').textContent = myBoardState.actionsToday;
-        document.getElementById('actionsMax').textContent = myBoardState.maxActions;
+// ============ INIT ============
+async function init() {
+  addLog('正在连接 EchoWorld...');
+  await fetchCatalog();
+  const meData = await fetchMe();
+  await fetchMap();
 
-        // Log
-        if (data.roll > 0) {
-          addLog(`掷出 ${data.roll}，移动到 [${data.tile.name}]`);
-        } else {
-          addLog(`困境中，无法移动`);
-        }
+  if (meData) {
+    const node = allNodes.find(n => n.id === myState?.nodeId);
+    if (node) focusCamera(node.x, node.y, false);
+    addLog(`欢迎回来，${currentUser?.username || '玩家'}！`, 'good');
+  }
 
-        if (data.passedGo) {
-          showEffect('+200 CC 经过起点', 'var(--green)');
-          addLog('经过起点，收取 200 CC');
-        }
+  // Auto refresh
+  setInterval(async () => {
+    await fetchMe();
+    await fetchMap();
+  }, 10000);
+}
 
-        // Tile effect
-        if (data.tileEffect && data.tileEffect.message) {
-          addLog(data.tileEffect.message);
-          if (data.tileEffect.type === 'tax') {
-            showEffect(data.tileEffect.message, 'var(--red)');
-          } else if (data.tileEffect.type === 'trouble') {
-            showEffect('陷入困境!', 'var(--red)');
-          } else if (data.tileEffect.amount > 0) {
-            showEffect(data.tileEffect.message, 'var(--green)');
-          }
-        }
+animate();
+init();
 
-        // Refresh
-        await loadAll();
-
-        // Show tile info for new position
-        if (data.tile) showTileInfo(data.tile);
-
-      } catch (e) {
-        clearInterval(animInterval);
-        dice.classList.remove('rolling');
-        showToast(e.message, 'error');
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    // ============ BOARD ACTIONS ============
-    async function boardAction(action, amount) {
-      try {
-        const res = await fetch(API + '/api/board/action', {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ action, amount })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        showToast(data.message || '操作成功');
-        addLog(data.message || action);
-        showEffect(data.message || '操作成功', 'var(--green)');
-        await loadAll();
-      } catch (e) {
-        showToast(e.message, 'error');
-      }
-    }
-
-    // ============ MODALS ============
-    function openTradeModal(action, resource) {
-      const name = RESOURCE_NAMES[resource] || resource;
-      document.getElementById('modalTitle').textContent = `${action === 'buy' ? '买入' : '卖出'} ${name}`;
-      document.getElementById('modalBody').innerHTML = `
-        <div class="input-group">
-          <label>数量</label>
-          <input type="number" id="modalAmount" value="1" min="1">
-        </div>
-        <div style="font-size:11px;color:var(--text2)">市场价: ${(marketPrices[resource] || 0).toFixed(2)} CC</div>
-      `;
-      modalAction = () => boardAction(action, document.getElementById('modalAmount').value);
-      document.getElementById('actionModal').classList.add('open');
-    }
-    function openBankModal(type) {
-      document.getElementById('modalTitle').textContent = type === 'loan' ? '申请贷款' : '银行存款';
-      document.getElementById('modalBody').innerHTML = `
-        <div class="input-group">
-          <label>金额</label>
-          <input type="number" id="modalAmount" value="500" min="1">
-        </div>
-      `;
-      modalAction = () => boardAction(type, document.getElementById('modalAmount').value);
-      document.getElementById('actionModal').classList.add('open');
-    }
-    function closeModal() { document.getElementById('actionModal').classList.remove('open'); modalAction = null; }
-    function confirmModalAction() { if (modalAction) modalAction(); closeModal(); }
-
-    // ============ DATA LOADING ============
-    async function loadBoard() {
-      try {
-        const res = await fetch(API + '/api/board');
-        const data = await res.json();
-        boardTiles = data.tiles;
-        boardPlayers = data.players;
-        buildBoard(boardTiles, boardPlayers);
-      } catch (e) { console.error('Board load error:', e); }
-    }
-
-    async function loadMyBoardState() {
-      try {
-        const res = await fetch(API + '/api/board/me', { headers: authHeaders() });
-        if (res.ok) {
-          myBoardState = await res.json();
-          document.getElementById('actionsUsed').textContent = myBoardState.actionsToday;
-          document.getElementById('actionsMax').textContent = myBoardState.maxActions;
-        }
-      } catch (e) { console.error(e); }
-    }
-
-    async function loadMyStatus() {
-      try {
-        const res = await fetch(API + '/api/game/me', { headers: authHeaders() });
-        if (!res.ok) return;
-        const data = await res.json();
-        myEntity = data.entity;
-        myBuildings = data.buildings;
-
-        document.getElementById('myMoney').textContent = (myEntity.currency ?? myEntity.money ?? 0).toFixed(0) + ' CC';
-        document.getElementById('myBuildings').textContent = myBuildings.length;
-        document.getElementById('bldCount').textContent = myBuildings.length;
-        document.getElementById('mySurvival').textContent = (myEntity.survivalDays || 0) + '天';
-
-        // Resources
-        const inv = myEntity.inventory || myEntity.resources || {};
-        const rc = document.getElementById('myResources');
-        const keys = Object.keys(inv);
-        rc.innerHTML = keys.length === 0 ? '<span style="font-size:11px;color:var(--text2)">暂无</span>' :
-          keys.map(k => `<div class="res-item"><span class="rname">${RESOURCE_ICONS[k]||''} ${RESOURCE_NAMES[k]||k}</span><span class="rval">${inv[k]}</span></div>`).join('');
-
-        // Needs
-        updateNeeds(inv);
-
-        // Buildings
-        const bc = document.getElementById('myBuildingList');
-        bc.innerHTML = myBuildings.length === 0 ? '<div style="color:var(--text2);font-size:11px;">暂无建筑</div>' :
-          myBuildings.map(b => `
-            <div class="bld-item">
-              <span class="bname">${b.type || '?'} ${b.name ? '- '+b.name : ''}</span>
-              <span class="blevel">Lv.${b.level || 1}</span>
-            </div>
-          `).join('');
-      } catch (e) { console.error(e); }
-    }
-
-    function updateNeeds(inv) {
-      // Food need: 3/day, Energy: 2/day, Goods: 1/day
-      const foodPct = Math.min(100, ((inv.food || 0) / 3) * 100);
-      const energyPct = Math.min(100, ((inv.energy || 0) / 2) * 100);
-      const goodsPct = Math.min(100, ((inv.goods || 0) / 1) * 100);
-      setNeedBar('needFood', foodPct);
-      setNeedBar('needEnergy', energyPct);
-      setNeedBar('needGoods', goodsPct);
-    }
-    function setNeedBar(id, pct) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.style.width = pct + '%';
-      el.className = 'need-bar-fill ' + (pct >= 60 ? 'high' : pct >= 30 ? 'mid' : 'low');
-    }
-
-    async function loadMarket() {
-      try {
-        const res = await fetch(API + '/api/market/prices');
-        const data = await res.json();
-        // Normalize prices
-        for (const [k, v] of Object.entries(data)) {
-          marketPrices[k] = typeof v === 'number' ? v : (v.price || 0);
-        }
-      } catch (e) {}
-    }
-
-    async function loadLeaderboard() {
-      try {
-        const res = await fetch(API + '/api/entities/leaderboard?limit=10');
-        const data = await res.json();
-        const lc = document.getElementById('leaderboard');
-        lc.innerHTML = data.map((e, i) => `
-          <div class="lb-row ${e.id === currentUser?.entityId ? 'me' : ''}">
-            <div class="lb-rank ${i===0?'t1':i===1?'t2':i===2?'t3':'tn'}">${i+1}</div>
-            <span class="lb-name">${e.name}${e.id === currentUser?.entityId ? ' (我)' : ''}</span>
-            <span class="lb-money">${(e.currency ?? e.money ?? e.netWorth ?? 0).toFixed(0)} CC</span>
-          </div>
-        `).join('') || '<div style="color:var(--text2);font-size:11px;">暂无</div>';
-
-        const myIdx = data.findIndex(e => e.id === currentUser?.entityId);
-        document.getElementById('myRank').textContent = myIdx >= 0 ? `#${myIdx+1}` : '-';
-      } catch (e) {}
-    }
-
-    async function loadWorldTime() {
-      try {
-        const res = await fetch(API + '/api/world/time');
-        const data = await res.json();
-        const el = document.getElementById('centerDay');
-        if (el) el.textContent = `${data.time.day}, ${data.time.hour}:00`;
-      } catch (e) {}
-    }
-
-    // ============ MAIN LOOP ============
-    async function loadAll() {
-      await Promise.all([loadMyBoardState(), loadMyStatus(), loadMarket()]);
-      await loadBoard();  // rebuild board after we know positions
-      loadLeaderboard();
-      loadWorldTime();
-    }
-
-    loadAll();
-    setInterval(loadAll, 8000);
-  </script>
+</script>
 </body>
 </html>

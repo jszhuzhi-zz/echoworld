@@ -4,7 +4,7 @@ import { World } from '../core/World';
 import { BuildingType, ResourceType } from '../core/types';
 import { userStore } from '../auth/UserStore';
 import { authMiddleware, requireRole, optionalAuth } from '../auth/middleware';
-import { BoardState, BOARD_TILES } from '../board/BoardState';
+import { InfiniteWorld, MASLOW_BUILDINGS } from '../board/InfiniteWorld';
 
 /**
  * API服务器 - 三角色系统: 超级管理员 / 投资用户 / 观察家
@@ -13,12 +13,12 @@ export function createServer(world: World, port = 3000): express.Application {
   const app = express();
   app.use(express.json());
 
-  // 棋盘状态
-  const boardState = new BoardState();
+  // 无限世界地图
+  const infiniteWorld = new InfiniteWorld();
 
-  // 初始化所有已有实体的棋盘位置
+  // 初始化所有已有实体
   for (const entity of world.entities.getAllEntities()) {
-    boardState.initPlayer(entity.id);
+    infiniteWorld.initPlayer(entity.id);
   }
 
   // 确保预置投资者账号有对应的游戏实体
@@ -26,7 +26,7 @@ export function createServer(world: World, port = 3000): express.Application {
   if (testUser && testUser.role === 'investor' && !testUser.entityId) {
     const testEntity = world.createPlayer('testplayer');
     userStore.updateUser(testUser.id, { entityId: testEntity.id });
-    boardState.initPlayer(testEntity.id);
+    infiniteWorld.initPlayer(testEntity.id);
   }
 
   // CORS
@@ -67,7 +67,7 @@ export function createServer(world: World, port = 3000): express.Application {
         const entity = world.createPlayer(username);
         entityId = entity.id;
         userStore.updateUser(user.id, { entityId });
-        boardState.initPlayer(entity.id);
+        infiniteWorld.initPlayer(entity.id);
       }
       res.status(201).json({
         token,
@@ -166,7 +166,7 @@ export function createServer(world: World, port = 3000): express.Application {
     const { name, personality, useLLM } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
     const entity = world.createAgent(name, personality, useLLM);
-    boardState.initPlayer(entity.id);
+    infiniteWorld.initPlayer(entity.id);
     res.status(201).json(entity.getSummary());
   });
 
@@ -352,140 +352,193 @@ export function createServer(world: World, port = 3000): express.Application {
     res.json({ entity: entity.getSummary(), buildings });
   });
 
-  // ==================== 棋盘 API ====================
+  // ==================== 无限世界 API ====================
 
-  /** 棋盘全局状态 (公开) */
-  app.get('/api/board', (_req, res) => {
-    const snapshot = boardState.getSnapshot();
-    // Enrich players with entity names
-    const enriched = snapshot.players.map(p => {
-      const entity = world.entities.getEntity(p.entityId);
-      return { ...p, name: entity?.name || 'Unknown', money: entity?.getSummary().currency ?? 0 };
-    });
-    res.json({ tiles: snapshot.tiles, players: enriched, dailyActionsLimit: snapshot.dailyActionsLimit });
+  /** 马斯洛建筑目录 */
+  app.get('/api/world/buildings-catalog', (_req, res) => {
+    res.json(MASLOW_BUILDINGS);
   });
 
-  /** 我的棋盘状态 */
-  app.get('/api/board/me', authMiddleware, requireRole('investor'), (req, res) => {
+  /** 地图可见区域 */
+  app.get('/api/world/map', (req, res) => {
+    const cx = parseInt(req.query.cx as string) || 0;
+    const cy = parseInt(req.query.cy as string) || 0;
+    const r  = Math.min(parseInt(req.query.r as string) || 20, 30);
+    const nodes = infiniteWorld.getVisibleNodes(cx, cy, r);
+    const players = infiniteWorld.getAllPlayerStates().map(p => {
+      const entity = world.entities.getEntity(p.entityId);
+      return { ...p, name: entity?.name || '???', money: entity?.getSummary().currency ?? 0 };
+    });
+    res.json({ nodes, players });
+  });
+
+  /** 我的世界状态 */
+  app.get('/api/world/me', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);
     if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
-    const state = boardState.getOrInit(user.entityId);
-    const tile = BOARD_TILES[state.position];
-    res.json({ ...state, currentTile: tile });
+    const state = infiniteWorld.getPlayer(user.entityId) || infiniteWorld.initPlayer(user.entityId);
+    const node = infiniteWorld.nodes.get(state.nodeId);
+    const entity = world.entities.getEntity(user.entityId);
+    const nearbyLots = infiniteWorld.getNearbyLots(node?.x ?? 0, node?.y ?? 0, 4);
+    res.json({ state, node, entity: entity?.getSummary(), nearbyLots });
   });
 
-  /** 掷骰子移动 */
-  app.post('/api/board/roll', authMiddleware, requireRole('investor'), (req, res) => {
+  /** 掷骰子 (返回方向选项) */
+  app.post('/api/world/roll', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const result = infiniteWorld.rollDice(user.entityId);
+    if (!result) return res.status(400).json({ error: '行动次数已用完或角色已死亡' });
+    res.json(result);
+  });
+
+  /** 选择方向移动 */
+  app.post('/api/world/move', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);
     if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
     const entity = world.entities.getEntity(user.entityId);
     if (!entity) return res.status(404).json({ error: '角色不存在' });
 
-    const result = boardState.rollAndMove(user.entityId);
-    if (!result) return res.status(400).json({ error: '今日行动次数已用完' });
+    const { directionNodeId } = req.body;
+    const moveResult = infiniteWorld.moveToDirection(user.entityId, directionNodeId);
+    if (!moveResult) return res.status(400).json({ error: '无法移动，请先掷骰子' });
 
-    // Passed GO: collect daily income
-    if (result.passedGo) {
-      const income = 200;
-      entity.receive(income);
-    }
-
-    // Handle tile effects
-    let tileEffect: Record<string, unknown> = {};
-    const tile = result.tile;
-
-    if (tile.type === 'tax') {
-      const tax = Math.floor(entity.getSummary().currency * 0.05);
-      entity.pay(tax);
-      tileEffect = { type: 'tax', amount: tax, message: `缴税 ${tax} CC` };
-    } else if (tile.type === 'event' && tile.name === '福利') {
-      entity.receive(100);
-      tileEffect = { type: 'welfare', amount: 100, message: '领取福利 100 CC' };
-    } else if (tile.type === 'event' && tile.name === '机遇') {
-      const bonus = Math.floor(Math.random() * 300) + 50;
-      entity.receive(bonus);
-      tileEffect = { type: 'chance', amount: bonus, message: `机遇奖励 ${bonus} CC` };
-    } else if (tile.type === 'event' && tile.name === '投资') {
-      const gain = Math.floor(Math.random() * 400) - 100;
-      if (gain >= 0) { entity.receive(gain); } else { entity.pay(Math.abs(gain)); }
-      tileEffect = { type: 'investment', amount: gain, message: gain >= 0 ? `投资收益 ${gain} CC` : `投资亏损 ${Math.abs(gain)} CC` };
-    } else if (tile.id === 7) {
-      // Rest stop - bonus
-      tileEffect = { type: 'rest', message: '在休息站恢复体力' };
-    } else if (tile.id === 14) {
-      const fortune = Math.floor(Math.random() * 500) + 100;
-      entity.receive(fortune);
-      tileEffect = { type: 'fortune', amount: fortune, message: `机遇奖金 ${fortune} CC` };
-    } else if (tile.id === 21) {
-      tileEffect = { type: 'trouble', message: '陷入困境！跳过下一回合' };
+    // 处理格子效果
+    const messages: string[] = [];
+    for (const evt of moveResult.events) {
+      if (evt === 'TAX') {
+        const tax = Math.floor(entity.getSummary().currency * 0.05);
+        entity.pay(tax);
+        messages.push(`缴税 ${tax} CC`);
+      } else if (evt === 'WELFARE') {
+        entity.receive(100);
+        messages.push('领取福利 100 CC');
+      } else if (evt === 'RANDOM_EVENT') {
+        const r = Math.random();
+        if (r < 0.5) {
+          const bonus = Math.floor(Math.random() * 300) + 50;
+          entity.receive(bonus);
+          messages.push(`幸运事件！获得 ${bonus} CC`);
+        } else {
+          const loss = Math.floor(Math.random() * 150) + 20;
+          entity.pay(loss);
+          messages.push(`意外损失 ${loss} CC`);
+        }
+      } else if (evt === 'BUILDING') {
+        const b = moveResult.finalNode.building!;
+        const tpl = MASLOW_BUILDINGS.find(t => t.type === b.templateType);
+        messages.push(`发现 ${b.ownerName} 的 ${b.name} (${tpl?.icon || ''} Lv.${b.level})，可选择消费`);
+      } else if (evt === 'DEATH') {
+        entity.pay(Math.floor(entity.getSummary().currency * 0.5));
+        messages.push('生命值耗尽！损失50%资产，即将重生...');
+      } else if (evt === 'HUNGER_WARNING') {
+        messages.push('⚠️ 饥饿值过低！请尽快进食');
+      } else if (evt === 'ENERGY_WARNING') {
+        messages.push('⚠️ 体力不支！请尽快休息');
+      }
     }
 
     res.json({
-      roll: result.roll,
-      newPosition: result.newPosition,
-      tile: result.tile,
-      passedGo: result.passedGo,
-      tileEffect,
+      path: moveResult.path,
+      finalNode: moveResult.finalNode,
+      stats: moveResult.stats,
+      messages,
       entity: entity.getSummary(),
-      boardState: boardState.getOrInit(user.entityId),
+      state: infiniteWorld.getPlayer(user.entityId),
     });
   });
 
-  /** 在当前格子执行操作 (购买建筑/交易等) */
-  app.post('/api/board/action', authMiddleware, requireRole('investor'), (req, res) => {
+  /** 使用当前位置的建筑 (花钱吃饭/住店等) */
+  app.post('/api/world/use-building', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);
     if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
     const entity = world.entities.getEntity(user.entityId);
     if (!entity) return res.status(404).json({ error: '角色不存在' });
 
-    const state = boardState.getOrInit(user.entityId);
-    const tile = BOARD_TILES[state.position];
-    const { action, amount } = req.body;
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (!state) return res.status(400).json({ error: '玩家状态不存在' });
 
-    let result: Record<string, unknown> = {};
+    const result = infiniteWorld.useBuilding(user.entityId, state.nodeId);
+    if (!result) return res.status(400).json({ error: '无法使用该设施（可能是自己的建筑或此处无建筑）' });
 
-    if (tile.type === 'property' && action === 'build' && tile.buildingType) {
-      const building = world.buildings.build(user.entityId, tile.buildingType, {
-        x: Math.floor(Math.random() * 50), y: Math.floor(Math.random() * 50)
-      });
-      if (!building) return res.status(400).json({ error: '建造失败: 资金不足' });
-      result = { type: 'build', building: building.getSummary(), message: `建造了 ${tile.name}` };
-    } else if (tile.type === 'market' && tile.resourceType) {
-      const qty = parseInt(amount) || 1;
-      if (action === 'buy') {
-        const tx = world.market.buyAtMarketPrice(user.entityId, tile.resourceType, qty);
-        if (!tx) return res.status(400).json({ error: '购买失败' });
-        result = { type: 'buy', transaction: tx, message: `购买了 ${qty} ${tile.resourceType}` };
-      } else if (action === 'sell') {
-        const tx = world.market.sellAtMarketPrice(user.entityId, tile.resourceType, qty);
-        if (!tx) return res.status(400).json({ error: '出售失败' });
-        result = { type: 'sell', transaction: tx, message: `出售了 ${qty} ${tile.resourceType}` };
-      } else {
-        return res.status(400).json({ error: '无效操作' });
+    // 扣费并转给业主
+    if (result.fee > 0) {
+      if (!entity.pay(result.fee)) {
+        return res.status(400).json({ error: `资金不足，需要 ${result.fee} CC` });
       }
-    } else if (tile.type === 'bank') {
-      const amt = parseFloat(amount) || 0;
-      if (action === 'loan') {
-        const loan = world.bank.requestLoan(entity, amt);
-        if (!loan) return res.status(400).json({ error: '贷款被拒绝' });
-        result = { type: 'loan', loan, message: `贷款 ${amt} CC` };
-      } else if (action === 'deposit') {
-        const dep = world.bank.makeDeposit(entity, amt);
-        if (!dep) return res.status(400).json({ error: '存款失败' });
-        result = { type: 'deposit', deposit: dep, message: `存入 ${amt} CC` };
-      } else {
-        return res.status(400).json({ error: '无效操作' });
-      }
-    } else {
-      return res.status(400).json({ error: '当前格子无可用操作' });
+      const owner = world.entities.getEntity(result.building.ownerId);
+      if (owner) owner.receive(result.fee);
     }
 
-    res.json({ ...result, entity: entity.getSummary() });
+    const messages = [`使用了 ${result.building.name}，花费 ${result.fee} CC`];
+    for (const [stat, val] of Object.entries(result.effects)) {
+      const names: Record<string, string> = { hunger: '饱食度', energy: '体力', happiness: '幸福感' };
+      messages.push(`${names[stat] || stat} +${val}`);
+    }
+    if (result.upgraded) {
+      messages.push(`🎉 ${result.building.name} 升级到 Lv.${result.building.level}！`);
+    }
+
+    res.json({
+      messages,
+      fee: result.fee,
+      effects: result.effects,
+      upgraded: result.upgraded,
+      building: result.building,
+      stats: {
+        hunger: state.hunger,
+        energy: state.energy,
+        happiness: state.happiness,
+        alive: state.alive,
+      },
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 在地块上建造 */
+  app.post('/api/world/build', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: '角色不存在' });
+
+    const { nodeId, templateType, customName } = req.body;
+    const template = MASLOW_BUILDINGS.find(b => b.type === templateType);
+    if (!template) return res.status(400).json({ error: '无效建筑类型' });
+
+    // 检查资金
+    if (entity.getSummary().currency < template.cost) {
+      return res.status(400).json({ error: `资金不足，需要 ${template.cost} CC` });
+    }
+
+    const result = infiniteWorld.buildOnNode(
+      user.entityId, nodeId, templateType, entity.name, customName
+    );
+    if (!result) return res.status(400).json({ error: '该位置无法建造（非空地块或已有建筑）' });
+
+    entity.pay(template.cost);
+
+    res.json({
+      message: `建造了 ${result.building.name}，花费 ${template.cost} CC`,
+      building: result.building,
+      template: result.template,
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 重生 */
+  app.post('/api/world/respawn', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const state = infiniteWorld.respawn(user.entityId);
+    if (!state) return res.status(400).json({ error: '重生失败' });
+    const entity = world.entities.getEntity(user.entityId);
+    res.json({ state, entity: entity?.getSummary(), message: '已在起点重生' });
   });
 
   /** 管理员: 重置每日行动 */
   app.post('/api/admin/board/reset', authMiddleware, requireRole('admin'), (_req, res) => {
-    boardState.resetDailyActions();
+    infiniteWorld.resetDailyActions();
     res.json({ status: 'ok', message: '所有玩家每日行动已重置' });
   });
 
@@ -493,8 +546,8 @@ export function createServer(world: World, port = 3000): express.Application {
   app.post('/api/admin/board/actions-limit', authMiddleware, requireRole('admin'), (req, res) => {
     const { limit } = req.body;
     if (!limit || limit < 1) return res.status(400).json({ error: '无效上限' });
-    boardState.setDailyActionsLimit(limit);
-    res.json({ status: 'ok', dailyActionsLimit: limit });
+    infiniteWorld.setMaxActions(limit);
+    res.json({ status: 'ok', maxActions: limit });
   });
 
   // ==================== 兼容旧接口 ====================
