@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { World } from '../core/World';
-import { BuildingType, ResourceType } from '../core/types';
+import { BuildingType, ResourceType, EntityType } from '../core/types';
 import { userStore } from '../auth/UserStore';
 import { authMiddleware, requireRole, optionalAuth } from '../auth/middleware';
 import { InfiniteWorld, MASLOW_BUILDINGS } from '../board/InfiniteWorld';
@@ -16,9 +16,13 @@ export function createServer(world: World, port = 3000): express.Application {
   // 无限世界地图
   const infiniteWorld = new InfiniteWorld();
 
-  // 初始化所有已有实体
-  for (const entity of world.entities.getAllEntities()) {
-    infiniteWorld.initPlayer(entity.id);
+  // 恢复所有用户的游戏实体 (服务器重启后重建)
+  for (const user of userStore.getAllUsers()) {
+    if (user.role === 'investor' && user.entityId) {
+      // 在 world.entities 中恢复实体 (使用原始ID)
+      world.entities.restoreEntity(user.entityId, EntityType.HUMAN_PLAYER, user.username);
+      infiniteWorld.initPlayer(user.entityId);
+    }
   }
 
   // 确保预置投资者账号有对应的游戏实体

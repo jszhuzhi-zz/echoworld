@@ -100,6 +100,27 @@ export class EntityManager {
     return entity;
   }
 
+  /** 恢复已有实体 (服务器重启后重建，使用原始ID) */
+  restoreEntity(
+    id: string,
+    type: EntityType,
+    name: string,
+  ): Entity {
+    if (this.entities.has(id)) return this.entities.get(id)!;
+    const pos = this.randomPosition();
+    const entity = new Entity(
+      type,
+      name,
+      this.worldState.config.startingCurrency,
+      pos,
+      this.worldState.getTime(),
+    );
+    // 覆盖自动生成的ID
+    (entity as any).id = id;
+    this.entities.set(id, entity);
+    return entity;
+  }
+
   /** 移除实体 */
   removeEntity(entityId: string): boolean {
     const entity = this.entities.get(entityId);

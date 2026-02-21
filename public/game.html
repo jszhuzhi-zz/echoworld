@@ -158,7 +158,7 @@
   <div class="top-right">
     <div class="money-badge" id="money-badge">0 CC</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
-    <button class="btn-sm btn-nav" onclick="location.href='/login'" id="btn-logout">退出</button>
+    <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout">退出</button>
   </div>
 </div>
 
