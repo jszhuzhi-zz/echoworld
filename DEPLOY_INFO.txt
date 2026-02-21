@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 02:43:24 UTC
-Commit: 6d164c286ccb12d460cab2709172db3920018b2f
+部署时间: 2026-02-21 02:46:53 UTC
+Commit: a1665fa6051b2b466f26bc41651c105506ac6d95
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -10,15 +10,15 @@ Commit: 6d164c286ccb12d460cab2709172db3920018b2f
   套餐: 体验版
 
 [1/5] 配置匿名登录...
-  CreateLoginConfig 成功: {"RequestId":"b1e94ce9-6b98-4fd0-84f7-994c39e529b1"}
-  CreateLoginConfig 成功: {"RequestId":"e6eed294-eff0-4788-940a-19e67f7c3e32"}
+  CreateLoginConfig 成功: {"RequestId":"93687f27-145d-4373-b1e1-46615d1ca209"}
+  CreateLoginConfig 成功: {"RequestId":"dbb95673-6807-485a-8b30-ebac2b492be7"}
   ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The request is missing the required parameter `ServiceId`.
   登录配置: {
   "ConfigList": [],
-  "RequestId": "0a80269d-c20f-411b-9f00-a508ed57858d"
+  "RequestId": "040b67de-23bd-4423-9ebd-39313bad755c"
 }
   安全规则: {
-  "RequestId": "e2036e9a-6e78-46d5-996d-98a2589532f1",
+  "RequestId": "e1f81850-739b-44db-98e9-85b14575e8c0",
   "SmsFreeQuotaList": [
     {
       "FreeQuota": 0,
@@ -62,10 +62,11 @@ found 0 vulnerabilities
   尝试关闭静态托管登录鉴权...
   ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The parameter `EnvId` is not recognized.
   上传 index.html 到 COS 存储...
-  COS 上传 (filePath): The "paths[0]" argument must be of type string. Received undefined
-  COS 上传 (fileContent): The "paths[0]" argument must be of type string. Received undefined
-  COS 临时链接 (30天): undefined
-  storage methods: uploadFile, uploadFiles, uploadFileCustom, uploadDirectory, uploadDirectoryCustom, uploadFilesCustom, createCloudDirectroy, createCloudDirectroyCustom, downloadFile, downloadDirectory, listDirectoryFiles, getTemporaryUrl, deleteFile, deleteFileCustom, getFileInfo, deleteDirectory, deleteDirectoryCustom, getStorageAcl, setStorageAcl, walkCloudDir, walkCloudDirCustom, walkLocalDir, getUploadMetadata, getWebsiteConfig, putBucketWebsite, getBucket, getCos, getCloudKey, cloudPathToFileId, getStorageConfig, uploadFilesWithRetry, downloadWithFilePath, determineDownLoadResultIsError
+  COS 上传 (localPath): Access Denied.
+  尝试 uploadDirectory...
+  uploadDirectory: Access Denied.
+  文件ID: cloud://georgezhu-0gnrnw9ae9fca59a.6765-georgezhu-0gnrnw9ae9fca59a-1398720149/echoworld/index.html
+  列出COS文件: Access Denied.
   检查静态托管状态...
   静态托管: {
   "Data": [
@@ -81,7 +82,7 @@ found 0 vulnerabilities
       "Region": "ap-shanghai"
     }
   ],
-  "RequestId": "bb0e8d7e-3772-4101-8869-b9a836106793"
+  "RequestId": "2027c64a-7f19-4e4b-bf6f-25b678ba1955"
 }
 
 [5/5] 配置 HTTP 访问...
@@ -4935,7 +4936,7 @@ found 0 vulnerabilities
   },
   {
     "Key": "index.html",
-    "LastModified": "2026-02-21T02:42:53.000Z",
+    "LastModified": "2026-02-21T02:46:19.000Z",
     "ETag": "\"99d8a3992bf1533c1fb4beaab4411a25\"",
     "Size": "24740",
     "Owner": {
