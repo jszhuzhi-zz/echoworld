@@ -568,20 +568,6 @@ function levelGlow(level) {
   return 0.08 + level * 0.12; // Lv1=0.2, Lv2=0.32, Lv3=0.44, Lv4=0.56, Lv5=0.68
 }
 
-/** 计算lot在3D中的渲染位置 (从intersection对角推出，避免重叠)
- * lot原始坐标在 intersection±1，但tile尺寸会导致重叠，
- * 所以沿对角方向额外推出1.0单位 */
-function lotRenderPos(x, y) {
-  const SPACING = 14;
-  const nearIntX = Math.round(x / SPACING) * SPACING;
-  const nearIntY = Math.round(y / SPACING) * SPACING;
-  const dx = x - nearIntX;
-  const dy = y - nearIntY;
-  const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  // 额外推出1.0单位，使lot中心离intersection中心约2.4单位（不重叠）
-  return { rx: x + (dx / len) * 1.0, rz: y + (dy / len) * 1.0 };
-}
-
 /** 创建建筑3D模型 */
 function createBuilding3D(node, tpl) {
   const bldg = node.building;
@@ -592,8 +578,7 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  const { rx, rz } = lotRenderPos(node.x, node.y);
-  group.position.set(rx, 0, rz);
+  group.position.set(node.x, 0, node.y);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -908,22 +893,20 @@ function renderMap(nodes) {
       const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
-      // 建筑底座着色地块 (Maslow等级颜色)
+      // 建筑底座着色地块 (Maslow等级颜色，直接放在坐标位置)
       const ml = tpl?.maslowLevel || 1;
       const lotColor = MASLOW_COLORS[ml] || 0x888888;
-      const lotGeo = new THREE.BoxGeometry(1.4, 0.04, 1.4);
-      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.25, emissive: lotColor, emissiveIntensity: 0.15 });
+      const lotGeo = new THREE.BoxGeometry(1.4, 0.06, 1.4);
+      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.45, emissive: lotColor, emissiveIntensity: 0.25 });
       const lotBase = new THREE.Mesh(lotGeo, lotMat);
-      const { rx: bx, rz: bz } = lotRenderPos(node.x, node.y);
-      lotBase.position.set(bx, 0.02, bz);
+      lotBase.position.set(node.x, 0.03, node.y);
       mapMeshGroup.add(lotBase);
     } else if (node.type === 'lot') {
-      // Empty lot: flat outline, 沿对角推出避免与intersection重叠
+      // Empty lot: flat tile at exact coordinate position
       const geo = new THREE.BoxGeometry(1.2, 0.05, 1.2);
-      const mat = new THREE.MeshStandardMaterial({ color: 0x374151, transparent: true, opacity: 0.3 });
+      const mat = new THREE.MeshStandardMaterial({ color: 0x374151, transparent: true, opacity: 0.35 });
       mesh = new THREE.Mesh(geo, mat);
-      const { rx, rz } = lotRenderPos(node.x, node.y);
-      mesh.position.set(rx, 0.03, rz);
+      mesh.position.set(node.x, 0.03, node.y);
       mesh.userData = { nodeId: node.id, type: 'lot', node };
       clickableMeshes.push(mesh);
     } else {
