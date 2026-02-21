@@ -473,6 +473,82 @@
     </div>
   </div>
 
+  <!-- CloudBase SDK for serverless function calls -->
+  <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js"></script>
+  <script>
+    // CloudBase SDK - proxy API calls through cloud function
+    (function() {
+      const ENV_ID = 'georgezhu-0gnrnw9ae9fca59a';
+      const FUNC_NAME = 'echoworld';
+      let tcbApp = null;
+      let authReady = false;
+
+      try {
+        tcbApp = cloudbase.init({ env: ENV_ID });
+      } catch(e) {
+        console.warn('[CloudBase] SDK init failed, falling back to direct API:', e);
+      }
+
+      async function ensureAuth() {
+        if (authReady || !tcbApp) return;
+        try {
+          const auth = tcbApp.auth({ persistence: 'local' });
+          await auth.anonymousAuthProvider().signIn();
+          authReady = true;
+        } catch(e) {
+          console.warn('[CloudBase] Auth failed:', e);
+          tcbApp = null; // Fallback to direct fetch
+        }
+      }
+
+      const originalFetch = window.fetch;
+      window.fetch = async function(url, options) {
+        if (!tcbApp || typeof url !== 'string' || !url.startsWith('/api/')) {
+          return originalFetch.apply(this, arguments);
+        }
+
+        await ensureAuth();
+        if (!authReady) return originalFetch.apply(this, arguments);
+
+        try {
+          const [pathPart, queryString] = url.split('?');
+          const queryParams = {};
+          if (queryString) {
+            queryString.split('&').forEach(function(p) {
+              const idx = p.indexOf('=');
+              if (idx >= 0) {
+                queryParams[decodeURIComponent(p.slice(0, idx))] = decodeURIComponent(p.slice(idx + 1));
+              }
+            });
+          }
+
+          const result = await tcbApp.callFunction({
+            name: FUNC_NAME,
+            data: {
+              httpMethod: (options && options.method) || 'GET',
+              path: pathPart,
+              queryStringParameters: queryParams,
+              headers: { 'content-type': 'application/json' },
+              body: (options && options.body) || '',
+            }
+          });
+
+          const fnResult = result.result;
+          return {
+            ok: fnResult.statusCode >= 200 && fnResult.statusCode < 300,
+            status: fnResult.statusCode,
+            statusText: 'OK',
+            json: async function() { return JSON.parse(fnResult.body); },
+            text: async function() { return fnResult.body; },
+          };
+        } catch(e) {
+          console.warn('[CloudBase] callFunction failed, trying direct:', e);
+          return originalFetch.apply(window, [url, options]);
+        }
+      };
+    })();
+  </script>
+
   <script>
     const REFRESH_INTERVAL = 2000;
     let refreshTimer = null;
