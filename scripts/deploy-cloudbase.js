@@ -205,22 +205,22 @@ async function deploy() {
     console.log('  hosting.listFiles:', err.message);
   }
 
-  // 3k. 尝试通过 TCB API 检查和修改静态托管鉴权
-  const hostingApis = [
-    // 查看静态托管信息
-    { Action: 'DescribeStaticStore', Param: { EnvId: ENV_ID } },
-    // 尝试关闭安全域名检查
-    { Action: 'ModifyEnv', Param: { EnvId: ENV_ID, Conf: [
-      { Key: 'STATIC_STORE_AUTH', Value: 'false' },
-    ]}},
-    // 尝试关闭鉴权
-    { Action: 'TurnOffStaticStore', Param: { EnvId: ENV_ID } },
-    // 重新开启 (可能重新开启后就不需要鉴权了)
-    { Action: 'TurnOnStaticStore', Param: { EnvId: ENV_ID } },
-    // 检查登录配置
-    { Action: 'DescribeLoginConfigs', Param: { EnvId: ENV_ID } },
+  // 4. 尝试修复 InsufficientBalance
+  console.log('\n[4/5] 修复函数余额问题...');
+
+  // 尝试激活环境 (EnvActivated: "no" 可能是问题)
+  const fixApis = [
+    { Action: 'ModifyEnv', Param: { EnvId: ENV_ID, Alias: 'echoworld-app' } },
+    { Action: 'ReinstateEnv', Param: { EnvId: ENV_ID } },
+    // 检查函数状态
+    { Action: 'DescribeCloudBaseFunctionVersion', Param: {
+      EnvId: ENV_ID,
+      FunctionName: FUNCTION_NAME,
+    }},
+    // 查看函数详情
+    { Action: 'GetFunctionList', Param: { EnvId: ENV_ID } },
   ];
-  for (const api of hostingApis) {
+  for (const api of fixApis) {
     try {
       const r = await manager.commonService().call(api);
       console.log(`  ${api.Action}:`, JSON.stringify(r, null, 2));
@@ -229,8 +229,16 @@ async function deploy() {
     }
   }
 
-  // 4. 确保匿名登录
-  console.log('\n[4/5] 配置匿名登录...');
+  // 尝试通过 functions 模块获取函数状态
+  try {
+    const fnList = await manager.functions.listFunctions();
+    console.log('  函数列表:', JSON.stringify(fnList, null, 2));
+  } catch (err) {
+    console.log('  函数列表:', err.message);
+  }
+
+  // 5. 配置匿名登录
+  console.log('\n[5/5] 配置匿名登录...');
   try {
     await manager.commonService().call({
       Action: 'CreateLoginConfig',
@@ -241,7 +249,6 @@ async function deploy() {
     console.log('  CreateLoginConfig:', err.message);
   }
 
-  // 也尝试创建非匿名登录方式 (可能需要先有至少一种登录才能访问)
   try {
     await manager.commonService().call({
       Action: 'CreateLoginConfig',
@@ -252,143 +259,35 @@ async function deploy() {
     console.log('  NONLOGIN:', err.message);
   }
 
-  // 添加安全域名
-  try {
-    await manager.commonService().call({
-      Action: 'CreateAuthDomain',
-      Param: {
-        EnvId: ENV_ID,
-        Domains: [
-          'georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com',
-          'localhost',
-        ],
-      },
-    });
-    console.log('  安全域名已添加');
-  } catch (err) {
-    console.log('  CreateAuthDomain:', err.message);
-  }
-
-  // 5. 配置HTTP访问路由 (即使EnableService为false也配好)
-  console.log('\n[5/5] 配置HTTP路由...');
-  try {
-    // 尝试开启 HTTP 服务
-    await manager.commonService().call({
-      Action: 'DescribeCloudBaseGWService',
-      Param: { ServiceId: ENV_ID },
-    });
-  } catch (err) {
-    console.log('  HTTP服务:', err.message);
-  }
-
-  // 配置 HTTP 路由
-  try {
-    await manager.commonService().call({
-      Action: 'EstablishCloudBaseRunServer',
-      Param: {
-        EnvId: ENV_ID,
-        ServiceName: FUNCTION_NAME,
-        IsPublic: true,
-        OpenAccessTypes: ['ANONYMOUS'],
-        PathPrefix: `/${FUNCTION_NAME}`,
-      },
-    });
-    console.log('  HTTP 路由已配置');
-  } catch (err) {
-    console.log('  路由配置:', err.message);
-  }
-
-  // 检查配额和余额
-  console.log('\n========== 配额检查 ==========');
-  const quotaApis = [
-    { Action: 'DescribeQuotaData', Param: { EnvId: ENV_ID } },
-    { Action: 'DescribeEnvFreeQuota', Param: { EnvId: ENV_ID } },
-    { Action: 'DescribeEnvLimit', Param: { EnvId: ENV_ID } },
-    { Action: 'DescribePostpayFreeQuotas', Param: { EnvId: ENV_ID } },
-    { Action: 'DescribePostpayPackageFreeQuotas', Param: { EnvId: ENV_ID } },
-    { Action: 'DescribeBillingInfo', Param: { EnvId: ENV_ID } },
-    { Action: 'DescribeExtraPkgBillingInfo', Param: { EnvId: ENV_ID } },
-    { Action: 'CheckTcbService', Param: {} },
-  ];
-  for (const api of quotaApis) {
-    try {
-      const r = await manager.commonService().call(api);
-      console.log(`  ${api.Action}:`, JSON.stringify(r, null, 2));
-    } catch (err) {
-      console.log(`  ${api.Action}: ${err.message}`);
-    }
-  }
-
   // 测试
   console.log('\n========== 测试 ==========');
 
   // 测试云函数
   try {
     const fnResult = await manager.functions.invokeFunction(FUNCTION_NAME, { test: true });
-    console.log('  函数调用:', JSON.stringify(fnResult).substring(0, 300));
+    const resultStr = JSON.stringify(fnResult).substring(0, 400);
+    console.log('  函数调用:', resultStr);
   } catch (err) {
     console.log('  函数调用:', err.message);
   }
 
-  // 测试静态托管 (TCB CDN 域名)
-  const staticDomain = 'georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com';
-  const staticUrl = `https://${staticDomain}`;
-  console.log(`\n  测试 TCB CDN: ${staticUrl}`);
-  try {
-    const resp = await httpGet(staticUrl);
-    console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
-    if (resp.body.length > 0 && resp.body.length < 500) {
-      console.log(`  body: ${resp.body}`);
-    }
-  } catch (err) {
-    console.log(`  测试失败: ${err.message}`);
-  }
-
-  // 测试 COS Website 直接访问 (绕过 TCB CDN)
+  // 测试 COS Website 直接访问 (绕过 TCB CDN - 已验证可用)
   const cosBucket = '39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149';
   const cosWebsiteUrl = `https://${cosBucket}.cos-website.ap-shanghai.myqcloud.com`;
   console.log(`\n  测试 COS Website: ${cosWebsiteUrl}`);
   try {
     const resp = await httpGet(cosWebsiteUrl);
     console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
-    if (resp.body.length > 0 && resp.body.length < 1000) {
-      console.log(`  body: ${resp.body.substring(0, 500)}`);
-    }
-  } catch (err) {
-    console.log(`  测试失败: ${err.message}`);
-  }
-
-  console.log(`\n  测试 COS Website /index.html: ${cosWebsiteUrl}/index.html`);
-  try {
-    const resp = await httpGet(`${cosWebsiteUrl}/index.html`);
-    console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
-    if (resp.body.length > 0 && resp.body.length < 1000) {
-      console.log(`  body: ${resp.body.substring(0, 500)}`);
-    }
-  } catch (err) {
-    console.log(`  测试失败: ${err.message}`);
-  }
-
-  // 也测试 COS 普通端点
-  const cosUrl = `https://${cosBucket}.cos.ap-shanghai.myqcloud.com/index.html`;
-  console.log(`\n  测试 COS 直接: ${cosUrl}`);
-  try {
-    const resp = await httpGet(cosUrl);
-    console.log(`  HTTP ${resp.statusCode} | body: ${resp.body.length} bytes`);
-    if (resp.body.length > 0 && resp.body.length < 1000) {
-      console.log(`  body: ${resp.body.substring(0, 500)}`);
-    }
   } catch (err) {
     console.log(`  测试失败: ${err.message}`);
   }
 
   // 结果
   console.log('\n========================================');
-  console.log('  部署完成!');
+  console.log('         部署结果');
+  console.log('========================================');
   console.log(`  环境: ${ENV_ID}`);
-  console.log(`  TCB CDN: ${staticUrl}`);
-  console.log(`  COS Website: ${cosWebsiteUrl}`);
-  console.log(`  COS 直接: ${cosUrl}`);
+  console.log(`  前端页面: ${cosWebsiteUrl}`);
   console.log(`  控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=${ENV_ID}`);
   console.log('========================================');
   console.log('\n=== 部署完成 ===');
