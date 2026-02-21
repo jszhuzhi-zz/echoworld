@@ -344,18 +344,40 @@ export class InfiniteWorld {
       directions = directions.slice(0, 2);
     }
 
-    // 按空间位置排序: x小的在左, x相同则y小的在左
-    directions.sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
-
-    // 标注 左/右
-    if (directions.length === 1) {
-      directions[0].label = '→ 前进';
-    } else if (directions.length >= 2) {
-      directions[0].label = '← 左';
-      directions[1].label = '右 →';
-    }
+    // 用顺逆时针标注方向 (相对于从原点出发的前进方向)
+    this.labelDirections(directions, node);
 
     return { roll, directions };
+  }
+
+  /** 根据叉路口位置和来向，用顺逆时针标注方向 */
+  private labelDirections(directions: DirectionOption[], fromNode: MapNode, prevNode?: MapNode): void {
+    if (directions.length === 1) {
+      directions[0].label = '→ 前进';
+      return;
+    }
+    if (directions.length < 2) return;
+
+    // 计算来向向量 (如无来向，默认从 y 正方向看)
+    const inDx = prevNode ? fromNode.x - prevNode.x : 0;
+    const inDy = prevNode ? fromNode.y - prevNode.y : 1;
+
+    // 用叉积判断顺逆时针: cross = inDx*(dy) - inDy*(dx)
+    // cross > 0 → 方向在来向的顺时针侧; cross < 0 → 逆时针侧
+    const d0 = directions[0], d1 = directions[1];
+    const dx0 = d0.x - fromNode.x, dy0 = d0.y - fromNode.y;
+    const dx1 = d1.x - fromNode.x, dy1 = d1.y - fromNode.y;
+    const cross0 = inDx * dy0 - inDy * dx0;
+    const cross1 = inDx * dy1 - inDy * dx1;
+
+    if (cross0 >= cross1) {
+      // d0 偏顺时针，d1 偏逆时针
+      directions[0] = { ...d0, label: '↻ 顺时针' };
+      directions[1] = { ...d1, label: '↺ 逆时针' };
+    } else {
+      directions[0] = { ...d1, label: '↻ 顺时针' };
+      directions[1] = { ...d0, label: '↺ 逆时针' };
+    }
   }
 
   moveToDirection(entityId: string, firstStepNodeId: number): MoveResult | null {
@@ -426,9 +448,8 @@ export class InfiniteWorld {
           }
           directions = directions.slice(0, 2);
         }
-        directions.sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
-        if (directions.length === 1) directions[0].label = '→ 前进';
-        else { directions[0].label = '← 左'; directions[1].label = '右 →'; }
+        const prevNodeObj = this.nodes.get(prev)!;
+        this.labelDirections(directions, node, prevNodeObj);
 
         return {
           path,

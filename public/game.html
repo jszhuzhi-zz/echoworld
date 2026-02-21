@@ -53,10 +53,10 @@
     .dir-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
       color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
     .dir-btn:hover{transform:translateY(-2px)}
-    .dir-btn.dir-left{border-color:#38bdf8;background:rgba(56,189,248,0.18);color:#7dd3fc}
-    .dir-btn.dir-left:hover{background:rgba(56,189,248,0.35)}
-    .dir-btn.dir-right{border-color:#fb923c;background:rgba(251,146,60,0.18);color:#fdba74}
-    .dir-btn.dir-right:hover{background:rgba(251,146,60,0.35)}
+    .dir-btn.dir-cw{border-color:#38bdf8;background:rgba(56,189,248,0.18);color:#7dd3fc}
+    .dir-btn.dir-cw:hover{background:rgba(56,189,248,0.35)}
+    .dir-btn.dir-ccw{border-color:#fb923c;background:rgba(251,146,60,0.18);color:#fdba74}
+    .dir-btn.dir-ccw:hover{background:rgba(251,146,60,0.35)}
     .dir-btn.dir-forward{border-color:var(--green);background:rgba(16,185,129,0.15);color:#6ee7b7}
     .dir-btn.dir-forward:hover{background:rgba(16,185,129,0.35)}
     .dice-info{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:8px;font-weight:700;white-space:nowrap}
@@ -171,9 +171,9 @@
 <!-- Bottom Action Bar -->
 <div id="action-bar">
   <div class="action-group">
-    <button class="dir-btn dir-left" id="btn-left" style="display:none">← 左</button>
+    <button class="dir-btn dir-cw" id="btn-left" style="display:none">↻ 顺时针</button>
     <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
-    <button class="dir-btn dir-right" id="btn-right" style="display:none">右 →</button>
+    <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺ 逆时针</button>
   </div>
   <div class="action-group">
     <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
@@ -414,7 +414,16 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  group.position.set(node.x, 0, node.y);
+  // 建筑向远离主路的方向偏移0.4，避免与道路视觉重叠
+  const parentNode = (node.connections || []).map(cid => allNodes.find(n => n.id === cid)).find(n => n && n.type !== 'lot');
+  let offX = 0, offZ = 0;
+  if (parentNode) {
+    const dx = node.x - parentNode.x, dz = node.y - parentNode.y;
+    const len = Math.sqrt(dx * dx + dz * dz) || 1;
+    offX = (dx / len) * 0.4;
+    offZ = (dz / len) * 0.4;
+  }
+  group.position.set(node.x + offX, 0, node.y + offZ);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -715,11 +724,19 @@ function renderMap(nodes) {
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
     } else if (node.type === 'lot') {
-      // Empty lot: flat dashed outline
+      // Empty lot: flat dashed outline, 向远离主路方向偏移
       const geo = new THREE.BoxGeometry(1.2, 0.05, 1.2);
       const mat = new THREE.MeshStandardMaterial({ color: 0x374151, transparent: true, opacity: 0.3 });
       mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(node.x, 0.03, node.y);
+      const lotParent = (node.connections || []).map(cid => allNodes.find(n => n.id === cid)).find(n => n && n.type !== 'lot');
+      let lotOffX = 0, lotOffZ = 0;
+      if (lotParent) {
+        const ddx = node.x - lotParent.x, ddz = node.y - lotParent.y;
+        const dlen = Math.sqrt(ddx * ddx + ddz * ddz) || 1;
+        lotOffX = (ddx / dlen) * 0.4;
+        lotOffZ = (ddz / dlen) * 0.4;
+      }
+      mesh.position.set(node.x + lotOffX, 0.03, node.y + lotOffZ);
       mesh.userData = { nodeId: node.id, type: 'lot', node };
       clickableMeshes.push(mesh);
     } else {
@@ -802,9 +819,9 @@ function renderPlayers(players) {
 }
 
 const DIR_COLORS = {
-  left:    { color: 0x38bdf8, emissive: 0x38bdf8 },   // sky-blue
-  right:   { color: 0xfb923c, emissive: 0xfb923c },   // orange
-  forward: { color: 0x22d3ee, emissive: 0x22d3ee },   // cyan
+  cw:      { color: 0x38bdf8, emissive: 0x38bdf8 },   // sky-blue (顺时针)
+  ccw:     { color: 0xfb923c, emissive: 0xfb923c },   // orange   (逆时针)
+  forward: { color: 0x22d3ee, emissive: 0x22d3ee },   // cyan     (前进)
 };
 
 function showDirectionArrows(directions) {
@@ -819,8 +836,8 @@ function showDirectionArrows(directions) {
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist === 0) continue;
 
-    // 根据方向选择颜色：单方向=前进，双方向=左/右
-    const dirType = directions.length === 1 ? 'forward' : (i === 0 ? 'left' : 'right');
+    // 根据标签判断方向类型
+    const dirType = d.label.includes('顺') ? 'cw' : d.label.includes('逆') ? 'ccw' : 'forward';
     const dc = DIR_COLORS[dirType];
 
     // Arrow cone
@@ -1101,7 +1118,7 @@ async function fetchCatalog() {
 
 // ============ GAME ACTIONS ============
 
-/** 显示左右方向按钮 */
+/** 显示方向按钮 (顺时针/逆时针) */
 function showDirButtons(directions) {
   const btnLeft = document.getElementById('btn-left');
   const btnRight = document.getElementById('btn-right');
@@ -1109,20 +1126,22 @@ function showDirButtons(directions) {
   btnRight.style.display = 'none';
 
   if (directions.length === 1) {
-    // 只有一个方向 - 前进
     btnLeft.style.display = 'block';
     btnLeft.textContent = directions[0].label;
     btnLeft.className = 'dir-btn dir-forward';
     btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
   } else if (directions.length >= 2) {
+    // 第一个为顺时针，第二个为逆时针
+    const cwDir = directions.find(d => d.label.includes('顺')) || directions[0];
+    const ccwDir = directions.find(d => d.label.includes('逆')) || directions[1];
     btnLeft.style.display = 'block';
-    btnLeft.textContent = directions[0].label;
-    btnLeft.className = 'dir-btn dir-left';
-    btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
+    btnLeft.textContent = cwDir.label;
+    btnLeft.className = 'dir-btn dir-cw';
+    btnLeft.onclick = () => chooseDirection(cwDir.nodeId);
     btnRight.style.display = 'block';
-    btnRight.textContent = directions[1].label;
-    btnRight.className = 'dir-btn dir-right';
-    btnRight.onclick = () => chooseDirection(directions[1].nodeId);
+    btnRight.textContent = ccwDir.label;
+    btnRight.className = 'dir-btn dir-ccw';
+    btnRight.onclick = () => chooseDirection(ccwDir.nodeId);
   }
 
   showDirectionArrows(directions);

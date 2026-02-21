@@ -383,7 +383,7 @@ export function createServer(world: World, port = 3000): express.Application {
     const state = infiniteWorld.getPlayer(user.entityId) || infiniteWorld.initPlayer(user.entityId);
     const node = infiniteWorld.nodes.get(state.nodeId);
     const entity = world.entities.getEntity(user.entityId);
-    const nearbyLots = infiniteWorld.getNearbyLots(node?.x ?? 0, node?.y ?? 0, 4);
+    const nearbyLots = infiniteWorld.getNearbyLots(node?.x ?? 0, node?.y ?? 0, 10);
     res.json({ state, node, entity: entity?.getSummary(), nearbyLots });
   });
 
