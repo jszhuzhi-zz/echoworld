@@ -403,7 +403,22 @@ export function createServer(world: World, port = 3000): express.Application {
     const moveResult = infiniteWorld.moveToDirection(user.entityId, directionNodeId);
     if (!moveResult) return res.status(400).json({ error: '无法移动，请先掷骰子' });
 
-    // 处理格子效果
+    // 如果遇到岔路，直接返回（不结算事件）
+    if (moveResult.fork) {
+      return res.json({
+        path: moveResult.path,
+        finalNode: moveResult.finalNode,
+        stats: moveResult.stats,
+        messages: [],
+        entity: entity.getSummary(),
+        state: infiniteWorld.getPlayer(user.entityId),
+        fork: true,
+        directions: moveResult.directions,
+        remainingSteps: moveResult.remainingSteps,
+      });
+    }
+
+    // 移动完成，处理格子效果
     const messages: string[] = [];
     for (const evt of moveResult.events) {
       if (evt === 'TAX') {
@@ -445,6 +460,9 @@ export function createServer(world: World, port = 3000): express.Application {
       messages,
       entity: entity.getSummary(),
       state: infiniteWorld.getPlayer(user.entityId),
+      fork: false,
+      directions: [],
+      remainingSteps: 0,
     });
   });
 

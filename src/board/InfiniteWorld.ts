@@ -105,6 +105,9 @@ export interface MoveResult {
   finalNode: MapNode;
   events: string[];
   stats: { hunger: number; energy: number; happiness: number; alive: boolean };
+  fork: boolean;           // true = 遇到岔路需要选择
+  directions: DirectionOption[]; // fork时的可选方向
+  remainingSteps: number;  // 剩余步数
 }
 
 // ============ 无限世界 ============
@@ -122,8 +125,8 @@ export class InfiniteWorld {
   // ── 地图生成 ──
 
   private generateMap(): void {
-    const GRID = 64;
-    const SPACING = 8;
+    const GRID = 84;
+    const SPACING = 14;
 
     // 主干道节点 (水平路 + 垂直路，节点间距 2)
     for (let r = 0; r <= GRID; r += SPACING) {
@@ -262,30 +265,69 @@ export class InfiniteWorld {
     const state = this.players.get(entityId);
     if (!state?.alive || state.pendingRoll === null) return null;
 
-    const steps = state.pendingRoll;
-    state.pendingRoll = null;
-    state.actionsToday++;
-    state.turnsPlayed++;
+    let remaining = state.pendingRoll;
 
-    // 沿道路行走
+    // 沿道路行走，遇岔路暂停
     let current = firstStepNodeId;
     let prev = state.nodeId;
     const startNode = this.nodes.get(state.nodeId)!;
-    const path: { x: number; y: number }[] = [{ x: startNode.x, y: startNode.y }];
-    path.push({ x: this.nodes.get(current)!.x, y: this.nodes.get(current)!.y });
+    const path: { x: number; y: number }[] = [
+      { x: startNode.x, y: startNode.y },
+      { x: this.nodes.get(current)!.x, y: this.nodes.get(current)!.y },
+    ];
+    remaining--;
 
-    for (let i = 1; i < steps; i++) {
+    while (remaining > 0) {
       const node = this.nodes.get(current)!;
       const nextOptions = node.connections.filter(
         id => id !== prev && this.nodes.get(id)!.type !== 'lot'
       );
+
       if (nextOptions.length === 0) break; // 死胡同
-      const nextId = nextOptions[Math.floor(Math.random() * nextOptions.length)];
+
+      if (nextOptions.length > 1) {
+        // 岔路口！暂停，等待玩家选择
+        state.nodeId = current;
+        state.pendingRoll = remaining; // 保存剩余步数
+
+        let directions = nextOptions.map(id => {
+          const n = this.nodes.get(id)!;
+          return { nodeId: id, x: n.x, y: n.y, label: '' } as DirectionOption;
+        });
+        if (directions.length > 2) {
+          for (let i = directions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [directions[i], directions[j]] = [directions[j], directions[i]];
+          }
+          directions = directions.slice(0, 2);
+        }
+        directions.sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
+        if (directions.length === 1) directions[0].label = '→ 前进';
+        else { directions[0].label = '← 左'; directions[1].label = '右 →'; }
+
+        return {
+          path,
+          finalNode: node,
+          events: [],
+          stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
+          fork: true,
+          directions,
+          remainingSteps: remaining,
+        };
+      }
+
+      // 唯一方向，自动前进
+      const nextId = nextOptions[0];
       path.push({ x: this.nodes.get(nextId)!.x, y: this.nodes.get(nextId)!.y });
       prev = current;
       current = nextId;
+      remaining--;
     }
 
+    // 移动完成 - 结算
+    state.pendingRoll = null;
+    state.actionsToday++;
+    state.turnsPlayed++;
     state.nodeId = current;
 
     // 生存指标衰减
@@ -320,12 +362,10 @@ export class InfiniteWorld {
       path,
       finalNode,
       events,
-      stats: {
-        hunger: state.hunger,
-        energy: state.energy,
-        happiness: state.happiness,
-        alive: state.alive,
-      },
+      stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
+      fork: false,
+      directions: [],
+      remainingSteps: 0,
     };
   }
 

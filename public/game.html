@@ -254,6 +254,8 @@ const PLAYER_COLORS = ['#22d3ee','#f472b6','#a78bfa','#fb923c','#4ade80','#e879f
 let currentUser = null, myState = null, myEntity = null, allNodes = [], allPlayers = [];
 let buildingCatalog = [], selectedBuildNodeId = null;
 let pendingDirections = null;
+let myPlayerMesh = null, myPlayerLabel = null;
+let isAnimating = false;
 const logs = [];
 
 function authHeaders() {
@@ -422,6 +424,7 @@ function renderPlayers(players) {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(node.x, isMe ? 0.55 : 0.4, node.y);
     mesh.castShadow = true;
+    if (isMe) myPlayerMesh = mesh;
     playerMeshGroup.add(mesh);
 
     // Name label (sprite)
@@ -437,6 +440,7 @@ function renderPlayers(players) {
     const sprite = new THREE.Sprite(spriteMat);
     sprite.scale.set(2, 0.5, 1);
     sprite.position.set(node.x, isMe ? 1.2 : 1.0, node.y);
+    if (isMe) myPlayerLabel = sprite;
     playerMeshGroup.add(sprite);
   }
 }
@@ -480,22 +484,31 @@ function clearDirectionArrows() {
   clickableMeshes.splice(0, clickableMeshes.length, ...clickableMeshes.filter(m => !m.userData?.directionNodeId));
 }
 
-function animatePath(pathPoints) {
+/** 逐步动画：玩家棋子沿路径跳跃移动 */
+async function animateSteps(pathPoints) {
+  isAnimating = true;
+  // 清除旧路径标记
   while (pathMeshGroup.children.length) {
     const m = pathMeshGroup.children[0];
     m.geometry?.dispose();
     m.material?.dispose();
     pathMeshGroup.remove(m);
   }
-  for (let i = 0; i < pathPoints.length; i++) {
-    const p = pathPoints[i];
+
+  for (let i = 1; i < pathPoints.length; i++) {
+    const to = pathPoints[i];
+    // 放一个路径标记点
     const geo = new THREE.SphereGeometry(0.12, 8, 8);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 0.8, transparent: true, opacity: 0.6 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 0.8, transparent: true, opacity: 0.5 });
     const dot = new THREE.Mesh(geo, mat);
-    dot.position.set(p.x, 0.3, p.y);
+    dot.position.set(to.x, 0.15, to.y);
     pathMeshGroup.add(dot);
+    // 移动玩家棋子
+    await movePlayerMeshTo(to.x, to.y, 280);
   }
-  // Fade out after 3s
+  isAnimating = false;
+
+  // 淡出路径标记
   setTimeout(() => {
     while (pathMeshGroup.children.length) {
       const m = pathMeshGroup.children[0];
@@ -503,7 +516,35 @@ function animatePath(pathPoints) {
       m.material?.dispose();
       pathMeshGroup.remove(m);
     }
-  }, 3000);
+  }, 2000);
+}
+
+/** 平滑移动玩家棋子到目标位置 (带跳跃弧线) */
+function movePlayerMeshTo(tx, ty, duration) {
+  return new Promise(resolve => {
+    if (!myPlayerMesh) { resolve(); return; }
+    const sx = myPlayerMesh.position.x, sz = myPlayerMesh.position.z;
+    const baseY = myPlayerMesh.position.y;
+    const start = performance.now();
+    function step(now) {
+      let t = Math.min((now - start) / duration, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // ease in-out
+      const x = sx + (tx - sx) * ease;
+      const z = sz + (ty - sz) * ease;
+      const jumpY = baseY + Math.sin(t * Math.PI) * 0.6; // 跳跃弧线
+      myPlayerMesh.position.set(x, jumpY, z);
+      if (myPlayerLabel) myPlayerLabel.position.set(x, jumpY + 0.65, z);
+      // 镜头跟随
+      controls.target.set(x, 0, z);
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        myPlayerMesh.position.y = baseY;
+        if (myPlayerLabel) myPlayerLabel.position.y = baseY + 0.65;
+        resolve();
+      }
+    }
+    requestAnimationFrame(step);
+  });
 }
 
 // ============ CAMERA ============
@@ -658,7 +699,7 @@ async function fetchMap() {
   try {
     const node = myState ? allNodes.find(n => n.id === myState.nodeId) : null;
     const cx = node?.x ?? 0, cy = node?.y ?? 0;
-    const res = await fetch(API + `/api/world/map?cx=${cx}&cy=${cy}&r=22`, { headers: authHeaders() });
+    const res = await fetch(API + `/api/world/map?cx=${cx}&cy=${cy}&r=30`, { headers: authHeaders() });
     const data = await res.json();
     allNodes = data.nodes;
     allPlayers = data.players;
@@ -680,7 +721,36 @@ async function fetchCatalog() {
 
 // ============ GAME ACTIONS ============
 
+/** 显示左右方向按钮 */
+function showDirButtons(directions) {
+  const btnLeft = document.getElementById('btn-left');
+  const btnRight = document.getElementById('btn-right');
+  btnLeft.style.display = 'none';
+  btnRight.style.display = 'none';
+
+  if (directions.length >= 1) {
+    btnLeft.style.display = 'block';
+    btnLeft.textContent = directions[0].label;
+    btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
+  }
+  if (directions.length >= 2) {
+    btnRight.style.display = 'block';
+    btnRight.textContent = directions[1].label;
+    btnRight.onclick = () => chooseDirection(directions[1].nodeId);
+  }
+
+  showDirectionArrows(directions);
+}
+
+/** 隐藏方向按钮 */
+function hideDirButtons() {
+  document.getElementById('btn-left').style.display = 'none';
+  document.getElementById('btn-right').style.display = 'none';
+  clearDirectionArrows();
+}
+
 window.rollDice = async function() {
+  if (isAnimating) return;
   try {
     const res = await fetch(API + '/api/world/roll', { method: 'POST', headers: authHeaders() });
     if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
@@ -694,26 +764,13 @@ window.rollDice = async function() {
     btn.disabled = true;
     document.getElementById('dice-info').textContent = `🎲 ${data.roll} 步`;
 
-    // Show fixed left/right direction buttons
-    pendingDirections = data.directions;
-    const btnLeft = document.getElementById('btn-left');
-    const btnRight = document.getElementById('btn-right');
-    btnLeft.style.display = 'none';
-    btnRight.style.display = 'none';
+    // Hide build/consume during movement
+    document.getElementById('btn-build').style.display = 'none';
+    document.getElementById('btn-consume').style.display = 'none';
+    closeBuildingOverlay();
 
-    if (data.directions.length >= 1) {
-      btnLeft.style.display = 'block';
-      btnLeft.textContent = data.directions[0].label;
-      btnLeft.onclick = () => chooseDirection(data.directions[0].nodeId);
-    }
-    if (data.directions.length >= 2) {
-      btnRight.style.display = 'block';
-      btnRight.textContent = data.directions[1].label;
-      btnRight.onclick = () => chooseDirection(data.directions[1].nodeId);
-    }
-
-    // Show 3D arrows
-    showDirectionArrows(data.directions);
+    // Show direction buttons
+    showDirButtons(data.directions);
 
   } catch (e) {
     addLog('掷骰子失败', 'danger');
@@ -722,9 +779,7 @@ window.rollDice = async function() {
 
 async function chooseDirection(directionNodeId) {
   try {
-    document.getElementById('btn-left').style.display = 'none';
-    document.getElementById('btn-right').style.display = 'none';
-    clearDirectionArrows();
+    hideDirButtons();
 
     const res = await fetch(API + '/api/world/move', {
       method: 'POST', headers: authHeaders(),
@@ -733,20 +788,27 @@ async function chooseDirection(directionNodeId) {
     if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
     const data = await res.json();
 
-    // Animate path
-    animatePath(data.path);
+    // 逐步动画
+    await animateSteps(data.path);
 
-    // Focus camera on new position
-    const fn = data.finalNode;
-    focusCamera(fn.x, fn.y);
+    // 更新位置信息
+    updatePosInfo(data.finalNode);
 
-    // Update state
+    if (data.fork) {
+      // 遇到岔路口，等待玩家选择
+      addLog(`到达岔路口，剩余 ${data.remainingSteps} 步`, 'warn');
+      document.getElementById('dice-info').textContent = `🎲 剩余 ${data.remainingSteps} 步`;
+      myState = data.state;
+      showDirButtons(data.directions);
+      return;
+    }
+
+    // === 移动完成 ===
     myState = data.state;
     myEntity = data.entity;
     updateStats(data.stats);
     updateMoney(data.entity);
     updateActions(data.state);
-    updatePosInfo(data.finalNode);
 
     // Log messages
     for (const msg of data.messages) {
@@ -756,13 +818,14 @@ async function chooseDirection(directionNodeId) {
 
     // Reset dice button
     document.getElementById('btn-roll').innerHTML = '<span>🎲</span>';
+    document.getElementById('dice-info').textContent = '🎲 -';
 
     // Check death
     if (!data.stats.alive) {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // Check building - show consume in action bar + info overlay
+    // 到达后显示动作按钮：建造 / 消费
     closeBuildingOverlay();
     document.getElementById('btn-consume').style.display = 'none';
     if (data.finalNode.building && data.finalNode.building.ownerId !== currentUser?.entityId) {
