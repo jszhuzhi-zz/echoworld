@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 03:28:12 UTC
-Commit: 4ca977d79c4ec5d6ffef7ad4ca610e07f61cf172
+部署时间: 2026-02-21 03:32:39 UTC
+Commit: ee6ee9cb4d53a3a2abd5cb38790513c7bfc20c89
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -46,7 +46,7 @@ found 0 vulnerabilities
   "envId": "georgezhu-0gnrnw9ae9fca59a"
 }
   静态文件已上传
-  hosting.setWebsiteDocument: {"statusCode":200,"headers":{"content-length":"0","connection":"keep-alive","date":"Sat, 21 Feb 2026 03:27:59 GMT","server":"tencent-cos","x-cos-request-id":"Njk5OTI2M2ZfZjNkMGYxZV8xNjgwNV8xZWFmNGY5"},"RequestId":"Njk5OTI2M2ZfZjNkMGYxZV8xNjgwNV8xZWFmNGY5"}
+  hosting.setWebsiteDocument: {"statusCode":200,"headers":{"content-length":"0","connection":"keep-alive","date":"Sat, 21 Feb 2026 03:32:24 GMT","server":"tencent-cos","x-cos-request-id":"Njk5OTI3NDhfODRhZTE0MDlfNDcyMV8zNGZiMmJj"},"RequestId":"Njk5OTI3NDhfODRhZTE0MDlfNDcyMV8zNGZiMmJj"}
   hosting.getWebsiteConfig: {
   "WebsiteConfiguration": {
     "IndexDocument": {
@@ -61,11 +61,11 @@ found 0 vulnerabilities
     "content-type": "application/xml",
     "content-length": "170",
     "connection": "keep-alive",
-    "date": "Sat, 21 Feb 2026 03:27:59 GMT",
+    "date": "Sat, 21 Feb 2026 03:32:24 GMT",
     "server": "tencent-cos",
-    "x-cos-request-id": "Njk5OTI2M2ZfZjNkMGYxZV8xNjgwZl8xZjAxYjNk"
+    "x-cos-request-id": "Njk5OTI3NDhfODRhZTE0MDlfNDc0OF8zNGVlZDUz"
   },
-  "RequestId": "Njk5OTI2M2ZfZjNkMGYxZV8xNjgwZl8xZjAxYjNk"
+  "RequestId": "Njk5OTI3NDhfODRhZTE0MDlfNDc0OF8zNGVlZDUz"
 }
   hosting.tcbModifyAttribute: [TcbModifyAttribute] The request is missing the required parameter `Domain`.
   hosting.getCloudKey: ""
@@ -84,14 +84,23 @@ found 0 vulnerabilities
       "Region": "ap-shanghai"
     }
   ],
-  "RequestId": "6f36a45e-66c7-4873-9b1e-f7de6066038d"
+  "RequestId": "e7d8ea3c-4638-4bde-b292-b8de244c3788"
 }
   ModifyEnv: [ModifyEnv] The parameter `Conf` is not recognized.
   TurnOffStaticStore: [TurnOffStaticStore] The request action=`TurnOffStaticStore` is invalid or not found in service=`tcb` and version=`2018-06-08`.
   TurnOnStaticStore: [TurnOnStaticStore] The request action=`TurnOnStaticStore` is invalid or not found in service=`tcb` and version=`2018-06-08`.
   DescribeLoginConfigs: {
-  "ConfigList": [],
-  "RequestId": "03ac3f64-81fa-45d3-af04-4cd04c2af3f0"
+  "ConfigList": [
+    {
+      "Id": "7f734a66-e054-460d-87d2-0d4805046b91",
+      "Platform": "NONLOGIN",
+      "PlatformId": "",
+      "Status": "ENABLE",
+      "UpdateTime": "2026-02-21 11:28:05",
+      "CreateTime": "2026-02-21 11:28:05"
+    }
+  ],
+  "RequestId": "d245bb1d-0a01-4aea-8a71-9c637bb3f3a6"
 }
 
 [4/5] 配置匿名登录...
@@ -102,20 +111,857 @@ found 0 vulnerabilities
 [5/5] 配置HTTP路由...
   路由配置: [EstablishCloudBaseRunServer] The parameter `PathPrefix` is not recognized.
 
+========== 配额检查 ==========
+  DescribeQuotaData: [DescribeQuotaData] The request is missing the required parameter `MetricName`.
+  DescribeEnvFreeQuota: [DescribeEnvFreeQuota] Env Is Not PostPaid
+  DescribeEnvLimit: [DescribeEnvLimit] The parameter `EnvId` is not recognized.
+  DescribePostpayFreeQuotas: {
+  "FreequotaInfoList": [
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 2000,
+      "MetricUnit": "次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 1000,
+      "MetricUnit": "次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "CDN",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "MemoryUse",
+      "FreeQuota": 1000,
+      "MetricUnit": "GBs",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "Outflow",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 2,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 500,
+      "MetricUnit": "次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 300,
+      "MetricUnit": "次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 720,
+      "MetricUnit": "核*小时",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 1440,
+      "MetricUnit": "GiB*小时",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "CODING",
+      "ResourceMetric": "BuildTime",
+      "FreeQuota": 600,
+      "MetricUnit": "分钟",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "HTTPSERVICE",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 500,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "IdleProvisioned",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    }
+  ],
+  "RequestId": "5af20e73-d0d1-48eb-ab65-9339fc263c8f"
+}
+  DescribePostpayPackageFreeQuotas: {
+  "PackageFreeQuotaInfos": [
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 150,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 60,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "CDN",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "MemoryUse",
+      "FreeQuota": 40000,
+      "MetricUnit": "GBs",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "Outflow",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 2,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 5,
+      "MetricUnit": "万次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 3,
+      "MetricUnit": "万次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 150,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 60,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 3,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "CDN",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 4,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "MemoryUse",
+      "FreeQuota": 40000,
+      "MetricUnit": "GBs",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "Outflow",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 2,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 5,
+      "MetricUnit": "万次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 3,
+      "MetricUnit": "万次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 720,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 1440,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "CODING",
+      "ResourceMetric": "BuildTime",
+      "FreeQuota": 600,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "HTTPSERVICE",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 500,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 720,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 1440,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "CODING",
+      "ResourceMetric": "BuildTime",
+      "FreeQuota": 600,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "HTTPSERVICE",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 500,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 0,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 0,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "CDN",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "MemoryUse",
+      "FreeQuota": 1000,
+      "MetricUnit": "GBs",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "Outflow",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 2,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 0,
+      "MetricUnit": "万次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "FLEXDB",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 0,
+      "MetricUnit": "万次",
+      "DeductType": "sum-day",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 1,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 720,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 1440,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "CODING",
+      "ResourceMetric": "BuildTime",
+      "FreeQuota": 600,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "HTTPSERVICE",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 500,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 720,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 1440,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "CODING",
+      "ResourceMetric": "BuildTime",
+      "FreeQuota": 600,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "HTTPSERVICE",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "CYNOSDB",
+      "ResourceMetric": "Ccu",
+      "FreeQuota": 720,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "CYNOSDB",
+      "ResourceMetric": "Storage",
+      "FreeQuota": 720,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "HTTPSERVICE",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 90,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 21600,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 43200,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "CODING",
+      "ResourceMetric": "BuildTime",
+      "FreeQuota": 5400,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "CYNOSDB",
+      "ResourceMetric": "Ccu",
+      "FreeQuota": 8640,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "CYNOSDB",
+      "ResourceMetric": "Storage",
+      "FreeQuota": 21600,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "CPU",
+      "FreeQuota": 11520,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "freegateway"
+    },
+    {
+      "ResourceType": "EKS",
+      "ResourceMetric": "Mem",
+      "FreeQuota": 23040,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "freegateway"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 6000,
+      "MetricUnit": "万次",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 3000,
+      "MetricUnit": "万次",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 3,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "CDN",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 3,
+      "MetricUnit": "GB",
+      "DeductType": "sum-total",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "ReadRequests",
+      "FreeQuota": 6000,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "WriteRequests",
+      "FreeQuota": 3000,
+      "MetricUnit": "万次",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 5,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "COS",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 3,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "CDN",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 3,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "runwxenterprisefree"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "IdleProvisioned",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basic"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "IdleProvisioned",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "basicqcloud"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "IdleProvisioned",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "free"
+    },
+    {
+      "ResourceType": "SCF",
+      "ResourceMetric": "IdleProvisioned",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "sum-month",
+      "FreeQuotaType": "freegateway"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Capacity",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "runwxfree"
+    },
+    {
+      "ResourceType": "HOSTING",
+      "ResourceMetric": "Flux",
+      "FreeQuota": 0,
+      "MetricUnit": "GB",
+      "DeductType": "totalize",
+      "FreeQuotaType": "runwxfree"
+    }
+  ],
+  "RequestId": "eb87d89f-3b6b-4dea-9316-b5cd4212bb91"
+}
+  DescribeBillingInfo: {
+  "EnvBillingInfoList": [
+    {
+      "EnvId": "georgezhu-0gnrnw9ae9fca59a",
+      "PackageId": "baas_trial",
+      "IsAutoRenew": false,
+      "Status": "NORMAL",
+      "PayMode": "PREPAYMENT",
+      "IsolatedTime": "0000-00-00 00:00:00",
+      "ExpireTime": "2026-08-15 23:59:59",
+      "CreateTime": "2026-02-15 12:31:58",
+      "UpdateTime": "2026-02-15 12:31:58",
+      "IsAlwaysFree": false,
+      "PaymentChannel": "qcloud",
+      "OrderInfo": {
+        "TranId": "",
+        "PackageId": "",
+        "TranType": "",
+        "TranStatus": "",
+        "CreateTime": "",
+        "UpdateTime": "",
+        "PayMode": "",
+        "ExtensionId": "",
+        "ResourceReady": "",
+        "Flag": "",
+        "ReqBody": ""
+      },
+      "FreeQuota": "",
+      "EnvAutoId": 3640147,
+      "BillTime": "2026-02-15 12:31:58",
+      "ExtPackageType": "baas",
+      "EnableOverrun": false,
+      "EnvPaid": "yes",
+      "EnvCharged": "yes",
+      "EnvActivated": "no",
+      "EnvOrigin": "normal",
+      "ResourceId": "georgezhu-0gnrnw9ae9fca59a",
+      "ExtPackageCode": [],
+      "TipList": "",
+      "PackageName": "体验版",
+      "EnvDeductionMode": "credits",
+      "PointsTime": "2026-02-15 12:31:52"
+    }
+  ],
+  "RequestId": "9cd4fd14-f408-40aa-938b-3d1a46e91cee"
+}
+  DescribeExtraPkgBillingInfo: {
+  "EnvInfoList": [],
+  "RequestId": "a47116b9-2647-4838-9a70-aa62e795289d",
+  "Total": 0
+}
+  CheckTcbService: {
+  "Initialized": true,
+  "RequestId": "6b464809-b4ec-4d37-8b0c-d0b1680a8e21"
+}
+
 ========== 测试 ==========
-  函数调用: {"RequestId":"697e6e38-6cb4-4771-90ee-3f8676faf118","Duration":0,"BillDuration":0,"FunctionRequestId":"697e6e38-6cb4-4771-90ee-3f8676faf118","InvokeResult":0,"Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unavailable, AvailableStatus = InsufficientBalance.\",\"requestId\":\"697e6
-  函数HTTP调用: {"RequestId":"e4b15442-db28-411f-a5a2-7f9897f910be","Duration":0,"BillDuration":0,"FunctionRequestId":"e4b15442-db28-411f-a5a2-7f9897f910be","InvokeResult":0,"Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unavailable, AvailableStatus = InsufficientBalance.\",\"requestId\":\"e4b15
+  函数调用: {"RequestId":"707d262e-6428-4026-943c-9fa592eaaf6e","Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unavailable, AvailableStatus = InsufficientBalance.\",\"requestId\":\"707d262e-6428-4026-943c-9fa592eaaf6e\",\"statusCode\":410}","ErrMsg":"Function is Unavailable, AvailableStatus 
 
-  测试 https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  测试 TCB CDN: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
   HTTP 418 | body: 0 bytes
 
-  测试 https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com/index.html
-  HTTP 418 | body: 0 bytes
+  测试 COS Website: https://39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149.cos-website.ap-shanghai.myqcloud.com
+  HTTP 200 | body: 24266 bytes
+
+  测试 COS Website /index.html: https://39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149.cos-website.ap-shanghai.myqcloud.com/index.html
+  HTTP 200 | body: 24266 bytes
+
+  测试 COS 直接: https://39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149.cos.ap-shanghai.myqcloud.com/index.html
+  HTTP 200 | body: 24266 bytes
 
 ========================================
   部署完成!
   环境: georgezhu-0gnrnw9ae9fca59a
-  静态托管: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  TCB CDN: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  COS Website: https://39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149.cos-website.ap-shanghai.myqcloud.com
+  COS 直接: https://39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149.cos.ap-shanghai.myqcloud.com/index.html
   控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=georgezhu-0gnrnw9ae9fca59a
 ========================================
 
