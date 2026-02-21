@@ -106,11 +106,19 @@ jobs:
             pm2 status
 
       - name: Verify deployment
+        id: verify
         run: |
-          echo "Waiting 10s for server to start..."
-          sleep 10
+          echo "Waiting 15s for server to start..."
+          sleep 15
           echo "Testing http://129.211.14.208:3000/api/world/time ..."
-          curl -sf --max-time 10 http://129.211.14.208:3000/api/world/time || echo "Server not reachable yet (may need firewall config in Tencent Console)"
+          RESULT=$(curl -sf --max-time 10 http://129.211.14.208:3000/api/world/time 2>&1) && {
+            echo "DEPLOY_STATUS=SUCCESS" >> $GITHUB_ENV
+            echo "Server response: $RESULT"
+          } || {
+            echo "DEPLOY_STATUS=UNREACHABLE" >> $GITHUB_ENV
+            echo "Server not reachable. Check Lighthouse firewall: port 3000 TCP must be open."
+            echo "Console: https://console.cloud.tencent.com/lighthouse/instance/detail?id=lhins-fa84ogo8&tab=bindFirewall"
+          }
 
       - name: Save deployment info
         if: always()
@@ -120,6 +128,12 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> DEPLOY_INFO.txt
           echo "部署目标: 轻量服务器 129.211.14.208:3000" >> DEPLOY_INFO.txt
           echo "访问地址: http://129.211.14.208:3000" >> DEPLOY_INFO.txt
+          echo "部署状态: ${DEPLOY_STATUS:-UNKNOWN}" >> DEPLOY_INFO.txt
+          echo "" >> DEPLOY_INFO.txt
+          if [ "${DEPLOY_STATUS}" = "UNREACHABLE" ]; then
+            echo "注意: 请在腾讯云轻量服务器控制台的防火墙设置中开放 3000 端口 (TCP)" >> DEPLOY_INFO.txt
+            echo "防火墙设置: https://console.cloud.tencent.com/lighthouse/instance/detail?id=lhins-fa84ogo8&tab=bindFirewall" >> DEPLOY_INFO.txt
+          fi
           echo "" >> DEPLOY_INFO.txt
           cat DEPLOY_INFO.txt
 
