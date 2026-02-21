@@ -1,0 +1,121 @@
+name: Deploy to Lighthouse Server
+
+on:
+  push:
+    branches:
+      - claude/ai-agent-commerce-world-U3fxB
+    paths-ignore:
+      - 'DEPLOY_INFO.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Deploy to Lighthouse via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          ZHIPU_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        with:
+          host: 129.211.14.208
+          username: root
+          password: ${{ secrets.LIGHTHOUSE_SSH_PASSWORD }}
+          port: 22
+          timeout: 120s
+          command_timeout: 10m
+          script: |
+            set -e
+            APP_DIR="/opt/echoworld"
+            BRANCH="claude/ai-agent-commerce-world-U3fxB"
+            PORT=3000
+
+            echo "=== EchoWorld Lighthouse Deploy ==="
+
+            # Install Node.js if needed
+            if ! command -v node &> /dev/null || [[ "$(node -v | cut -d. -f1 | tr -d v)" -lt 18 ]]; then
+              echo "[1] Installing Node.js 20..."
+              curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+              apt-get install -y nodejs
+            else
+              echo "[1] Node.js: $(node -v)"
+            fi
+
+            # Install PM2
+            if ! command -v pm2 &> /dev/null; then
+              npm install -g pm2
+            fi
+
+            # Clone or update
+            echo "[2] Fetching code..."
+            if [ -d "$APP_DIR/.git" ]; then
+              cd "$APP_DIR"
+              git fetch origin "$BRANCH"
+              git reset --hard "origin/$BRANCH"
+            else
+              rm -rf "$APP_DIR"
+              git clone -b "$BRANCH" https://github.com/${{ github.repository }}.git "$APP_DIR"
+              cd "$APP_DIR"
+            fi
+
+            # Build
+            echo "[3] Installing dependencies..."
+            npm ci
+            echo "[4] Building..."
+            npm run build
+
+            # Start
+            echo "[5] Starting service..."
+            pm2 delete echoworld 2>/dev/null || true
+
+            ZHIPU_KEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
+            PORT=$PORT ZHIPU_API_KEY="$ZHIPU_KEY" ZHIPU_MODEL="glm-4-flash" \
+              pm2 start dist/index.js --name echoworld
+
+            pm2 save
+            pm2 startup systemd -u root --hp /root 2>/dev/null || true
+
+            # Open firewall
+            iptables -I INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null || true
+
+            echo ""
+            echo "=== Deployed! ==="
+            echo "URL: http://129.211.14.208:$PORT"
+            pm2 status
+
+      - name: Save deployment info
+        if: always()
+        run: |
+          echo "===== EchoWorld 部署信息 =====" > DEPLOY_INFO.txt
+          echo "部署时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> DEPLOY_INFO.txt
+          echo "Commit: ${{ github.sha }}" >> DEPLOY_INFO.txt
+          echo "部署目标: 轻量服务器 129.211.14.208:3000" >> DEPLOY_INFO.txt
+          echo "访问地址: http://129.211.14.208:3000" >> DEPLOY_INFO.txt
+          echo "" >> DEPLOY_INFO.txt
+          cat DEPLOY_INFO.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add DEPLOY_INFO.txt
+          git diff --staged --quiet || git commit -m "ci: update deployment info [skip ci]"
+          git push origin claude/ai-agent-commerce-world-U3fxB || true

@@ -223,19 +223,9 @@ export function createServer(world: World, port = 3000): express.Application {
   // ========== 启动服务器 ==========
   // CloudBase 环境由平台管理端口，不需要手动 listen
   if (!process.env.DEPLOY_ENV) {
-    app.listen(port, () => {
-      console.log(`\n[EchoWorld] 服务器运行在 http://localhost:${port}`);
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`\n[EchoWorld] 服务器运行在 http://0.0.0.0:${port}`);
       console.log(`[EchoWorld] 前端面板: http://localhost:${port}/`);
-      console.log(`[EchoWorld] API端点:`);
-      console.log(`  GET  /api/world          - 世界完整快照`);
-      console.log(`  GET  /api/entities       - 所有实体`);
-      console.log(`  GET  /api/market         - 市场信息`);
-      console.log(`  GET  /api/bank           - 银行信息`);
-      console.log(`  GET  /api/rules          - 世界规则`);
-      console.log(`  POST /api/agents         - 创建AI智能体`);
-      console.log(`  POST /api/players        - 创建人类玩家`);
-      console.log(`  POST /api/world/start    - 启动世界`);
-      console.log(`  POST /api/world/stop     - 停止世界`);
     });
   }
 
