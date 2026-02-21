@@ -243,7 +243,44 @@ async function deploy() {
     console.log('  静态托管部署:', err.message);
   }
 
-  // Also try uploading via storage (COS) as fallback
+  // Try to disable auth on static hosting (so pages load without login)
+  try {
+    console.log('  尝试关闭静态托管登录鉴权...');
+    await manager.commonService().call({
+      Action: 'ModifyCloudBaseGWPrivilege',
+      Param: {
+        EnvId: ENV_ID,
+        ServiceId: ENV_ID,
+        EnableService: true,
+      },
+    });
+  } catch (err) {
+    console.log('  ModifyCloudBaseGWPrivilege:', err.message);
+  }
+
+  // Also try uploading to COS storage (as a fallback for static hosting 418)
+  const COS_CDN = '6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la';
+  try {
+    console.log('  上传 index.html 到 COS 存储...');
+    const htmlContent = fs.readFileSync(path.join(publicDir, 'index.html'));
+    await manager.storage.uploadFile({
+      cloudPath: 'echoworld/index.html',
+      fileContent: htmlContent,
+    });
+    console.log(`  COS 上传成功: https://${COS_CDN}/echoworld/index.html`);
+
+    // Get temporary download URL
+    const urls = await manager.storage.getTemporaryUrl([
+      { cloudPath: 'echoworld/index.html', maxAge: 86400 * 30 },
+    ]);
+    if (urls && urls.length > 0) {
+      console.log(`  临时下载链接: ${urls[0].url}`);
+    }
+  } catch (err) {
+    console.log('  COS 上传:', err.message);
+  }
+
+  // Check static hosting status
   try {
     console.log('  检查静态托管状态...');
     const hostingInfo = await manager.commonService().call({
@@ -333,22 +370,36 @@ async function deploy() {
     console.log(`  /index.html 测试: ${err.message}`);
   }
 
+  // Test COS storage URL
+  const cosUrl = `https://${COS_CDN}/echoworld/index.html`;
+  console.log(`\n测试 COS URL: ${cosUrl}`);
+  try {
+    const resp = await httpGet(cosUrl);
+    console.log(`  HTTP ${resp.statusCode} (body length: ${resp.body.length})`);
+    if (resp.body.length > 0) {
+      console.log(`  Body preview: ${resp.body.substring(0, 200)}`);
+    }
+  } catch (err) {
+    console.log(`  COS URL 测试: ${err.message}`);
+  }
+
   // Test HTTP access URL
   let domain = '';
+  let httpEnabled2 = false;
   try {
     const domainResult = await manager.access.getDomainList();
     domain = domainResult.DefaultDomain || '';
-    httpEnabled = domainResult.EnableService === true;
+    httpEnabled2 = domainResult.EnableService === true;
   } catch (err) {}
 
   const httpUrl = `https://${domain || ENV_ID + '.service.tcloudbase.com'}/echoworld`;
-  console.log(`\nHTTP 服务: ${httpEnabled ? '✓ 已开通' : '✗ 未开通'}`);
 
   console.log('\n========================================');
-  console.log('  访问地址:');
-  console.log(`  静态托管: https://${STATIC_DOMAIN}`);
-  if (httpEnabled) {
-    console.log(`  HTTP 访问: ${httpUrl}`);
+  console.log('  部署完成! 访问地址:');
+  console.log(`  1. 静态托管: https://${STATIC_DOMAIN}`);
+  console.log(`  2. COS存储: ${cosUrl}`);
+  if (httpEnabled2) {
+    console.log(`  3. HTTP 访问: ${httpUrl}`);
   }
   console.log('========================================');
 
