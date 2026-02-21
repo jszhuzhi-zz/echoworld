@@ -313,13 +313,24 @@
   </div>
 </div>
 
-<!-- Passed Buildings (路过消费) -->
-<div id="passed-buildings-panel" style="display:none;position:fixed;z-index:16;bottom:90px;right:12px;
-  background:rgba(17,24,39,0.92);border:1px solid var(--border);border-radius:12px;padding:10px 14px;
-  backdrop-filter:blur(10px);max-width:260px;max-height:220px;overflow-y:auto">
-  <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">路过可消费建筑</div>
-  <div id="passed-buildings-list"></div>
-  <button onclick="closePassedBuildings()" style="margin-top:6px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text2);font-size:10px;cursor:pointer;width:100%">跳过</button>
+<!-- Passed Buildings - inline consume prompt (路过消费) -->
+<div id="consume-prompt" style="display:none;position:fixed;z-index:22;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(17,24,39,0.95);border:1px solid var(--accent);border-radius:14px;padding:16px 22px;
+  backdrop-filter:blur(12px);min-width:280px;max-width:360px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+  <div style="font-size:11px;color:var(--text2);margin-bottom:8px">路过建筑</div>
+  <div id="cp-title" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
+  <div id="cp-owner" style="font-size:11px;color:var(--text2);margin-bottom:6px"></div>
+  <div id="cp-effects" style="font-size:12px;margin-bottom:10px"></div>
+  <div style="display:flex;gap:8px;justify-content:center">
+    <button id="cp-consume-btn" style="padding:8px 20px;border-radius:8px;border:none;
+      background:var(--accent);color:white;font-size:13px;font-weight:700;cursor:pointer" onclick="resolveConsumePrompt(true)">
+      消费 <span id="cp-fee"></span> CC
+    </button>
+    <button id="cp-skip-btn" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);
+      background:rgba(255,255,255,0.06);color:var(--text2);font-size:13px;cursor:pointer" onclick="resolveConsumePrompt(false)">
+      跳过 (<span id="cp-countdown">3</span>s)
+    </button>
+  </div>
 </div>
 
 <!-- Build Modal -->
@@ -534,6 +545,20 @@ function levelGlow(level) {
   return 0.08 + level * 0.12; // Lv1=0.2, Lv2=0.32, Lv3=0.44, Lv4=0.56, Lv5=0.68
 }
 
+/** 计算lot在3D中的渲染位置 (从intersection对角推出，避免重叠)
+ * lot原始坐标在 intersection±1，但tile尺寸会导致重叠，
+ * 所以沿对角方向额外推出1.0单位 */
+function lotRenderPos(x, y) {
+  const SPACING = 14;
+  const nearIntX = Math.round(x / SPACING) * SPACING;
+  const nearIntY = Math.round(y / SPACING) * SPACING;
+  const dx = x - nearIntX;
+  const dy = y - nearIntY;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  // 额外推出1.0单位，使lot中心离intersection中心约2.4单位（不重叠）
+  return { rx: x + (dx / len) * 1.0, rz: y + (dy / len) * 1.0 };
+}
+
 /** 创建建筑3D模型 */
 function createBuilding3D(node, tpl) {
   const bldg = node.building;
@@ -544,8 +569,8 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  // lot坐标已在intersection旁(±1,±1)，无需额外偏移
-  group.position.set(node.x, 0, node.y);
+  const { rx, rz } = lotRenderPos(node.x, node.y);
+  group.position.set(rx, 0, rz);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -860,12 +885,22 @@ function renderMap(nodes) {
       const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
+      // 建筑底座着色地块 (Maslow等级颜色)
+      const ml = tpl?.maslowLevel || 1;
+      const lotColor = MASLOW_COLORS[ml] || 0x888888;
+      const lotGeo = new THREE.BoxGeometry(1.4, 0.04, 1.4);
+      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.25, emissive: lotColor, emissiveIntensity: 0.15 });
+      const lotBase = new THREE.Mesh(lotGeo, lotMat);
+      const { rx: bx, rz: bz } = lotRenderPos(node.x, node.y);
+      lotBase.position.set(bx, 0.02, bz);
+      mapMeshGroup.add(lotBase);
     } else if (node.type === 'lot') {
-      // Empty lot: flat outline, lot坐标已在intersection旁(±1,±1)
+      // Empty lot: flat outline, 沿对角推出避免与intersection重叠
       const geo = new THREE.BoxGeometry(1.2, 0.05, 1.2);
       const mat = new THREE.MeshStandardMaterial({ color: 0x374151, transparent: true, opacity: 0.3 });
       mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(node.x, 0.03, node.y);
+      const { rx, rz } = lotRenderPos(node.x, node.y);
+      mesh.position.set(rx, 0.03, rz);
       mesh.userData = { nodeId: node.id, type: 'lot', node };
       clickableMeshes.push(mesh);
     } else {
@@ -886,17 +921,18 @@ function renderMap(nodes) {
     mapMeshGroup.add(mesh);
   }
 
-  // Draw road connections as thin lines
+  // Draw road connections as thin lines (skip lot connections to keep clean)
   const lineMat = new THREE.LineBasicMaterial({ color: 0x283040, transparent: true, opacity: 0.4 });
   const nodeMap = new Map(nodes.map(n => [n.id, n]));
   const drawnEdges = new Set();
   for (const node of nodes) {
+    if (node.type === 'lot') continue; // lot不画连接线
     for (const cid of node.connections) {
+      const cn = nodeMap.get(cid);
+      if (!cn || cn.type === 'lot') continue; // 跳过到lot的连接线
       const key = Math.min(node.id, cid) + '-' + Math.max(node.id, cid);
       if (drawnEdges.has(key)) continue;
       drawnEdges.add(key);
-      const cn = nodeMap.get(cid);
-      if (!cn) continue;
       const pts = [new THREE.Vector3(node.x, 0.04, node.y), new THREE.Vector3(cn.x, 0.04, cn.y)];
       const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
       const line = new THREE.Line(lineGeo, lineMat);
@@ -997,8 +1033,51 @@ function clearDirectionArrows() {
   clickableMeshes.splice(0, clickableMeshes.length, ...clickableMeshes.filter(m => !m.userData?.directionNodeId));
 }
 
-/** 逐步动画：玩家棋子沿路径跳跃移动 */
-async function animateSteps(pathPoints) {
+/** 路过消费 prompt 状态 */
+let _consumeResolve = null;
+let _consumeTimer = null;
+let _countdownInterval = null;
+
+window.resolveConsumePrompt = function(doConsume) {
+  if (_consumeTimer) { clearTimeout(_consumeTimer); _consumeTimer = null; }
+  if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+  document.getElementById('consume-prompt').style.display = 'none';
+  if (_consumeResolve) { _consumeResolve(doConsume); _consumeResolve = null; }
+};
+
+/** 显示路过消费提示，3秒后自动跳过，返回 Promise<boolean> */
+function showConsumePrompt(pb) {
+  return new Promise(resolve => {
+    _consumeResolve = resolve;
+    const tpl = pb.template;
+    const b = pb.building;
+    const effectNames = { hunger: '🍔', energy: '⚡', happiness: '😊' };
+    document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${b.name} Lv.${b.level}`;
+    document.getElementById('cp-owner').textContent = `${b.ownerName} 的设施`;
+    document.getElementById('cp-effects').innerHTML = Object.entries(tpl?.effects || {}).map(([k,v]) => {
+      const eMult = 1 + (b.level - 1) * 0.2;
+      return `<span style="margin:0 4px">${effectNames[k]||k} +${Math.floor(v * eMult)}</span>`;
+    }).join('');
+    document.getElementById('cp-fee').textContent = pb.fee;
+    document.getElementById('consume-prompt').style.display = 'block';
+
+    let remaining = 3;
+    document.getElementById('cp-countdown').textContent = remaining;
+    _countdownInterval = setInterval(() => {
+      remaining--;
+      document.getElementById('cp-countdown').textContent = Math.max(0, remaining);
+    }, 1000);
+    _consumeTimer = setTimeout(() => {
+      _consumeTimer = null;
+      if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+      document.getElementById('consume-prompt').style.display = 'none';
+      if (_consumeResolve) { _consumeResolve(false); _consumeResolve = null; }
+    }, 3000);
+  });
+}
+
+/** 逐步动画：玩家棋子沿路径跳跃移动，遇到建筑弹出消费提示 */
+async function animateSteps(pathPoints, passedBuildings) {
   isAnimating = true;
   // 清除旧路径标记
   while (pathMeshGroup.children.length) {
@@ -1007,6 +1086,10 @@ async function animateSteps(pathPoints) {
     m.material?.dispose();
     pathMeshGroup.remove(m);
   }
+
+  // 按路径点索引构建可消费建筑映射 (路径点坐标附近的建筑)
+  const pbList = passedBuildings || [];
+  const consumed = new Set();
 
   for (let i = 1; i < pathPoints.length; i++) {
     const to = pathPoints[i];
@@ -1018,6 +1101,33 @@ async function animateSteps(pathPoints) {
     pathMeshGroup.add(dot);
     // 移动玩家棋子
     await movePlayerMeshTo(to.x, to.y, 280);
+
+    // 检查此步附近是否有可消费建筑 (lot在道路节点的±1对角)
+    for (const pb of pbList) {
+      if (consumed.has(pb.nodeId)) continue;
+      if (Math.abs(pb.x - to.x) <= 2 && Math.abs(pb.y - to.y) <= 2) {
+        // 弹出消费提示，等待3秒或玩家操作
+        const doConsume = await showConsumePrompt(pb);
+        consumed.add(pb.nodeId);
+        if (doConsume) {
+          try {
+            const res = await fetch(API + '/api/world/use-building-at', {
+              method: 'POST', headers: authHeaders(),
+              body: JSON.stringify({ nodeId: pb.nodeId }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              for (const msg of data.messages) addLog(msg, 'good');
+              updateStats(data.stats);
+              updateMoney(data.entity);
+            } else {
+              const err = await res.json();
+              addLog(err.error || '消费失败', 'warn');
+            }
+          } catch (e) { addLog('消费失败', 'danger'); }
+        }
+      }
+    }
   }
   isAnimating = false;
 
@@ -1325,8 +1435,8 @@ async function chooseDirection(directionNodeId) {
     if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
     const data = await res.json();
 
-    // 逐步动画
-    await animateSteps(data.path);
+    // 逐步动画 + 路过建筑实时消费提示
+    await animateSteps(data.path, data.passedBuildings);
 
     // 更新位置信息
     updatePosInfo(data.finalNode);
@@ -1342,8 +1452,6 @@ async function chooseDirection(directionNodeId) {
       }
       await fetchMap();
       showDirButtons(data.directions);
-      // 岔路途中也可以消费路过的建筑
-      if (data.passedBuildings?.length) showPassedBuildings(data.passedBuildings);
       return;
     }
 
@@ -1356,9 +1464,6 @@ async function chooseDirection(directionNodeId) {
     updateStats(data.stats);
     updateMoney(data.entity);
     updateActions(data.state);
-
-    // 显示路过的可消费建筑
-    if (data.passedBuildings?.length) showPassedBuildings(data.passedBuildings);
 
     // Log messages
     for (const msg of data.messages) {
@@ -1633,57 +1738,7 @@ window.buyExtraAction = async function() {
   }
 };
 
-let pendingPassedBuildings = [];
-
-function showPassedBuildings(buildings) {
-  if (!buildings || buildings.length === 0) return;
-  pendingPassedBuildings = buildings;
-  const list = document.getElementById('passed-buildings-list');
-  list.innerHTML = buildings.map((pb, i) =>
-    `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer" onclick="consumePassedBuilding(${i})">
-      <span style="font-size:14px">${pb.template?.icon || '🏗'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:600">${pb.building.name} Lv.${pb.building.level}</div>
-        <div style="font-size:8px;color:var(--text2)">${pb.building.ownerName} · ${Object.entries(pb.template?.effects || {}).map(([k,v]) => {
-          const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
-          return (names[k] || k) + '+' + v;
-        }).join(' ')}</div>
-      </div>
-      <span style="font-size:10px;font-weight:700;color:var(--yellow)">${pb.fee} CC</span>
-    </div>`
-  ).join('');
-  document.getElementById('passed-buildings-panel').style.display = 'block';
-}
-
-window.consumePassedBuilding = async function(index) {
-  const pb = pendingPassedBuildings[index];
-  if (!pb) return;
-  try {
-    const res = await fetch(API + '/api/world/use-building-at', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ nodeId: pb.nodeId }),
-    });
-    if (!res.ok) { const err = await res.json(); addLog(err.error || '消费失败', 'warn'); return; }
-    const data = await res.json();
-    for (const msg of data.messages) addLog(msg, 'good');
-    updateStats(data.stats);
-    updateMoney(data.entity);
-    // 移除已消费的建筑
-    pendingPassedBuildings.splice(index, 1);
-    if (pendingPassedBuildings.length === 0) {
-      closePassedBuildings();
-    } else {
-      showPassedBuildings(pendingPassedBuildings);
-    }
-  } catch (e) {
-    addLog('消费失败', 'danger');
-  }
-};
-
-window.closePassedBuildings = function() {
-  document.getElementById('passed-buildings-panel').style.display = 'none';
-  pendingPassedBuildings = [];
-};
+// 路过消费现在在 animateSteps 中实时处理，不再需要旧的 panel 逻辑
 
 // ============ CLICK HANDLER ============
 renderer.domElement.addEventListener('click', (event) => {
