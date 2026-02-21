@@ -30,8 +30,15 @@
     .fill-hunger{background:linear-gradient(90deg,#ef4444,#f97316)}
     .fill-energy{background:linear-gradient(90deg,#3b82f6,#06b6d4)}
     .fill-happy{background:linear-gradient(90deg,#a855f7,#ec4899)}
+    /* Mobile compact stats */
+    .mobile-stats{display:none;gap:4px;align-items:center}
+    .ms{font-size:9px;display:flex;align-items:center;gap:1px;background:rgba(0,0,0,0.4);padding:2px 5px;border-radius:6px}
+    .ms b{font-weight:700;min-width:14px;text-align:right}
     .pos-info{display:inline-block;font-size:11px;color:var(--text2);background:rgba(0,0,0,0.4);padding:3px 12px;border-radius:10px;white-space:nowrap}
     .top-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
+    .lang-toggle{padding:2px 6px;border:1px solid var(--border);border-radius:5px;font-size:9px;font-weight:700;
+      cursor:pointer;background:rgba(255,255,255,0.06);color:var(--text2);transition:all .2s}
+    .lang-toggle:hover{background:rgba(255,255,255,0.12);color:#fff}
     .money-badge{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:3px 10px;border-radius:10px;font-weight:700;font-size:12px;white-space:nowrap}
     .action-badge{background:rgba(59,130,246,0.2);color:var(--accent);padding:3px 8px;border-radius:8px;font-size:10px;border:1px solid rgba(59,130,246,0.3);white-space:nowrap}
     .btn-sm{padding:3px 8px;border:none;border-radius:5px;font-size:10px;cursor:pointer;font-weight:600;transition:all .2s}
@@ -192,12 +199,13 @@
       #right-panel{display:none}
       #game-log{width:calc(100% - 24px);left:12px;right:12px;max-height:100px}
       .stat-bars{display:none}
+      .mobile-stats{display:flex}
       .pos-info,.dice-info{display:none!important}
       #top-bar{padding:6px 10px}
       .logo{font-size:13px}
       #action-bar{padding:6px 10px;bottom:10px;left:10px;right:10px}
       .btn-dice{width:44px;height:44px;font-size:18px}
-      .dir-btn{padding:6px 10px;font-size:11px}
+      .dir-btn{padding:8px 14px;font-size:16px}
       #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
       .modal-content{width:calc(100vw - 16px);padding:12px}
     }
@@ -214,19 +222,25 @@
 <div id="top-bar">
   <div class="top-left">
     <span class="logo">EchoWorld 3D</span>
-    <a href="/" class="btn-sm btn-nav">首页</a>
+    <a href="/" class="btn-sm btn-nav" data-i18n="home">首页</a>
     <div class="stat-bars">
       <div class="stat-bar"><span class="label">🍔</span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
       <div class="stat-bar"><span class="label">⚡</span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
       <div class="stat-bar"><span class="label">😊</span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
     </div>
-    <div class="pos-info" id="pos-info">加载中...</div>
+    <div class="mobile-stats" id="mobile-stats">
+      <span class="ms">🍔<b id="ms-hunger">80</b></span>
+      <span class="ms">⚡<b id="ms-energy">80</b></span>
+      <span class="ms">😊<b id="ms-happy">80</b></span>
+    </div>
+    <div class="pos-info" id="pos-info" data-i18n="loading">加载中...</div>
     <div class="dice-info" id="dice-info">🎲 -</div>
   </div>
   <div class="top-right">
     <div class="money-badge" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">0 CC</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
-    <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout">退出</button>
+    <button class="lang-toggle" id="lang-toggle" onclick="switchLang()">EN</button>
+    <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout" data-i18n="logout">退出</button>
   </div>
 </div>
 
@@ -238,65 +252,65 @@
     <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺ 逆时针</button>
   </div>
   <div class="action-group">
-    <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
-    <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰 消费</button>
-    <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()">❤️ +行动</button>
+    <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()" data-i18n="build">🔨</button>
+    <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰</button>
+    <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()" data-i18n="extra_act">❤️ +1</button>
   </div>
 </div>
 
 <!-- Right Panel -->
 <div id="right-panel">
   <div class="panel-card">
-    <div class="panel-title">健康状态</div>
+    <div class="panel-title" data-i18n="health">健康状态</div>
     <div id="health-panel" style="font-size:10px;line-height:2">
       <div style="display:flex;align-items:center;gap:4px">
-        <span>🍔 饥饿</span>
+        <span>🍔 <span data-i18n="hunger">饥饿</span></span>
         <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-hunger-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#ef4444,#f97316);width:80%;transition:width .5s"></div></div>
         <span id="hp-hunger-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <span>⚡ 体力</span>
+        <span>⚡ <span data-i18n="energy">体力</span></span>
         <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-energy-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#06b6d4);width:80%;transition:width .5s"></div></div>
         <span id="hp-energy-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <span>😊 快乐</span>
+        <span>😊 <span data-i18n="happiness">快乐</span></span>
         <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-happy-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#a855f7,#ec4899);width:80%;transition:width .5s"></div></div>
         <span id="hp-happy-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
       </div>
     </div>
   </div>
   <div class="panel-card">
-    <div class="panel-title">排行榜</div>
+    <div class="panel-title" data-i18n="leaderboard">排行榜</div>
     <div id="leaderboard">-</div>
   </div>
   <div class="panel-card">
-    <div class="panel-title">我的建筑</div>
-    <div id="my-buildings"><span style="font-size:11px;color:var(--text2)">暂无</span></div>
+    <div class="panel-title" data-i18n="my_buildings">我的建筑</div>
+    <div id="my-buildings"><span style="font-size:11px;color:var(--text2)" data-i18n="none">暂无</span></div>
   </div>
   <div class="panel-card">
-    <div class="panel-title">世界经济</div>
+    <div class="panel-title" data-i18n="world_eco">世界经济</div>
     <div id="economy-panel" style="font-size:10px;line-height:1.8;color:var(--text2)">
-      <div>总财富: <span id="eco-total" style="color:var(--yellow);font-weight:700">0</span> CC</div>
-      <div>国库: <span id="eco-treasury" style="color:var(--orange);font-weight:700">0</span> CC</div>
-      <div>玩家数: <span id="eco-players" style="color:var(--accent)">0</span></div>
+      <div><span data-i18n="total_wealth">总财富</span>: <span id="eco-total" style="color:var(--yellow);font-weight:700">0</span> CC</div>
+      <div><span data-i18n="treasury">国库</span>: <span id="eco-treasury" style="color:var(--orange);font-weight:700">0</span> CC</div>
+      <div><span data-i18n="players">玩家数</span>: <span id="eco-players" style="color:var(--accent)">0</span></div>
     </div>
   </div>
   <div class="panel-card">
-    <div class="panel-title">我的邀请码</div>
+    <div class="panel-title" data-i18n="my_ref">我的邀请码</div>
     <div style="font-size:10px;color:var(--text2);line-height:1.8">
       <div id="my-referral-code" style="font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;cursor:pointer" onclick="copyReferralCode()" title="点击复制">-</div>
-      <div>分享邀请码，好友注册后你获得 <span style="color:var(--yellow)">100 CC</span></div>
+      <div><span data-i18n="ref_share">分享邀请码，好友注册后你获得</span> <span style="color:var(--yellow)">100 CC</span></div>
     </div>
   </div>
   <div class="panel-card">
-    <div class="panel-title">马斯洛需求层次</div>
+    <div class="panel-title" data-i18n="maslow">马斯洛需求层次</div>
     <div style="font-size:10px;line-height:1.6;color:var(--text2)">
-      <div><span style="color:#4ade80">L1 生理</span> 食物/水/住所</div>
-      <div><span style="color:#60a5fa">L2 安全</span> 医疗/药品/储蓄</div>
-      <div><span style="color:#fbbf24">L3 社交</span> 茶馆/酒吧/社区</div>
-      <div><span style="color:#f97316">L4 尊重</span> 餐厅/酒店/银行</div>
-      <div><span style="color:#a855f7">L5 实现</span> 学院/艺术馆/创业</div>
+      <div><span style="color:#4ade80" data-i18n="l1">L1 生理</span> <span data-i18n="l1d">食物/水/住所</span></div>
+      <div><span style="color:#60a5fa" data-i18n="l2">L2 安全</span> <span data-i18n="l2d">医疗/药品/储蓄</span></div>
+      <div><span style="color:#fbbf24" data-i18n="l3">L3 社交</span> <span data-i18n="l3d">茶馆/酒吧/社区</span></div>
+      <div><span style="color:#f97316" data-i18n="l4">L4 尊重</span> <span data-i18n="l4d">餐厅/酒店/银行</span></div>
+      <div><span style="color:#a855f7" data-i18n="l5">L5 实现</span> <span data-i18n="l5d">学院/艺术馆/创业</span></div>
     </div>
   </div>
 </div>
@@ -307,7 +321,7 @@
   <div class="bo-desc" id="bo-desc"></div>
   <div class="bo-effects" id="bo-effects"></div>
   <div style="display:flex;gap:10px">
-    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()">知道了</button>
+    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()" data-i18n="got_it">知道了</button>
   </div>
 </div>
 
@@ -315,18 +329,18 @@
 <div id="consume-prompt" style="display:none;position:fixed;z-index:22;top:50%;left:50%;transform:translate(-50%,-50%);
   background:rgba(17,24,39,0.95);border:1px solid var(--accent);border-radius:14px;padding:16px 22px;
   backdrop-filter:blur(12px);min-width:280px;max-width:360px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
-  <div style="font-size:11px;color:var(--text2);margin-bottom:8px">路过建筑</div>
+  <div style="font-size:11px;color:var(--text2);margin-bottom:8px" data-i18n="passed">路过建筑</div>
   <div id="cp-title" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
   <div id="cp-owner" style="font-size:11px;color:var(--text2);margin-bottom:6px"></div>
   <div id="cp-effects" style="font-size:12px;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px;justify-content:center">
     <button id="cp-consume-btn" style="padding:8px 20px;border-radius:8px;border:none;
       background:var(--accent);color:white;font-size:13px;font-weight:700;cursor:pointer" onclick="resolveConsumePrompt(true)">
-      消费 <span id="cp-fee"></span> CC
+      💰 <span id="cp-fee"></span> CC
     </button>
     <button id="cp-skip-btn" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);
       background:rgba(255,255,255,0.06);color:var(--text2);font-size:13px;cursor:pointer" onclick="resolveConsumePrompt(false)">
-      跳过 (<span id="cp-countdown">3</span>s)
+      <span data-i18n="skip">跳过</span> (<span id="cp-countdown">3</span>s)
     </button>
   </div>
 </div>
@@ -335,11 +349,11 @@
 <div id="build-modal">
   <div class="modal-content">
     <button class="btn-close-modal" onclick="closeBuildModal()">&times;</button>
-    <div class="modal-title">选择建筑类型</div>
+    <div class="modal-title" data-i18n="choose_build">选择建筑类型</div>
     <div id="build-list"></div>
     <div style="margin-top:10px">
-      <label style="font-size:11px;color:var(--text2)">自定义名称 (可选)</label>
-      <input id="build-custom-name" type="text" placeholder="留空使用默认名" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;margin-top:4px">
+      <label style="font-size:11px;color:var(--text2)" data-i18n="custom_name">自定义名称 (可选)</label>
+      <input id="build-custom-name" type="text" data-i18n="custom_hint" placeholder="留空使用默认名" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;margin-top:4px">
     </div>
   </div>
 </div>
@@ -348,54 +362,54 @@
 <div id="wealth-modal">
   <div class="wealth-content">
     <div class="wealth-title">
-      <span>个人财富</span>
+      <span data-i18n="wealth">个人财富</span>
       <button class="btn-close-modal" onclick="closeWealthPage()">&times;</button>
     </div>
     <div class="wealth-balance">
       <div class="big" id="wp-balance">0 CC</div>
-      <div class="sub">净资产: <span id="wp-networth">0</span> CC</div>
+      <div class="sub"><span data-i18n="net_worth">净资产</span>: <span id="wp-networth">0</span> CC</div>
     </div>
     <div class="wealth-section">
-      <div class="wealth-section-title">收支概览</div>
-      <div class="wealth-row"><span class="wlabel">今日收入</span><span class="wval pos" id="wp-income">+0 CC</span></div>
-      <div class="wealth-row"><span class="wlabel">今日支出</span><span class="wval neg" id="wp-expense">-0 CC</span></div>
-      <div class="wealth-row"><span class="wlabel">信用评分</span><span class="wval" id="wp-credit">500</span></div>
-      <div class="wealth-row"><span class="wlabel">生存天数</span><span class="wval" id="wp-days">0</span></div>
-      <div class="wealth-row"><span class="wlabel">累计充值</span><span class="wval" id="wp-recharged">0 CC</span></div>
+      <div class="wealth-section-title" data-i18n="income_ov">收支概览</div>
+      <div class="wealth-row"><span class="wlabel" data-i18n="daily_in">今日收入</span><span class="wval pos" id="wp-income">+0 CC</span></div>
+      <div class="wealth-row"><span class="wlabel" data-i18n="daily_out">今日支出</span><span class="wval neg" id="wp-expense">-0 CC</span></div>
+      <div class="wealth-row"><span class="wlabel" data-i18n="credit">信用评分</span><span class="wval" id="wp-credit">500</span></div>
+      <div class="wealth-row"><span class="wlabel" data-i18n="days">生存天数</span><span class="wval" id="wp-days">0</span></div>
+      <div class="wealth-row"><span class="wlabel" data-i18n="recharged">累计充值</span><span class="wval" id="wp-recharged">0 CC</span></div>
     </div>
     <div class="wealth-section">
-      <div class="wealth-section-title">我的资产</div>
-      <div id="wp-buildings"><div style="font-size:11px;color:var(--text2)">暂无资产</div></div>
+      <div class="wealth-section-title" data-i18n="my_assets">我的资产</div>
+      <div id="wp-buildings"><div style="font-size:11px;color:var(--text2)" data-i18n="no_assets">暂无资产</div></div>
     </div>
     <div class="wealth-section">
-      <div class="wealth-section-title">生命恢复</div>
+      <div class="wealth-section-title" data-i18n="life_rec">生命恢复</div>
       <div style="display:flex;gap:8px">
-        <button onclick="recoverHunger()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(239,68,68,0.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">🍔 恢复饥饿 +20<br><span style="font-size:10px;opacity:0.7">花费 80 CC</span></button>
+        <button onclick="recoverHunger()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(239,68,68,0.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'" data-i18n-html="1"><span data-i18n="rec_hunger">🍔 恢复饥饿 +20</span><br><span style="font-size:10px;opacity:0.7" data-i18n="rec_cost">花费 80 CC</span></button>
       </div>
-      <div style="font-size:9px;color:var(--text2);margin-top:6px;line-height:1.5">体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复</div>
+      <div style="font-size:9px;color:var(--text2);margin-top:6px;line-height:1.5" data-i18n="rec_hint">体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复</div>
     </div>
-    <button class="btn-recharge" onclick="closeWealthPage();openRechargeModal()">充值购买 CC 币</button>
+    <button class="btn-recharge" onclick="closeWealthPage();openRechargeModal()" data-i18n="buy_cc">充值购买 CC 币</button>
     <div class="wealth-referral">
-      <div style="font-size:10px;color:var(--text2);margin-bottom:4px">我的邀请码</div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:4px" data-i18n="ref_code">我的邀请码</div>
       <div class="ref-code" id="wp-referral" onclick="copyReferralCode()">-</div>
-      <div class="ref-desc">分享邀请码，好友注册后你获得 100 CC</div>
+      <div class="ref-desc" data-i18n="ref_desc">分享邀请码，好友注册后你获得 100 CC</div>
     </div>
   </div>
 </div>
 
 <!-- Dead Overlay (永久死亡) -->
 <div id="dead-overlay">
-  <div class="dead-title">角色永久死亡</div>
-  <div class="dead-msg" id="dead-msg">生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。</div>
-  <button class="btn-death-action btn-go-home" onclick="confirmDeath()">确认并返回</button>
+  <div class="dead-title" data-i18n="death_title">角色永久死亡</div>
+  <div class="dead-msg" id="dead-msg" data-i18n="death_msg" data-i18n-html="1">生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。</div>
+  <button class="btn-death-action btn-go-home" onclick="confirmDeath()" data-i18n="confirm_ret">确认并返回</button>
 </div>
 
 <!-- Recharge Modal -->
 <div id="recharge-modal">
   <div class="recharge-content">
     <button class="btn-close-modal" onclick="closeRechargeModal()" style="float:right">&times;</button>
-    <div class="recharge-title">充值 CC 币</div>
-    <div id="recharge-bonus" class="recharge-bonus">🎉 首充额外赠送 50%！</div>
+    <div class="recharge-title" data-i18n="rech_title">充值 CC 币</div>
+    <div id="recharge-bonus" class="recharge-bonus" data-i18n="first_bonus">🎉 首充额外赠送 50%！</div>
     <div class="recharge-grid">
       <div class="recharge-opt" onclick="doRecharge(100)"><div class="amount">100</div><div class="label">CC</div></div>
       <div class="recharge-opt" onclick="doRecharge(500)"><div class="amount">500</div><div class="label">CC</div></div>
@@ -404,15 +418,15 @@
       <div class="recharge-opt" onclick="doRecharge(5000)"><div class="amount">5000</div><div class="label">CC</div></div>
       <div class="recharge-opt" onclick="doRecharge(10000)"><div class="amount">10000</div><div class="label">CC</div></div>
     </div>
-    <div style="font-size:10px;color:var(--text2);margin-top:8px">购买CC币可提前获得财富，投资资产后可财富增值</div>
+    <div style="font-size:10px;color:var(--text2);margin-top:8px" data-i18n="rech_desc">购买CC币可提前获得财富，投资资产后可财富增值</div>
   </div>
 </div>
 
 <!-- Stamina Confirm Modal -->
 <div id="stamina-confirm">
   <div class="stamina-content">
-    <div class="stamina-title">消耗体力兑换行动</div>
-    <div class="stamina-desc">消耗生命值来获得额外行动次数</div>
+    <div class="stamina-title" data-i18n="stam_title">消耗体力兑换行动</div>
+    <div class="stamina-desc" data-i18n="stam_desc">消耗生命值来获得额外行动次数</div>
     <div class="stamina-cost">
       <span class="sc-item">🍔 -10</span>
       <span class="sc-item">⚡ -10</span>
@@ -420,8 +434,8 @@
     </div>
     <div id="stamina-warning" style="font-size:11px;color:var(--red);margin-bottom:10px;display:none"></div>
     <div class="stamina-btns">
-      <button class="btn-confirm" onclick="confirmBuyAction()">确认兑换</button>
-      <button class="btn-cancel" onclick="closeStaminaConfirm()">取消</button>
+      <button class="btn-confirm" onclick="confirmBuyAction()" data-i18n="confirm_ex">确认兑换</button>
+      <button class="btn-cancel" onclick="closeStaminaConfirm()" data-i18n="cancel">取消</button>
     </div>
   </div>
 </div>
@@ -449,6 +463,118 @@ if (!token) location.href = '/login';
 const MASLOW_COLORS = { 1: 0x4ade80, 2: 0x60a5fa, 3: 0xfbbf24, 4: 0xf97316, 5: 0xa855f7 };
 const NODE_COLORS = { start: 0x10b981, tax: 0xef4444, welfare: 0x3b82f6, event: 0xfbbf24, intersection: 0x475569, road: 0x283040, lot: 0x1e293b };
 const PLAYER_COLORS = ['#22d3ee','#f472b6','#a78bfa','#fb923c','#4ade80','#e879f9','#fbbf24','#38bdf8'];
+
+// ============ I18N ============
+const I18N = {
+  zh: {
+    home:'首页',logout:'退出',loading:'加载中...',action:'行动',
+    hunger:'饥饿',energy:'体力',happiness:'快乐',
+    health:'健康状态',leaderboard:'排行榜',my_buildings:'我的建筑',
+    world_eco:'世界经济',total_wealth:'总财富',treasury:'国库',players:'玩家数',
+    my_ref:'我的邀请码',ref_share:'分享邀请码，好友注册后你获得',
+    maslow:'马斯洛需求层次',
+    l1:'L1 生理',l1d:'食物/水/住所',l2:'L2 安全',l2d:'医疗/药品/储蓄',
+    l3:'L3 社交',l3d:'茶馆/酒吧/社区',l4:'L4 尊重',l4d:'餐厅/酒店/银行',
+    l5:'L5 实现',l5d:'学院/艺术馆/创业',
+    none:'暂无',build:'🔨',consume:'💰',extra_act:'❤️ +1',got_it:'知道了',
+    passed:'路过建筑',skip:'跳过',
+    choose_build:'选择建筑类型',custom_name:'自定义名称 (可选)',custom_hint:'留空使用默认名',
+    wealth:'个人财富',net_worth:'净资产',income_ov:'收支概览',
+    daily_in:'今日收入',daily_out:'今日支出',credit:'信用评分',
+    days:'生存天数',recharged:'累计充值',my_assets:'我的资产',
+    no_assets:'暂无资产，建造设施获得被动收入',
+    life_rec:'生命恢复',rec_hunger:'🍔 恢复饥饿 +20',rec_cost:'花费 80 CC',
+    rec_hint:'体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复',
+    buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',
+    rech_title:'充值 CC 币',first_bonus:'🎉 首充额外赠送 50%！',rech_desc:'购买CC币可提前获得财富，投资资产后可财富增值',
+    death_title:'角色永久死亡',
+    death_msg:'生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。',
+    confirm_ret:'确认并返回',
+    stam_title:'消耗体力兑换行动',stam_desc:'消耗生命值来获得额外行动次数',
+    confirm_ex:'确认兑换',cancel:'取消',
+    ml1:'L1 生理需求',ml2:'L2 安全需求',ml3:'L3 社交需求',ml4:'L4 尊重需求',ml5:'L5 自我实现',
+    connecting:'正在连接 EchoWorld...',welcome:'欢迎回来',
+    rolled:'掷出',steps:'步',remaining:'剩余',fork:'到达岔路口',
+    move_fail:'移动失败',dice_fail:'掷骰子失败',consume_fail:'消费失败',
+    build_fail:'建造失败',buy_fail:'购买行动失败',rech_fail:'充值失败',
+    rec_fail:'恢复失败',load_fail:'加载状态失败',no_lots:'附近没有空地',
+    death_log:'角色已永久死亡',ref_copied:'邀请码已复制',broadcast:'播报',
+    n_start:'原点 🏛',n_tax:'税务站 💸',n_welfare:'福利站 🎁',
+    n_event:'随机事件 🎲',n_inter:'十字路口',n_road:'道路',n_lot:'空地',
+    me:'我',fee_label:'费用',use_label:'使用',times:'次',
+    facility:'的设施',status:'当前状态',after:'兑换后',
+    lang:'EN',need_req:'需要饥饿≥15且体力≥15',
+    use_fee:'使用费',
+  },
+  en: {
+    home:'Home',logout:'Logout',loading:'Loading...',action:'Act',
+    hunger:'Hunger',energy:'Energy',happiness:'Happy',
+    health:'HEALTH',leaderboard:'RANKING',my_buildings:'BUILDINGS',
+    world_eco:'ECONOMY',total_wealth:'Total',treasury:'Treasury',players:'Players',
+    my_ref:'REFERRAL',ref_share:'Share code, friend signs up, you get',
+    maslow:'MASLOW HIERARCHY',
+    l1:'L1 Physio',l1d:'Food/Water/Shelter',l2:'L2 Safety',l2d:'Clinic/Meds/Savings',
+    l3:'L3 Social',l3d:'Tea/Bar/Community',l4:'L4 Esteem',l4d:'Restaurant/Hotel/Bank',
+    l5:'L5 Actualize',l5d:'Academy/Gallery/Hub',
+    none:'None',build:'🔨',consume:'💰',extra_act:'❤️ +1',got_it:'OK',
+    passed:'Passed Building',skip:'Skip',
+    choose_build:'Choose Building',custom_name:'Custom Name (optional)',custom_hint:'Leave empty for default',
+    wealth:'Wealth',net_worth:'Net Worth',income_ov:'INCOME',
+    daily_in:'Today Income',daily_out:'Today Expense',credit:'Credit Score',
+    days:'Days Survived',recharged:'Recharged',my_assets:'ASSETS',
+    no_assets:'No assets yet. Build for passive income.',
+    life_rec:'RECOVERY',rec_hunger:'🍔 Hunger +20',rec_cost:'Cost 80 CC',
+    rec_hint:'Energy recovers daily. Hunger only via buildings or CC.',
+    buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',
+    rech_title:'Buy CC',first_bonus:'🎉 First purchase +50%!',rech_desc:'Buy CC to invest and grow wealth',
+    death_title:'Permanent Death',
+    death_msg:'Health depleted. Wealth transferred to treasury.<br>Cannot revive.<br><br>Thank you for your EchoWorld journey.',
+    confirm_ret:'Confirm & Return',
+    stam_title:'Exchange Stamina',stam_desc:'Spend health for extra actions',
+    confirm_ex:'Confirm',cancel:'Cancel',
+    ml1:'L1 Physiological',ml2:'L2 Safety',ml3:'L3 Social',ml4:'L4 Esteem',ml5:'L5 Self-Actualization',
+    connecting:'Connecting to EchoWorld...',welcome:'Welcome back',
+    rolled:'Rolled',steps:'steps',remaining:'remaining',fork:'Fork ahead',
+    move_fail:'Move failed',dice_fail:'Roll failed',consume_fail:'Use failed',
+    build_fail:'Build failed',buy_fail:'Buy action failed',rech_fail:'Recharge failed',
+    rec_fail:'Recovery failed',load_fail:'Load failed',no_lots:'No empty lots nearby',
+    death_log:'Character permanently dead',ref_copied:'Code copied',broadcast:'News',
+    n_start:'Origin 🏛',n_tax:'Tax 💸',n_welfare:'Welfare 🎁',
+    n_event:'Event 🎲',n_inter:'Intersection',n_road:'Road',n_lot:'Empty Lot',
+    me:'Me',fee_label:'Fee',use_label:'Used',times:'x',
+    facility:"'s facility",status:'Status',after:'After',
+    lang:'中文',need_req:'Need Hunger≥15 & Energy≥15',
+    use_fee:'Fee',
+  }
+};
+let currentLang = localStorage.getItem('echoworld_lang') || 'zh';
+function t(k) { return (I18N[currentLang] || I18N.zh)[k] || (I18N.zh)[k] || k; }
+
+/** Update all static i18n elements */
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.dataset.i18n;
+    if (el.tagName === 'INPUT') el.placeholder = t(k);
+    else if (el.dataset.i18nHtml !== undefined) el.innerHTML = t(k);
+    else if (!el.querySelector('[data-i18n]')) el.textContent = t(k);
+  });
+  // Lang toggle button
+  document.getElementById('lang-toggle').textContent = t('lang');
+  // HTML lang attr
+  document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+}
+
+window.switchLang = function() {
+  currentLang = currentLang === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('echoworld_lang', currentLang);
+  applyI18n();
+  if (myState) {
+    updateActions(myState);
+    updateStats(myState);
+  }
+  if (allPlayers.length) updateLeaderboard(allPlayers);
+  if (allNodes.length) updateMyBuildings(allNodes);
+};
 
 let currentUser = null, myState = null, myEntity = null, allNodes = [], allPlayers = [];
 let buildingCatalog = [], selectedBuildNodeId = null;
@@ -1077,7 +1203,7 @@ function showConsumePrompt(pb) {
     const b = pb.building;
     const effectNames = { hunger: '🍔', energy: '⚡', happiness: '😊' };
     document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${b.name} Lv.${b.level}`;
-    document.getElementById('cp-owner').textContent = `${b.ownerName} 的设施`;
+    document.getElementById('cp-owner').textContent = `${b.ownerName}${t('facility')}`;
     document.getElementById('cp-effects').innerHTML = Object.entries(tpl?.effects || {}).map(([k,v]) => {
       const eMult = 1 + (b.level - 1) * 0.2;
       return `<span style="margin:0 4px">${effectNames[k]||k} +${Math.floor(v * eMult)}</span>`;
@@ -1146,9 +1272,9 @@ async function animateSteps(pathPoints, passedBuildings) {
               updateMoney(data.entity);
             } else {
               const err = await res.json();
-              addLog(err.error || '消费失败', 'warn');
+              addLog(err.error || t('consume_fail'), 'warn');
             }
-          } catch (e) { addLog('消费失败', 'danger'); }
+          } catch (e) { addLog(t('consume_fail'), 'danger'); }
         }
       }
     }
@@ -1239,6 +1365,10 @@ function updateStats(stats) {
   // 低血量警告 - 变红
   document.getElementById('hp-hunger-val').style.color = h <= 20 ? 'var(--red)' : 'var(--text2)';
   document.getElementById('hp-energy-val').style.color = e <= 15 ? 'var(--red)' : 'var(--text2)';
+  // Mobile compact stats
+  document.getElementById('ms-hunger').textContent = h;
+  document.getElementById('ms-energy').textContent = e;
+  document.getElementById('ms-happy').textContent = hp;
 }
 
 function updateMoney(entity) {
@@ -1246,17 +1376,16 @@ function updateMoney(entity) {
 }
 
 function updateActions(state) {
-  document.getElementById('action-badge').textContent = `行动 ${state?.actionsToday ?? 0}/${state?.maxActions ?? 8}`;
+  document.getElementById('action-badge').textContent = `${t('action')} ${state?.actionsToday ?? 0}/${state?.maxActions ?? 8}`;
   const actionsUsedUp = (state?.actionsToday ?? 0) >= (state?.maxActions ?? 8);
   document.getElementById('btn-roll').disabled = !state?.alive || actionsUsedUp || state?.pendingRoll !== null;
-  // 行动次数用完时显示 "购买额外行动" 按钮
   document.getElementById('btn-extra-action').style.display = (actionsUsedUp && state?.alive) ? 'block' : 'none';
 }
 
 function updatePosInfo(node) {
   if (!node) return;
-  const labels = { start: '原点 🏛', tax: '税务站 💸', welfare: '福利站 🎁', event: '随机事件 🎲', intersection: '十字路口', road: '道路', lot: '空地' };
-  let text = labels[node.type] || node.type;
+  const labelKeys = { start: 'n_start', tax: 'n_tax', welfare: 'n_welfare', event: 'n_event', intersection: 'n_inter', road: 'n_road', lot: 'n_lot' };
+  let text = t(labelKeys[node.type] || node.type);
   text += ` (${node.x}, ${node.y})`;
   if (node.building) text = `${node.building.name} ${buildingCatalog.find(b => b.type === node.building.templateType)?.icon || ''} Lv.${node.building.level} (${node.x},${node.y})`;
   document.getElementById('pos-info').textContent = text;
@@ -1275,8 +1404,8 @@ function addLog(msg, type = '') {
 function updateLeaderboard(players) {
   const sorted = [...players].sort((a, b) => (b.money ?? 0) - (a.money ?? 0)).slice(0, 8);
   document.getElementById('leaderboard').innerHTML = sorted.map((p, i) =>
-    `<div class="lb-row"><div class="lb-rank ${i===0?'t1':i===1?'t2':i===2?'t3':''}">${i+1}</div><span class="lb-name">${p.name}${p.entityId === currentUser?.entityId ? ' (我)' : ''}</span><span class="lb-money">${(p.money ?? 0).toFixed(0)} CC</span></div>`
-  ).join('') || '<span style="font-size:11px;color:var(--text2)">暂无</span>';
+    `<div class="lb-row"><div class="lb-rank ${i===0?'t1':i===1?'t2':i===2?'t3':''}">${i+1}</div><span class="lb-name">${p.name}${p.entityId === currentUser?.entityId ? ` (${t('me')})` : ''}</span><span class="lb-money">${(p.money ?? 0).toFixed(0)} CC</span></div>`
+  ).join('') || `<span style="font-size:11px;color:var(--text2)">${t('none')}</span>`;
 }
 
 function updateMyBuildings(nodes) {
@@ -1284,7 +1413,7 @@ function updateMyBuildings(nodes) {
   document.getElementById('my-buildings').innerHTML = myBuildings.map(n => {
     const tpl = buildingCatalog.find(b => b.type === n.building.templateType);
     return `<div class="building-item"><span class="b-icon">${tpl?.icon || '?'}</span><span class="b-name">${n.building.name}</span><span class="b-lv">Lv.${n.building.level}</span><span style="font-size:9px;color:var(--text2);margin-left:auto">(${n.x},${n.y})</span></div>`;
-  }).join('') || '<span style="font-size:11px;color:var(--text2)">暂无</span>';
+  }).join('') || `<span style="font-size:11px;color:var(--text2)">${t('none')}</span>`;
 }
 
 function showBuildingOverlay(node) {
@@ -1295,7 +1424,7 @@ function showBuildingOverlay(node) {
   const lvMult = 1 + (b.level - 1) * 0.3;
   const fee = Math.floor(tpl.baseFee * lvMult);
   document.getElementById('bo-title').textContent = `${tpl.icon} ${b.name} (Lv.${b.level}) - ${b.ownerName}`;
-  document.getElementById('bo-desc').textContent = `${tpl.description} | 费用: ${fee} CC`;
+  document.getElementById('bo-desc').textContent = `${tpl.description} | ${t('use_fee')}: ${fee} CC`;
   const effectsHtml = Object.entries(tpl.effects).map(([k, v]) => {
     const eMult = 1 + (b.level - 1) * 0.2;
     const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
@@ -1354,7 +1483,7 @@ async function fetchMe() {
     return meData;
   } catch (e) {
     console.error('fetchMe error:', e);
-    addLog('加载状态失败', 'danger');
+    addLog(t('load_fail'), 'danger');
   }
 }
 
@@ -1393,19 +1522,18 @@ function showDirButtons(directions) {
 
   if (directions.length === 1) {
     btnLeft.style.display = 'block';
-    btnLeft.textContent = directions[0].label;
+    btnLeft.textContent = '→';
     btnLeft.className = 'dir-btn dir-forward';
     btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
   } else if (directions.length >= 2) {
-    // 第一个为顺时针，第二个为逆时针
     const cwDir = directions.find(d => d.label.includes('顺')) || directions[0];
     const ccwDir = directions.find(d => d.label.includes('逆')) || directions[1];
     btnLeft.style.display = 'block';
-    btnLeft.textContent = cwDir.label;
+    btnLeft.textContent = '↻';
     btnLeft.className = 'dir-btn dir-cw';
     btnLeft.onclick = () => chooseDirection(cwDir.nodeId);
     btnRight.style.display = 'block';
-    btnRight.textContent = ccwDir.label;
+    btnRight.textContent = '↺';
     btnRight.className = 'dir-btn dir-ccw';
     btnRight.onclick = () => chooseDirection(ccwDir.nodeId);
   }
@@ -1427,13 +1555,13 @@ window.rollDice = async function() {
     if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
     const data = await res.json();
 
-    addLog(`掷出 ${data.roll} 点`, 'good');
+    addLog(`${t('rolled')} ${data.roll}`, 'good');
 
     // Show dice number on button and in top bar
     const btn = document.getElementById('btn-roll');
     btn.innerHTML = `<span class="dice-num">${data.roll}</span>`;
     btn.disabled = true;
-    document.getElementById('dice-info').textContent = `🎲 ${data.roll} 步`;
+    document.getElementById('dice-info').textContent = `🎲 ${data.roll} ${t('steps')}`;
 
     // Hide build/consume during movement
     document.getElementById('btn-build').style.display = 'none';
@@ -1444,7 +1572,7 @@ window.rollDice = async function() {
     showDirButtons(data.directions);
 
   } catch (e) {
-    addLog('掷骰子失败', 'danger');
+    addLog(t('dice_fail'), 'danger');
   }
 };
 
@@ -1467,8 +1595,8 @@ async function chooseDirection(directionNodeId) {
 
     if (data.fork) {
       // 遇到岔路口，等待玩家选择
-      addLog(`到达岔路口，剩余 ${data.remainingSteps} 步`, 'warn');
-      document.getElementById('dice-info').textContent = `🎲 剩余 ${data.remainingSteps} 步`;
+      addLog(`${t('fork')}，${t('remaining')} ${data.remainingSteps} ${t('steps')}`, 'warn');
+      document.getElementById('dice-info').textContent = `🎲 ${t('remaining')} ${data.remainingSteps} ${t('steps')}`;
       myState = data.state;
       // 更新坐标并刷新地图，确保新位置周围的节点已加载
       if (data.finalNode) {
@@ -1521,14 +1649,14 @@ async function chooseDirection(directionNodeId) {
     await fetchMe();
 
   } catch (e) {
-    addLog('移动失败', 'danger');
+    addLog(t('move_fail'), 'danger');
   }
 }
 
 window.useBuilding = async function() {
   try {
     const res = await fetch(API + '/api/world/use-building', { method: 'POST', headers: authHeaders() });
-    if (!res.ok) { const err = await res.json(); addLog(err.error || '使用失败', 'warn'); return; }
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('consume_fail'), 'warn'); return; }
     const data = await res.json();
 
     for (const msg of data.messages) {
@@ -1544,7 +1672,7 @@ window.useBuilding = async function() {
     await fetchMe();
 
   } catch (e) {
-    addLog('消费失败', 'danger');
+    addLog(t('consume_fail'), 'danger');
   }
 };
 
@@ -1552,7 +1680,7 @@ window.openBuildModal = function() {
   const modal = document.getElementById('build-modal');
   const list = document.getElementById('build-list');
   const groups = {};
-  const levelNames = { 1: 'L1 生理需求', 2: 'L2 安全需求', 3: 'L3 社交需求', 4: 'L4 尊重需求', 5: 'L5 自我实现' };
+  const levelNames = { 1: t('ml1'), 2: t('ml2'), 3: t('ml3'), 4: t('ml4'), 5: t('ml5') };
   const levelColors = { 1: '#4ade80', 2: '#60a5fa', 3: '#fbbf24', 4: '#f97316', 5: '#a855f7' };
 
   for (const b of buildingCatalog) {
@@ -1568,7 +1696,7 @@ window.openBuildModal = function() {
     for (const b of items) {
       const opt = document.createElement('div');
       opt.className = 'build-option';
-      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${b.name}</div><div class="desc">${b.description}${b.baseFee > 0 ? ` | 使用费: ${b.baseFee} CC` : ''}</div></div><span class="bo-cost">${b.cost} CC</span>`;
+      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${b.name}</div><div class="desc">${b.description}${b.baseFee > 0 ? ` | ${t('use_fee')}: ${b.baseFee} CC` : ''}</div></div><span class="bo-cost">${b.cost} CC</span>`;
       opt.onclick = () => doBuild(b.type);
       group.appendChild(opt);
     }
@@ -1587,7 +1715,7 @@ async function doBuild(templateType) {
     const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
     const meData = await meRes.json();
     const lots = meData.nearbyLots;
-    if (!lots || lots.length === 0) { addLog('附近没有空地', 'warn'); return; }
+    if (!lots || lots.length === 0) { addLog(t('no_lots'), 'warn'); return; }
 
     const nodeId = lots[0].id;
     const customName = document.getElementById('build-custom-name').value.trim() || undefined;
@@ -1596,7 +1724,7 @@ async function doBuild(templateType) {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ nodeId, templateType, customName }),
     });
-    if (!res.ok) { const err = await res.json(); addLog(err.error || '建造失败', 'warn'); return; }
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('build_fail'), 'warn'); return; }
     const data = await res.json();
 
     addLog(data.message, 'good');
@@ -1606,7 +1734,7 @@ async function doBuild(templateType) {
     await fetchMe();
 
   } catch (e) {
-    addLog('建造失败', 'danger');
+    addLog(t('build_fail'), 'danger');
   }
 }
 
@@ -1615,7 +1743,7 @@ window.confirmDeath = async function() {
   try {
     await fetch(API + '/api/world/confirm-death', { method: 'POST', headers: authHeaders() });
   } catch (e) { /* ignore */ }
-  addLog('角色已永久死亡', 'danger');
+  addLog(t('death_log'), 'danger');
   // 返回首页
   setTimeout(() => { location.href = '/'; }, 1500);
 };
@@ -1647,16 +1775,16 @@ window.openWealthPage = async function() {
         <span class="wa-icon">${tpl?.icon || '🏗'}</span>
         <div class="wa-info">
           <div class="wa-name">${b.name} (Lv.${b.level})</div>
-          <div class="wa-detail">${tpl?.name || b.templateType} · (${n.x},${n.y}) · 使用 ${b.usageCount || 0} 次</div>
+          <div class="wa-detail">${tpl?.name || b.templateType} · (${n.x},${n.y}) · ${t('use_label')} ${b.usageCount || 0}${t('times')}</div>
         </div>
         <div class="wa-val">
-          <div class="wa-fee">${fee} CC/次</div>
+          <div class="wa-fee">${fee} CC/${t('times')}</div>
           <div class="wa-uses">累计收入 ~${fee * (b.usageCount || 0)} CC</div>
         </div>
       </div>`;
     }).join('');
   } else {
-    document.getElementById('wp-buildings').innerHTML = '<div style="font-size:11px;color:var(--text2)">暂无资产，建造设施获得被动收入</div>';
+    document.getElementById('wp-buildings').innerHTML = `<div style="font-size:11px;color:var(--text2)">${t('no_assets')}</div>`;
   }
 
   modal.classList.add('show');
@@ -1699,7 +1827,7 @@ window.doRecharge = async function(amount) {
     }
     closeRechargeModal();
   } catch (e) {
-    addLog('充值失败', 'danger');
+    addLog(t('rech_fail'), 'danger');
   }
 };
 
@@ -1708,9 +1836,9 @@ window.copyReferralCode = function() {
   const code = currentUser?.referralCode;
   if (!code) return;
   navigator.clipboard.writeText(code).then(() => {
-    addLog(`邀请码 ${code} 已复制`, 'good');
+    addLog(`${t('ref_copied')}: ${code}`, 'good');
   }).catch(() => {
-    addLog(`邀请码: ${code}`, 'good');
+    addLog(`${t('ref_code')}: ${code}`, 'good');
   });
 };
 
@@ -1744,7 +1872,7 @@ async function fetchWorldBroadcast() {
       for (const ev of newEvents.slice(-5)) {
         const d = ev.data || {};
         const desc = d.description || d.reason || d.action || '';
-        if (desc) addLog(`[播报] ${desc}`, 'broadcast');
+        if (desc) addLog(`[${t('broadcast')}] ${desc}`, 'broadcast');
       }
     }
   } catch(e) { /* ignore */ }
@@ -1758,10 +1886,10 @@ window.buyExtraAction = function() {
   const e = myState?.energy ?? 0;
   const warn = document.getElementById('stamina-warning');
   if (h < 15 || e < 15) {
-    warn.textContent = `当前状态: 🍔${h} ⚡${e}，需要饥饿≥15且体力≥15`;
+    warn.textContent = `${t('status')}: 🍔${h} ⚡${e} — ${t('need_req')}`;
     warn.style.display = 'block';
   } else {
-    warn.textContent = `当前状态: 🍔${h} ⚡${e} → 兑换后: 🍔${h-10} ⚡${e-10}`;
+    warn.textContent = `${t('status')}: 🍔${h} ⚡${e} → ${t('after')}: 🍔${h-10} ⚡${e-10}`;
     warn.style.display = 'block';
     warn.style.color = 'var(--text2)';
   }
@@ -1784,7 +1912,7 @@ window.confirmBuyAction = async function() {
     myState = data.state;
     await fetchMe();
   } catch (e) {
-    addLog('购买行动失败', 'danger');
+    addLog(t('buy_fail'), 'danger');
   }
 };
 
@@ -1794,7 +1922,7 @@ window.confirmBuyAction = async function() {
 window.recoverHunger = async function() {
   try {
     const res = await fetch(API + '/api/world/recover-hunger', { method: 'POST', headers: authHeaders() });
-    if (!res.ok) { const err = await res.json(); addLog(err.error || '恢复失败', 'warn'); return; }
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('rec_fail'), 'warn'); return; }
     const data = await res.json();
     addLog(data.message, 'good');
     updateStats(data.stats);
@@ -1802,7 +1930,7 @@ window.recoverHunger = async function() {
     myState = data.state;
     myEntity = data.entity;
   } catch (e) {
-    addLog('恢复失败', 'danger');
+    addLog(t('rec_fail'), 'danger');
   }
 };
 
@@ -1878,25 +2006,22 @@ function animate() {
 
 // ============ INIT ============
 async function init() {
-  addLog('正在连接 EchoWorld...');
+  applyI18n();
+  addLog(t('connecting'));
   await fetchCatalog();
   const meData = await fetchMe();
-  // fetchMe设置了myLastPos，现在fetchMap会以玩家位置为中心加载
   await fetchMap();
   await fetchEconomy();
 
   if (meData) {
-    // 直接使用myLastPos定位相机（不依赖allNodes查找）
     focusCamera(myLastPos.x, myLastPos.y, false);
-    addLog(`欢迎回来，${currentUser?.username || '玩家'}！坐标 (${myLastPos.x}, ${myLastPos.y})`, 'good');
+    addLog(`${t('welcome')}，${currentUser?.username || ''}！(${myLastPos.x}, ${myLastPos.y})`, 'good');
   }
 
-  // 显示邀请码
   if (currentUser?.referralCode) {
     document.getElementById('my-referral-code').textContent = currentUser.referralCode;
   }
 
-  // 加载世界播报
   fetchWorldBroadcast();
 
   // Auto refresh
