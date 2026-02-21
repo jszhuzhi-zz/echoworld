@@ -62,6 +62,22 @@ setTimeout(async () => {
       console.log('6. No lots nearby');
     }
 
+    // Test economy endpoint
+    const econ = await req('GET', '/api/world/economy');
+    console.log('7. Economy:', econ.status, 'total=' + econ.data.totalWorldWealth, 'treasury=' + econ.data.treasuryBalance, 'players=' + econ.data.playerCount);
+
+    // Test recharge (first time = bonus)
+    const recharge = await req('POST', '/api/world/recharge', { amount: 100 }, token);
+    console.log('8. Recharge:', recharge.status, recharge.data.error || ('amount=' + recharge.data.amount + ' bonus=' + recharge.data.bonus + ' total=' + recharge.data.totalCC + ' firstRecharge=' + recharge.data.isFirstRecharge));
+
+    // Test recharge again (no bonus)
+    const recharge2 = await req('POST', '/api/world/recharge', { amount: 50 }, token);
+    console.log('9. Recharge2:', recharge2.status, 'bonus=' + recharge2.data.bonus + ' firstRecharge=' + recharge2.data.isFirstRecharge);
+
+    // Test register with referral code
+    const loginData = login.data.user;
+    console.log('   My referral code:', loginData?.referralCode);
+
   } catch(e) {
     console.error('ERROR:', e.message);
   }

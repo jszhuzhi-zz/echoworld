@@ -13,6 +13,10 @@ export interface User {
   role: UserRole;
   entityId?: string; // Linked game entity for investors
   createdAt: string;
+  referralCode: string;       // 邀请码 (唯一)
+  invitedBy?: string;         // 邀请者的userId
+  hasRecharged: boolean;      // 是否已首充
+  totalRecharged: number;     // 累计充值金额
 }
 
 export interface UserPublic {
@@ -21,10 +25,18 @@ export interface UserPublic {
   role: UserRole;
   entityId?: string;
   createdAt: string;
+  referralCode: string;
+  invitedBy?: string;
+  hasRecharged: boolean;
+  totalRecharged: number;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'echoworld-secret-key-2026';
 const DATA_FILE = path.join(process.cwd(), 'data', 'users.json');
+
+function generateReferralCode(): string {
+  return uuidv4().slice(0, 8).toUpperCase();
+}
 
 class UserStore {
   private users: Map<string, User> = new Map();
@@ -40,6 +52,9 @@ class UserStore {
         passwordHash: hash,
         role: 'admin',
         createdAt: new Date().toISOString(),
+        referralCode: generateReferralCode(),
+        hasRecharged: false,
+        totalRecharged: 0,
       };
       this.users.set(admin.id, admin);
       this.save();
@@ -53,6 +68,9 @@ class UserStore {
         passwordHash: hash,
         role: 'investor',
         createdAt: new Date().toISOString(),
+        referralCode: generateReferralCode(),
+        hasRecharged: false,
+        totalRecharged: 0,
       };
       this.users.set(tester.id, tester);
       this.save();
@@ -64,6 +82,10 @@ class UserStore {
       if (fs.existsSync(DATA_FILE)) {
         const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
         for (const u of data) {
+          // 兼容旧数据：补充新字段默认值
+          if (!u.referralCode) u.referralCode = generateReferralCode();
+          if (u.hasRecharged === undefined) u.hasRecharged = false;
+          if (u.totalRecharged === undefined) u.totalRecharged = 0;
           this.users.set(u.id, u);
         }
       }
@@ -100,10 +122,21 @@ class UserStore {
       role: u.role,
       entityId: u.entityId,
       createdAt: u.createdAt,
+      referralCode: u.referralCode || generateReferralCode(),
+      invitedBy: u.invitedBy,
+      hasRecharged: u.hasRecharged ?? false,
+      totalRecharged: u.totalRecharged ?? 0,
     }));
   }
 
-  createUser(username: string, password: string, role: UserRole): User {
+  findByReferralCode(code: string): User | undefined {
+    for (const u of this.users.values()) {
+      if (u.referralCode === code) return u;
+    }
+    return undefined;
+  }
+
+  createUser(username: string, password: string, role: UserRole, invitedBy?: string): User {
     if (this.findByUsername(username)) {
       throw new Error('用户名已存在');
     }
@@ -113,17 +146,23 @@ class UserStore {
       passwordHash: bcrypt.hashSync(password, 10),
       role,
       createdAt: new Date().toISOString(),
+      referralCode: generateReferralCode(),
+      invitedBy,
+      hasRecharged: false,
+      totalRecharged: 0,
     };
     this.users.set(user.id, user);
     this.save();
     return user;
   }
 
-  updateUser(id: string, updates: Partial<Pick<User, 'role' | 'entityId'>>) {
+  updateUser(id: string, updates: Partial<Pick<User, 'role' | 'entityId' | 'hasRecharged' | 'totalRecharged'>>) {
     const user = this.users.get(id);
     if (!user) throw new Error('用户不存在');
     if (updates.role) user.role = updates.role;
     if (updates.entityId !== undefined) user.entityId = updates.entityId;
+    if (updates.hasRecharged !== undefined) user.hasRecharged = updates.hasRecharged;
+    if (updates.totalRecharged !== undefined) user.totalRecharged = updates.totalRecharged;
     this.save();
     return user;
   }

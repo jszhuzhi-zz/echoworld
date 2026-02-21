@@ -118,8 +118,20 @@
     #dead-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;flex-direction:column;gap:14px}
     #dead-overlay.show{display:flex}
     .dead-title{font-size:24px;font-weight:900;color:var(--red)}
-    .dead-msg{font-size:13px;color:var(--text2);text-align:center;max-width:280px}
-    .btn-respawn{padding:10px 30px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--green),#06b6d4);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+    .dead-msg{font-size:13px;color:var(--text2);text-align:center;max-width:320px;line-height:1.6}
+    .btn-death-action{padding:10px 30px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer}
+    .btn-go-home{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
+    /* === Recharge Modal === */
+    #recharge-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
+    #recharge-modal.show{display:flex}
+    .recharge-content{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;width:min(360px,calc(100vw - 32px));text-align:center}
+    .recharge-title{font-size:16px;font-weight:700;margin-bottom:12px}
+    .recharge-bonus{color:var(--yellow);font-size:12px;font-weight:600;margin-bottom:12px;background:rgba(245,158,11,0.12);padding:6px 12px;border-radius:8px;display:inline-block}
+    .recharge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+    .recharge-opt{padding:10px 6px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;transition:all .2s;text-align:center}
+    .recharge-opt:hover{border-color:var(--accent);background:rgba(59,130,246,0.1)}
+    .recharge-opt .amount{font-size:16px;font-weight:700;color:var(--yellow)}
+    .recharge-opt .label{font-size:9px;color:var(--text2);margin-top:2px}
 
     /* === Scrollbar === */
     ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -163,6 +175,7 @@
   </div>
   <div class="top-right">
     <div class="money-badge" id="money-badge">0 CC</div>
+    <button class="btn-sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;font-weight:700" onclick="openRechargeModal()">充值</button>
     <div class="action-badge" id="action-badge">行动 0/8</div>
     <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout">退出</button>
   </div>
@@ -213,6 +226,21 @@
     <div id="my-buildings"><span style="font-size:11px;color:var(--text2)">暂无</span></div>
   </div>
   <div class="panel-card">
+    <div class="panel-title">世界经济</div>
+    <div id="economy-panel" style="font-size:10px;line-height:1.8;color:var(--text2)">
+      <div>总财富: <span id="eco-total" style="color:var(--yellow);font-weight:700">0</span> CC</div>
+      <div>国库: <span id="eco-treasury" style="color:var(--orange);font-weight:700">0</span> CC</div>
+      <div>玩家数: <span id="eco-players" style="color:var(--accent)">0</span></div>
+    </div>
+  </div>
+  <div class="panel-card">
+    <div class="panel-title">我的邀请码</div>
+    <div style="font-size:10px;color:var(--text2);line-height:1.8">
+      <div id="my-referral-code" style="font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;cursor:pointer" onclick="copyReferralCode()" title="点击复制">-</div>
+      <div>分享邀请码，好友注册后你获得 <span style="color:var(--yellow)">100 CC</span></div>
+    </div>
+  </div>
+  <div class="panel-card">
     <div class="panel-title">马斯洛需求层次</div>
     <div style="font-size:10px;line-height:1.6;color:var(--text2)">
       <div><span style="color:#4ade80">L1 生理</span> 食物/水/住所</div>
@@ -256,11 +284,29 @@
   </div>
 </div>
 
-<!-- Dead Overlay -->
+<!-- Dead Overlay (永久死亡) -->
 <div id="dead-overlay">
-  <div class="dead-title">角色死亡</div>
-  <div class="dead-msg" id="dead-msg">你的生命值已耗尽，损失50%资产。</div>
-  <button class="btn-respawn" onclick="respawn()">在起点重生</button>
+  <div class="dead-title">角色永久死亡</div>
+  <div class="dead-msg" id="dead-msg">生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。</div>
+  <button class="btn-death-action btn-go-home" onclick="confirmDeath()">确认并返回</button>
+</div>
+
+<!-- Recharge Modal -->
+<div id="recharge-modal">
+  <div class="recharge-content">
+    <button class="btn-close-modal" onclick="closeRechargeModal()" style="float:right">&times;</button>
+    <div class="recharge-title">充值 CC 币</div>
+    <div id="recharge-bonus" class="recharge-bonus">🎉 首充额外赠送 50%！</div>
+    <div class="recharge-grid">
+      <div class="recharge-opt" onclick="doRecharge(100)"><div class="amount">100</div><div class="label">CC</div></div>
+      <div class="recharge-opt" onclick="doRecharge(500)"><div class="amount">500</div><div class="label">CC</div></div>
+      <div class="recharge-opt" onclick="doRecharge(1000)"><div class="amount">1000</div><div class="label">CC</div></div>
+      <div class="recharge-opt" onclick="doRecharge(3000)"><div class="amount">3000</div><div class="label">CC</div></div>
+      <div class="recharge-opt" onclick="doRecharge(5000)"><div class="amount">5000</div><div class="label">CC</div></div>
+      <div class="recharge-opt" onclick="doRecharge(10000)"><div class="amount">10000</div><div class="label">CC</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text2);margin-top:8px">购买CC币可提前获得财富，投资资产后可财富增值</div>
+  </div>
 </div>
 
 <!-- Game Log -->
@@ -1339,28 +1385,75 @@ async function doBuild(templateType) {
   }
 }
 
-window.respawn = async function() {
+/** 确认死亡（不可复活） */
+window.confirmDeath = async function() {
   try {
-    const res = await fetch(API + '/api/world/respawn', { method: 'POST', headers: authHeaders() });
-    if (!res.ok) return;
+    await fetch(API + '/api/world/confirm-death', { method: 'POST', headers: authHeaders() });
+  } catch (e) { /* ignore */ }
+  addLog('角色已永久死亡', 'danger');
+  // 返回首页
+  setTimeout(() => { location.href = '/'; }, 1500);
+};
+
+/** 打开充值面板 */
+window.openRechargeModal = function() {
+  const modal = document.getElementById('recharge-modal');
+  const bonusEl = document.getElementById('recharge-bonus');
+  // 检查是否首充
+  if (currentUser?.hasRecharged) {
+    bonusEl.style.display = 'none';
+  } else {
+    bonusEl.style.display = 'inline-block';
+  }
+  modal.classList.add('show');
+};
+
+window.closeRechargeModal = function() {
+  document.getElementById('recharge-modal').classList.remove('show');
+};
+
+/** 执行充值 */
+window.doRecharge = async function(amount) {
+  try {
+    const res = await fetch(API + '/api/world/recharge', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ amount }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
     const data = await res.json();
-
-    document.getElementById('dead-overlay').classList.remove('show');
-    myState = data.state;
-    updateStats(data.state);
+    for (const msg of data.messages) addLog(msg, 'good');
     updateMoney(data.entity);
-    updateActions(data.state);
-    addLog(data.message, 'good');
-
-    const node = allNodes.find(n => n.id === data.state.nodeId);
-    if (node) focusCamera(node.x, node.y);
-
-    await fetchMap();
-
+    if (data.isFirstRecharge) {
+      currentUser.hasRecharged = true;
+    }
+    closeRechargeModal();
   } catch (e) {
-    addLog('重生失败', 'danger');
+    addLog('充值失败', 'danger');
   }
 };
+
+/** 复制邀请码 */
+window.copyReferralCode = function() {
+  const code = currentUser?.referralCode;
+  if (!code) return;
+  navigator.clipboard.writeText(code).then(() => {
+    addLog(`邀请码 ${code} 已复制`, 'good');
+  }).catch(() => {
+    addLog(`邀请码: ${code}`, 'good');
+  });
+};
+
+/** 获取并显示世界经济数据 */
+async function fetchEconomy() {
+  try {
+    const res = await fetch(API + '/api/world/economy');
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('eco-total').textContent = data.totalWorldWealth?.toFixed(0) ?? '0';
+    document.getElementById('eco-treasury').textContent = data.treasuryBalance?.toFixed(0) ?? '0';
+    document.getElementById('eco-players').textContent = data.playerCount ?? '0';
+  } catch (e) { /* ignore */ }
+}
 
 // ============ EXTRA ACTIONS & PATH CONSUMPTION ============
 
@@ -1506,6 +1599,7 @@ async function init() {
   await fetchCatalog();
   const meData = await fetchMe();
   await fetchMap();
+  await fetchEconomy();
 
   if (meData) {
     const node = allNodes.find(n => n.id === myState?.nodeId);
@@ -1515,10 +1609,16 @@ async function init() {
     }
   }
 
+  // 显示邀请码
+  if (currentUser?.referralCode) {
+    document.getElementById('my-referral-code').textContent = currentUser.referralCode;
+  }
+
   // Auto refresh
   setInterval(async () => {
     await fetchMe();
     await fetchMap();
+    await fetchEconomy();
   }, 10000);
 }
 

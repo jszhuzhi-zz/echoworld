@@ -8,6 +8,9 @@ import { InfiniteWorld, MASLOW_BUILDINGS } from '../board/InfiniteWorld';
 
 /**
  * API服务器 - 三角色系统: 超级管理员 / 投资用户 / 观察家
+ *
+ * 经济系统: 世界初始总财富=0，每新增用户+1100CC (用户1000+邀请奖励100)
+ * 用户死亡不可复活，财富归管理者国库
  */
 export function createServer(world: World, port = 3000): express.Application {
   const app = express();
@@ -16,10 +19,32 @@ export function createServer(world: World, port = 3000): express.Application {
   // 无限世界地图
   const infiniteWorld = new InfiniteWorld();
 
+  // === 管理员国库实体 ===
+  const adminUser = userStore.findByUsername('admin');
+  let treasuryEntityId: string | null = null;
+  if (adminUser) {
+    if (!adminUser.entityId) {
+      const treasuryEntity = world.entities.createEntity(EntityType.HUMAN_PLAYER, '世界国库');
+      // 国库初始0资金
+      (treasuryEntity as any).currency = 0;
+      treasuryEntityId = treasuryEntity.id;
+      userStore.updateUser(adminUser.id, { entityId: treasuryEntity.id });
+    } else {
+      world.entities.restoreEntity(adminUser.entityId, EntityType.HUMAN_PLAYER, '世界国库');
+      treasuryEntityId = adminUser.entityId;
+      // 恢复后国库资金从持久化中恢复，这里不重置
+    }
+  }
+
+  /** 获取国库实体 */
+  function getTreasury() {
+    if (!treasuryEntityId) return null;
+    return world.entities.getEntity(treasuryEntityId);
+  }
+
   // 恢复所有用户的游戏实体 (服务器重启后重建)
   for (const user of userStore.getAllUsers()) {
     if (user.role === 'investor' && user.entityId) {
-      // 在 world.entities 中恢复实体 (使用原始ID)
       world.entities.restoreEntity(user.entityId, EntityType.HUMAN_PLAYER, user.username);
       infiniteWorld.initPlayer(user.entityId);
     }
@@ -29,6 +54,7 @@ export function createServer(world: World, port = 3000): express.Application {
   const testUser = userStore.findByUsername('testplayer');
   if (testUser && testUser.role === 'investor' && !testUser.entityId) {
     const testEntity = world.createPlayer('testplayer');
+    // 新用户初始1000CC (createPlayer已通过config设置)
     userStore.updateUser(testUser.id, { entityId: testEntity.id });
     infiniteWorld.initPlayer(testEntity.id);
   }
@@ -48,9 +74,9 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // ==================== 认证 API ====================
 
-  /** 注册 */
+  /** 注册 (支持邀请码) */
   app.post('/api/auth/register', (req, res) => {
-    const { username, password, role } = req.body;
+    const { username, password, role, referralCode } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: '用户名和密码不能为空' });
     }
@@ -62,20 +88,48 @@ export function createServer(world: World, port = 3000): express.Application {
     }
     // 只允许注册 investor 或 observer
     const userRole = role === 'observer' ? 'observer' : 'investor';
+
+    // 查找邀请者
+    let inviterUserId: string | undefined;
+    if (referralCode) {
+      const inviter = userStore.findByReferralCode(referralCode);
+      if (inviter) inviterUserId = inviter.id;
+    }
+
     try {
-      const user = userStore.createUser(username, password, userRole);
+      const user = userStore.createUser(username, password, userRole, inviterUserId);
       const token = userStore.login(username, password);
-      // If investor, create a game entity
+
       let entityId: string | undefined;
       if (userRole === 'investor') {
         const entity = world.createPlayer(username);
+        // 新用户自带1000CC (由 startingCurrency 配置)
         entityId = entity.id;
         userStore.updateUser(user.id, { entityId });
         infiniteWorld.initPlayer(entity.id);
+
+        // 邀请奖励: 100CC → 邀请者 (无邀请者则 → 国库)
+        const INVITE_BONUS = 100;
+        if (inviterUserId) {
+          const inviterUser = userStore.findById(inviterUserId);
+          if (inviterUser?.entityId) {
+            const inviterEntity = world.entities.getEntity(inviterUser.entityId);
+            if (inviterEntity) {
+              inviterEntity.receive(INVITE_BONUS);
+              // 增加建筑推荐积分
+              infiniteWorld.addReferralCredit(inviterUser.entityId);
+            }
+          }
+        } else {
+          // 无邀请者，奖励给国库
+          const treasury = getTreasury();
+          if (treasury) treasury.receive(INVITE_BONUS);
+        }
       }
+
       res.status(201).json({
         token,
-        user: { id: user.id, username, role: userRole, entityId },
+        user: { id: user.id, username, role: userRole, entityId, referralCode: user.referralCode },
       });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
@@ -93,7 +147,11 @@ export function createServer(world: World, port = 3000): express.Application {
       const user = userStore.findByUsername(username)!;
       res.json({
         token,
-        user: { id: user.id, username: user.username, role: user.role, entityId: user.entityId },
+        user: {
+          id: user.id, username: user.username, role: user.role,
+          entityId: user.entityId, referralCode: user.referralCode,
+          hasRecharged: user.hasRecharged ?? false,
+        },
       });
     } catch (err: any) {
       res.status(401).json({ error: err.message });
@@ -109,6 +167,9 @@ export function createServer(world: World, port = 3000): express.Application {
       username: user.username,
       role: user.role,
       entityId: user.entityId,
+      referralCode: user.referralCode,
+      hasRecharged: user.hasRecharged ?? false,
+      totalRecharged: user.totalRecharged ?? 0,
     });
   });
 
@@ -429,6 +490,8 @@ export function createServer(world: World, port = 3000): express.Application {
       if (evt === 'TAX') {
         const tax = Math.floor(entity.getSummary().currency * 0.05);
         entity.pay(tax);
+        const treasury = getTreasury();
+        if (treasury) treasury.receive(tax);
         messages.push(`缴税 ${tax} CC`);
       } else if (evt === 'WELFARE') {
         entity.receive(100);
@@ -449,8 +512,14 @@ export function createServer(world: World, port = 3000): express.Application {
         const tpl = MASLOW_BUILDINGS.find(t => t.type === b.templateType);
         messages.push(`发现 ${b.ownerName} 的 ${b.name} (${tpl?.icon || ''} Lv.${b.level})，可选择消费`);
       } else if (evt === 'DEATH') {
-        entity.pay(Math.floor(entity.getSummary().currency * 0.5));
-        messages.push('生命值耗尽！损失50%资产，即将重生...');
+        // 死亡：全部财富转入国库
+        const deathWealth = entity.getSummary().currency;
+        if (deathWealth > 0) {
+          entity.pay(deathWealth);
+          const treasury = getTreasury();
+          if (treasury) treasury.receive(deathWealth);
+        }
+        messages.push(`角色死亡！${deathWealth} CC 已转入世界国库。角色不可复活。`);
       } else if (evt === 'HUNGER_WARNING') {
         messages.push('⚠️ 饥饿值过低！请尽快进食');
       } else if (evt === 'ENERGY_WARNING') {
@@ -550,14 +619,88 @@ export function createServer(world: World, port = 3000): express.Application {
     });
   });
 
-  /** 重生 */
-  app.post('/api/world/respawn', authMiddleware, requireRole('investor'), (req, res) => {
+  /** 死亡确认 (不可复活，财富归国库) */
+  app.post('/api/world/confirm-death', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);
     if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
-    const state = infiniteWorld.respawn(user.entityId);
-    if (!state) return res.status(400).json({ error: '重生失败' });
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (!state || state.alive) return res.status(400).json({ error: '角色尚未死亡' });
+
     const entity = world.entities.getEntity(user.entityId);
-    res.json({ state, entity: entity?.getSummary(), message: '已在起点重生' });
+    if (entity) {
+      // 转移剩余财富到国库
+      const remaining = entity.getSummary().currency;
+      if (remaining > 0) {
+        entity.pay(remaining);
+        const treasury = getTreasury();
+        if (treasury) treasury.receive(remaining);
+      }
+    }
+
+    res.json({
+      message: '角色已永久死亡，剩余财富已转入世界国库',
+      transferredToTreasury: entity?.getSummary().currency ?? 0,
+    });
+  });
+
+  /** 充值购买CC币 */
+  app.post('/api/world/recharge', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: '角色不存在' });
+
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (state && !state.alive) return res.status(400).json({ error: '角色已死亡，无法充值' });
+
+    const { amount } = req.body;
+    if (!amount || amount < 1 || amount > 100000) {
+      return res.status(400).json({ error: '充值金额 1-100000 CC' });
+    }
+
+    // 首充赠送50%
+    const isFirstRecharge = !(user.hasRecharged ?? false);
+    const bonus = isFirstRecharge ? Math.floor(amount * 0.5) : 0;
+    const totalCC = amount + bonus;
+
+    entity.receive(totalCC);
+
+    // 更新用户充值记录
+    userStore.updateUser(user.id, {
+      hasRecharged: true,
+      totalRecharged: (user.totalRecharged ?? 0) + amount,
+    });
+
+    const messages = [`充值 ${amount} CC`];
+    if (bonus > 0) messages.push(`🎉 首充赠送 ${bonus} CC！`);
+    messages.push(`到账 ${totalCC} CC`);
+
+    res.json({
+      messages,
+      amount,
+      bonus,
+      totalCC,
+      isFirstRecharge,
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 世界经济概览 */
+  app.get('/api/world/economy', (req, res) => {
+    const treasury = getTreasury();
+    const allEntities = world.entities.getAllEntities();
+    let totalWealth = 0;
+    for (const e of allEntities) {
+      totalWealth += e.getSummary().currency;
+    }
+    const playerCount = userStore.getAllUsers().filter(u => u.role === 'investor').length;
+
+    res.json({
+      totalWorldWealth: totalWealth,
+      treasuryBalance: treasury?.getSummary().currency ?? 0,
+      playerCount,
+      theoreticalWealth: playerCount * 1100, // 每个玩家进入世界产生1100CC
+    });
   });
 
   /** 消耗健康值换取额外行动次数 */

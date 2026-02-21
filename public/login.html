@@ -132,12 +132,16 @@
           <input type="password" id="regPassword" placeholder="至少6个字符" required minlength="6">
         </div>
         <div class="form-group">
+          <label>邀请码 (可选)</label>
+          <input type="text" id="regReferralCode" placeholder="有邀请码可填写，邀请者获得100CC" maxlength="8" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
           <label>选择角色</label>
           <div class="role-cards">
             <div class="role-card selected" onclick="selectRole('investor')" id="roleInvestor">
               <div class="role-icon">💰</div>
               <div class="role-name">投资者</div>
-              <div class="role-desc">参与投资游戏</div>
+              <div class="role-desc">初始 1000 CC</div>
             </div>
             <div class="role-card" onclick="selectRole('observer')" id="roleObserver">
               <div class="role-icon">👁️</div>
@@ -243,6 +247,7 @@
             username: document.getElementById('regUsername').value,
             password: document.getElementById('regPassword').value,
             role: selectedRole,
+            referralCode: document.getElementById('regReferralCode').value.trim().toUpperCase() || undefined,
           }),
         });
         const data = await res.json();
