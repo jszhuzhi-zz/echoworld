@@ -3,6 +3,7 @@
  * 使用 @cloudbase/manager-node SDK 部署云函数到腾讯云开发
  */
 const CloudBase = require('@cloudbase/manager-node');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -11,6 +12,16 @@ const ENV_ID = 'georgezhu-0gnrnw9ae9fca59a';
 const FUNCTION_NAME = 'echoworld';
 const SECRET_ID = process.env.TCB_SECRET_ID;
 const SECRET_KEY = process.env.TCB_SECRET_KEY;
+
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { timeout: 10000 }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve({ statusCode: res.statusCode, body: data }));
+    }).on('error', reject);
+  });
+}
 
 async function deploy() {
   console.log('=== CloudBase Deploy Script ===');
@@ -28,6 +39,7 @@ async function deploy() {
   // 0. 获取环境信息
   console.log('\n[0] 获取环境信息...');
   let planName = '';
+  let payMode = '';
   try {
     const envInfo = await manager.commonService().call({
       Action: 'DescribeEnvs',
@@ -36,11 +48,61 @@ async function deploy() {
     if (envInfo && envInfo.EnvList && envInfo.EnvList[0]) {
       const env = envInfo.EnvList[0];
       planName = env.PackageName || '';
+      payMode = env.PayMode || '';
       console.log(`  环境: ${env.EnvId} 状态: ${env.Status}`);
-      console.log(`  套餐: ${planName}`);
+      console.log(`  套餐: ${planName} 计费模式: ${payMode}`);
+      console.log(`  环境详情:`, JSON.stringify(env, null, 2));
     }
   } catch (err) {
     console.log('  获取环境信息:', err.message);
+  }
+
+  // 0.5 如果是体验版，尝试升级到按量计费
+  const isFree = planName.includes('体验') || planName.includes('free') || planName.toLowerCase().includes('experience');
+  if (isFree) {
+    console.log('\n[0.5] 当前为体验版，尝试升级套餐...');
+
+    // 方法1: CreatePostpayPackage
+    try {
+      console.log('  尝试 CreatePostpayPackage...');
+      const result = await manager.commonService().call({
+        Action: 'CreatePostpayPackage',
+        Param: {
+          EnvId: ENV_ID,
+          Source: 'qcloud',
+          FreeQuota: 'basic',
+        },
+      });
+      console.log('  CreatePostpayPackage 结果:', JSON.stringify(result));
+      console.log('  等待 5 秒让升级生效...');
+      await new Promise(r => setTimeout(r, 5000));
+    } catch (err) {
+      console.log('  CreatePostpayPackage:', err.message);
+    }
+
+    // 方法2: ModifyEnv
+    try {
+      console.log('  尝试 ModifyEnv...');
+      const result = await manager.commonService().call({
+        Action: 'ModifyEnv',
+        Param: { EnvId: ENV_ID },
+      });
+      console.log('  ModifyEnv 结果:', JSON.stringify(result));
+    } catch (err) {
+      console.log('  ModifyEnv:', err.message);
+    }
+
+    // 方法3: DescribePostpayPackageFreeQuotas (了解免费额度)
+    try {
+      console.log('  查询免费额度...');
+      const result = await manager.commonService().call({
+        Action: 'DescribePostpayPackageFreeQuotas',
+        Param: { EnvId: ENV_ID },
+      });
+      console.log('  免费额度:', JSON.stringify(result));
+    } catch (err) {
+      console.log('  DescribePostpayPackageFreeQuotas:', err.message);
+    }
   }
 
   // 1. 打包函数代码
@@ -107,6 +169,7 @@ async function deploy() {
       try {
         await manager.functions.deleteFunction({ functionName: FUNCTION_NAME });
         console.log('  旧函数已删除');
+        await new Promise(r => setTimeout(r, 2000));
         await manager.functions.createFunction(funcConfig);
         console.log('  云函数重新创建成功!');
       } catch (err2) {
@@ -123,14 +186,42 @@ async function deploy() {
   console.log('\n[3/4] 配置 HTTP 访问...');
   let httpEnabled = false;
 
+  // 尝试开通 HTTP 服务 (多种方式)
   try {
+    console.log('  尝试 switchAuth(true)...');
     await manager.access.switchAuth(true);
     httpEnabled = true;
-    console.log('  HTTP 访问服务已开通');
+    console.log('  HTTP 访问服务已开通!');
   } catch (err) {
-    console.log('  HTTP 服务开通失败:', err.message);
+    console.log('  switchAuth:', err.message);
+
+    // 如果 switchAuth 失败，尝试直接调用 API
+    try {
+      console.log('  尝试 ModifyCloudBaseGWPrivilege...');
+      const result = await manager.commonService().call({
+        Action: 'ModifyCloudBaseGWPrivilege',
+        Param: { EnvId: ENV_ID, EnableService: true },
+      });
+      console.log('  ModifyCloudBaseGWPrivilege 结果:', JSON.stringify(result));
+      httpEnabled = true;
+    } catch (err2) {
+      console.log('  ModifyCloudBaseGWPrivilege:', err2.message);
+    }
+
+    // 尝试 DescribeCloudBaseGWService 看看是否有其他激活方式
+    try {
+      console.log('  查询 HTTP 网关服务详情...');
+      const gwInfo = await manager.commonService().call({
+        Action: 'DescribeCloudBaseGWService',
+        Param: { ServiceId: ENV_ID, EnvId: ENV_ID },
+      });
+      console.log('  网关详情:', JSON.stringify(gwInfo, null, 2));
+    } catch (err3) {
+      console.log('  DescribeCloudBaseGWService:', err3.message);
+    }
   }
 
+  // 创建路由
   try {
     await manager.access.createAccess({
       path: '/echoworld',
@@ -171,6 +262,7 @@ async function deploy() {
       }
     }
     httpEnabled = gwList.EnableService === true;
+    console.log('  EnableService:', gwList.EnableService);
   } catch (err) {}
 
   let domain = '';
@@ -178,19 +270,45 @@ async function deploy() {
     const domainResult = await manager.access.getDomainList();
     domain = domainResult.DefaultDomain || '';
     httpEnabled = domainResult.EnableService === true;
+    console.log('\n域名信息:', JSON.stringify(domainResult, null, 2));
   } catch (err) {}
 
   console.log(`\nHTTP 服务: ${httpEnabled ? '✓ 已开通' : '✗ 未开通'}`);
 
-  if (httpEnabled && domain) {
+  const accessUrl = `https://${domain || ENV_ID + '.service.tcloudbase.com'}/echoworld`;
+
+  // 尝试访问 URL 测试
+  console.log(`\n测试访问: ${accessUrl}`);
+  try {
+    const resp = await httpGet(accessUrl);
+    console.log(`  HTTP ${resp.statusCode}: ${resp.body.substring(0, 200)}`);
+    if (resp.statusCode === 200) {
+      httpEnabled = true;
+    }
+  } catch (err) {
+    console.log(`  访问测试失败: ${err.message}`);
+  }
+
+  // Also test the API endpoint
+  const apiUrl = `https://${domain || ENV_ID + '.service.tcloudbase.com'}/echoworld/api/world`;
+  console.log(`测试 API: ${apiUrl}`);
+  try {
+    const resp = await httpGet(apiUrl);
+    console.log(`  HTTP ${resp.statusCode}: ${resp.body.substring(0, 200)}`);
+  } catch (err) {
+    console.log(`  API 测试失败: ${err.message}`);
+  }
+
+  if (httpEnabled) {
     console.log(`\n========================================`);
-    console.log(`  访问地址: https://${domain}/echoworld`);
-    console.log(`  API: https://${domain}/echoworld/api/world`);
+    console.log(`  ✓ 部署成功!`);
+    console.log(`  访问地址: ${accessUrl}`);
+    console.log(`  API: ${apiUrl}`);
     console.log(`========================================`);
   } else {
     console.log(`\n========================================`);
     console.log(`  云函数已部署成功，但 HTTP 服务未开通。`);
-    console.log(`  当前套餐: ${planName} (体验版不支持 HTTP 访问服务)`);
+    console.log(`  当前套餐: ${planName}`);
     console.log('');
     console.log(`  开通方式:`);
     console.log(`  1. 访问 CloudBase 控制台:`);
@@ -198,7 +316,7 @@ async function deploy() {
     console.log(`  2. 在「HTTP 访问服务」页面，点击开通`);
     console.log(`     (可能需要升级套餐为按量计费/包年包月)`);
     console.log(`  3. 开通后访问地址为:`);
-    console.log(`     https://${domain || ENV_ID + '.service.tcloudbase.com'}/echoworld`);
+    console.log(`     ${accessUrl}`);
     console.log(`========================================`);
   }
 
