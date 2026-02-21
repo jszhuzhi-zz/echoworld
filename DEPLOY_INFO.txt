@@ -1,86 +1,101 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 02:24:27 UTC
-Commit: 6cd9297aae7e403415a1536ef55640a9658564bd
+部署时间: 2026-02-21 02:31:52 UTC
+Commit: 9cee4b02433c9c380ef55a035d6a3c9c8959f2d6
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
 
 [0] 获取环境信息...
   环境: georgezhu-0gnrnw9ae9fca59a 状态: NORMAL
-  套餐: 体验版 计费模式: prepayment
-  环境详情: {
-  "EnvId": "georgezhu-0gnrnw9ae9fca59a",
-  "Source": "qcloud",
-  "Alias": "georgezhu",
-  "CreateTime": "2026-02-15 12:31:52",
-  "UpdateTime": "2026-02-15 12:31:58",
-  "Status": "NORMAL",
-  "Databases": [
+  套餐: 体验版
+
+[1/5] 配置匿名登录...
+  匿名登录已启用
+  添加授权域名: georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  CreateAuthDomain: [CreateAuthDomain] 当前套餐无法执行此操作
+  当前授权域名: {
+  "Domains": [
     {
-      "InstanceId": "tnt-iixasqsri",
-      "Status": "RUNNING",
-      "Region": "ap-shanghai",
-      "UpdateTime": "2026-02-15 12:31:58"
+      "Id": "3364449b-d2e4-43f3-a171-f71d9252109e",
+      "Domain": "georgezhu-0gnrnw9ae9fca59a-1398720149.ap-shanghai.app.tcloudbase.com",
+      "Type": "USER",
+      "Status": "ENABLE",
+      "CreateTime": "2026-02-15 12:31:52",
+      "UpdateTime": "2026-02-15 12:31:52"
+    },
+    {
+      "Id": "96fab3c5-a59c-4af5-b2ee-fe1e01a03b14",
+      "Domain": "georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com",
+      "Type": "USER",
+      "Status": "ENABLE",
+      "CreateTime": "2026-02-15 12:32:31",
+      "UpdateTime": "2026-02-15 12:32:31"
+    },
+    {
+      "Id": "1",
+      "Domain": "weda.cloud.tencent.com",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2024-09-29 17:14:54",
+      "UpdateTime": "2024-09-29 17:14:54"
+    },
+    {
+      "Id": "2",
+      "Domain": "tcb.cloud.tencent.com",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2024-09-29 17:14:54",
+      "UpdateTime": "2024-09-29 17:14:54"
+    },
+    {
+      "Id": "3",
+      "Domain": "weda.cloud.tencent.cn",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2024-09-29 17:14:55",
+      "UpdateTime": "2024-09-29 17:14:55"
+    },
+    {
+      "Id": "4",
+      "Domain": "tcb.cloud.tencent.cn",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2024-09-29 17:14:55",
+      "UpdateTime": "2024-09-29 17:14:55"
+    },
+    {
+      "Id": "5",
+      "Domain": "weda.cloud.tencent.com.cn",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2024-09-29 17:14:55",
+      "UpdateTime": "2024-09-29 17:14:55"
+    },
+    {
+      "Id": "6",
+      "Domain": "tcb.cloud.tencent.com.cn",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2024-09-29 17:14:55",
+      "UpdateTime": "2024-09-29 17:14:55"
+    },
+    {
+      "Id": "7",
+      "Domain": "*.preview.cloudbase.net",
+      "Type": "SYSTEM",
+      "Status": "ENABLE",
+      "CreateTime": "2025-02-20 11:21:06",
+      "UpdateTime": "2025-02-20 12:09:33"
     }
   ],
-  "Storages": [
-    {
-      "Region": "ap-shanghai",
-      "Bucket": "6765-georgezhu-0gnrnw9ae9fca59a-1398720149",
-      "CdnDomain": "6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la",
-      "AppId": "",
-      "CustomDomain": "",
-      "DomainType": "cdn"
-    }
-  ],
-  "Functions": [
-    {
-      "Namespace": "georgezhu-0gnrnw9ae9fca59a",
-      "Region": "ap-shanghai"
-    }
-  ],
-  "PackageId": "baas_trial",
-  "PackageName": "体验版",
-  "LogServices": [],
-  "StaticStorages": [
-    {
-      "StaticDomain": "georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com",
-      "DefaultDirName": "",
-      "Status": "online",
-      "Region": "ap-shanghai",
-      "Bucket": "39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149",
-      "EnvId": "",
-      "DomainType": ""
-    }
-  ],
-  "IsAutoDegrade": false,
-  "EnvChannel": "qc_console",
-  "PayMode": "prepayment",
-  "IsDefault": true,
-  "Region": "ap-shanghai",
-  "Tags": [],
-  "CustomLogServices": [],
-  "EnvType": "baas",
-  "PackageType": "baas",
-  "IsDauPackage": false,
-  "EnvStatus": "NORMAL",
-  "EnvPreferences": [
-    {
-      "Key": "Staging",
-      "Value": "off"
-    }
-  ]
+  "RequestId": "83596c97-4212-4387-be7b-224b6dc2b655"
+}
+  登录配置: {
+  "ConfigList": [],
+  "RequestId": "45380e93-0172-410d-864e-e46d32bc6f25"
 }
 
-[0.5] 当前为体验版，尝试升级套餐...
-  尝试 CreatePostpayPackage...
-  CreatePostpayPackage: [CreatePostpayPackage] This env type is not available。Please choose another one
-  尝试 ModifyEnv...
-  ModifyEnv 结果: {"RequestId":"3555605a-c32a-45d5-827b-629b9e2be80d"}
-  查询免费额度...
-  免费额度: {"PackageFreeQuotaInfos":[{"ResourceType":"COS","ResourceMetric":"ReadRequests","FreeQuota":150,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"COS","ResourceMetric":"WriteRequests","FreeQuota":60,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"COS","ResourceMetric":"Capacity","FreeQuota":5,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"basic"},{"ResourceType":"COS","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"CDN","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"SCF","ResourceMetric":"MemoryUse","FreeQuota":40000,"MetricUnit":"GBs","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"SCF","ResourceMetric":"Outflow","FreeQuota":1,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"FLEXDB","ResourceMetric":"Capacity","FreeQuota":2,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"basic"},{"ResourceType":"FLEXDB","ResourceMetric":"ReadRequests","FreeQuota":5,"MetricUnit":"万次","DeductType":"sum-day","FreeQuotaType":"basic"},{"ResourceType":"FLEXDB","ResourceMetric":"WriteRequests","FreeQuota":3,"MetricUnit":"万次","DeductType":"sum-day","FreeQuotaType":"basic"},{"ResourceType":"HOSTING","ResourceMetric":"Capacity","FreeQuota":1,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"basic"},{"ResourceType":"HOSTING","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"COS","ResourceMetric":"ReadRequests","FreeQuota":150,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"COS","ResourceMetric":"WriteRequests","FreeQuota":60,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"COS","ResourceMetric":"Capacity","FreeQuota":3,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"basicqcloud"},{"ResourceType":"COS","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"CDN","ResourceMetric":"Flux","FreeQuota":4,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"SCF","ResourceMetric":"MemoryUse","FreeQuota":40000,"MetricUnit":"GBs","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"SCF","ResourceMetric":"Outflow","FreeQuota":1,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"FLEXDB","ResourceMetric":"Capacity","FreeQuota":2,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"basicqcloud"},{"ResourceType":"FLEXDB","ResourceMetric":"ReadRequests","FreeQuota":5,"MetricUnit":"万次","DeductType":"sum-day","FreeQuotaType":"basicqcloud"},{"ResourceType":"FLEXDB","ResourceMetric":"WriteRequests","FreeQuota":3,"MetricUnit":"万次","DeductType":"sum-day","FreeQuotaType":"basicqcloud"},{"ResourceType":"HOSTING","ResourceMetric":"Capacity","FreeQuota":1,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"basicqcloud"},{"ResourceType":"HOSTING","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"EKS","ResourceMetric":"CPU","FreeQuota":720,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"EKS","ResourceMetric":"Mem","FreeQuota":1440,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"CODING","ResourceMetric":"BuildTime","FreeQuota":600,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"HTTPSERVICE","ResourceMetric":"Flux","FreeQuota":500,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"EKS","ResourceMetric":"CPU","FreeQuota":720,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"EKS","ResourceMetric":"Mem","FreeQuota":1440,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"CODING","ResourceMetric":"BuildTime","FreeQuota":600,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"HTTPSERVICE","ResourceMetric":"Flux","FreeQuota":500,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"COS","ResourceMetric":"ReadRequests","FreeQuota":0,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"COS","ResourceMetric":"WriteRequests","FreeQuota":0,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"COS","ResourceMetric":"Capacity","FreeQuota":5,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"free"},{"ResourceType":"COS","ResourceMetric":"Flux","FreeQuota":1,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"CDN","ResourceMetric":"Flux","FreeQuota":1,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"SCF","ResourceMetric":"MemoryUse","FreeQuota":1000,"MetricUnit":"GBs","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"SCF","ResourceMetric":"Outflow","FreeQuota":1,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"FLEXDB","ResourceMetric":"Capacity","FreeQuota":2,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"free"},{"ResourceType":"FLEXDB","ResourceMetric":"ReadRequests","FreeQuota":0,"MetricUnit":"万次","DeductType":"sum-day","FreeQuotaType":"free"},{"ResourceType":"FLEXDB","ResourceMetric":"WriteRequests","FreeQuota":0,"MetricUnit":"万次","DeductType":"sum-day","FreeQuotaType":"free"},{"ResourceType":"HOSTING","ResourceMetric":"Capacity","FreeQuota":1,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"free"},{"ResourceType":"HOSTING","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"EKS","ResourceMetric":"CPU","FreeQuota":720,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"EKS","ResourceMetric":"Mem","FreeQuota":1440,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"CODING","ResourceMetric":"BuildTime","FreeQuota":600,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"HTTPSERVICE","ResourceMetric":"Flux","FreeQuota":500,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"EKS","ResourceMetric":"CPU","FreeQuota":720,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"EKS","ResourceMetric":"Mem","FreeQuota":1440,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"CODING","ResourceMetric":"BuildTime","FreeQuota":600,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"HTTPSERVICE","ResourceMetric":"Flux","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"CYNOSDB","ResourceMetric":"Ccu","FreeQuota":720,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"CYNOSDB","ResourceMetric":"Storage","FreeQuota":720,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"HTTPSERVICE","ResourceMetric":"Flux","FreeQuota":90,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"EKS","ResourceMetric":"CPU","FreeQuota":21600,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"EKS","ResourceMetric":"Mem","FreeQuota":43200,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"CODING","ResourceMetric":"BuildTime","FreeQuota":5400,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"CYNOSDB","ResourceMetric":"Ccu","FreeQuota":8640,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"CYNOSDB","ResourceMetric":"Storage","FreeQuota":21600,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"EKS","ResourceMetric":"CPU","FreeQuota":11520,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"freegateway"},{"ResourceType":"EKS","ResourceMetric":"Mem","FreeQuota":23040,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"freegateway"},{"ResourceType":"COS","ResourceMetric":"ReadRequests","FreeQuota":6000,"MetricUnit":"万次","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"COS","ResourceMetric":"WriteRequests","FreeQuota":3000,"MetricUnit":"万次","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"COS","ResourceMetric":"Capacity","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"COS","ResourceMetric":"Flux","FreeQuota":3,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"CDN","ResourceMetric":"Flux","FreeQuota":3,"MetricUnit":"GB","DeductType":"sum-total","FreeQuotaType":"runwxfree"},{"ResourceType":"COS","ResourceMetric":"ReadRequests","FreeQuota":6000,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"COS","ResourceMetric":"WriteRequests","FreeQuota":3000,"MetricUnit":"万次","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"COS","ResourceMetric":"Capacity","FreeQuota":5,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"COS","ResourceMetric":"Flux","FreeQuota":3,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"CDN","ResourceMetric":"Flux","FreeQuota":3,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"runwxenterprisefree"},{"ResourceType":"SCF","ResourceMetric":"IdleProvisioned","FreeQuota":0,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basic"},{"ResourceType":"SCF","ResourceMetric":"IdleProvisioned","FreeQuota":0,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"basicqcloud"},{"ResourceType":"SCF","ResourceMetric":"IdleProvisioned","FreeQuota":0,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"free"},{"ResourceType":"SCF","ResourceMetric":"IdleProvisioned","FreeQuota":0,"MetricUnit":"GB","DeductType":"sum-month","FreeQuotaType":"freegateway"},{"ResourceType":"HOSTING","ResourceMetric":"Capacity","FreeQuota":0,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"runwxfree"},{"ResourceType":"HOSTING","ResourceMetric":"Flux","FreeQuota":0,"MetricUnit":"GB","DeductType":"totalize","FreeQuotaType":"runwxfree"}],"RequestId":"fb799ef8-b707-400d-ab81-80c50337a1a2"}
-
-[1/4] 打包函数代码...
+[2/5] 打包函数代码...
 
 added 71 packages, and audited 72 packages in 2s
 
@@ -90,65 +105,52 @@ added 71 packages, and audited 72 packages in 2s
 found 0 vulnerabilities
   函数包大小: 3.3M
 
-[2/4] 部署云函数...
+[3/5] 部署云函数...
   使用 COS 上传方式...
 [echoworld] 部署方式: COS 上传
 [echoworld] 部署方式: COS 上传
   云函数部署成功!
 
-[3/4] 配置 HTTP 访问...
-  尝试 switchAuth(true)...
-  switchAuth: [ModifyCloudBaseGWPrivilege] 当前套餐无法执行此操作
-  尝试 ModifyCloudBaseGWPrivilege...
-  ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The request is missing the required parameter `ServiceId`.
-  查询 HTTP 网关服务详情...
-  DescribeCloudBaseGWService: [DescribeCloudBaseGWService] The parameter `EnvId` is not recognized.
-  路由 /echoworld 已配置
+[4/5] 部署静态托管...
+  使用 hosting.uploadFiles()...
+  静态文件已上传
+  检查静态托管状态...
+  静态托管: {
+  "Data": [
+    {
+      "EnvId": "georgezhu-0gnrnw9ae9fca59a",
+      "CdnDomain": "georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com",
+      "Bucket": "39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149",
+      "Regoin": "ap-shanghai",
+      "Status": "online",
+      "MaxDomain": 4,
+      "Id": 1160822,
+      "PolicyId": 264241099,
+      "Region": "ap-shanghai"
+    }
+  ],
+  "RequestId": "0a9241da-2e67-4b12-89f6-09da179bb42c"
+}
 
-[4/4] 获取部署结果...
+[5/5] 配置 HTTP 访问...
+  switchAuth: [ModifyCloudBaseGWPrivilege] 当前套餐无法执行此操作
+  路由 /echoworld 已配置
 
 ========================================
          部署结果
 ========================================
 
-HTTP 路由:
-  /api -> link-reit-api
-  /echoworld -> echoworld
-  EnableService: false
-
-域名信息: {
-  "AccessFlag": 1,
-  "CustomRoutingRules": "",
-  "DefaultDomain": "georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com",
-  "EnableCheckAcrossDomain": true,
-  "EnableService": false,
-  "EnableUnion": false,
-  "OriginDomain": "georgezhu-0gnrnw9ae9fca59a.tcbaccess-in.tencentcloudbase.com",
-  "RequestId": "8640b1a8-1f77-4290-b941-51d31fbff6da",
-  "ServiceSet": []
-}
+测试静态托管: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  HTTP 418: 
 
 HTTP 服务: ✗ 未开通
 
-测试访问: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
-  HTTP 403: {"code":"HTTPSERVICE_NONACTIVATED","message":"HTTPService is not activated. For more information, please refer to https://docs.cloudbase.net/error-code/service/HTTPSERVICE_NONACTIVATED","requestId":"e
-测试 API: https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld/api/world
-  HTTP 403: {"code":"HTTPSERVICE_NONACTIVATED","message":"HTTPService is not activated. For more information, please refer to https://docs.cloudbase.net/error-code/service/HTTPSERVICE_NONACTIVATED","requestId":"4
-
 ========================================
-  云函数已部署成功，但 HTTP 服务未开通。
-  当前套餐: 体验版
-
-  开通方式:
-  1. 访问 CloudBase 控制台:
-     https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
-  2. 在「HTTP 访问服务」页面，点击开通
-     (可能需要升级套餐为按量计费/包年包月)
-  3. 开通后访问地址为:
-     https://georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com/echoworld
+  访问地址:
+  静态托管: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
 ========================================
 
-控制台: https://console.cloud.tencent.com/tcb/env/access?envId=georgezhu-0gnrnw9ae9fca59a
+控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=georgezhu-0gnrnw9ae9fca59a
 
 === 部署完成 ===
 
