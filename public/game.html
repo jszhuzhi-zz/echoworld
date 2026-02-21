@@ -1039,7 +1039,6 @@ function showBuildingOverlay(node) {
     return `<span class="eff">${names[k] || k} +${Math.floor(v * eMult)}</span>`;
   }).join('');
   document.getElementById('bo-effects').innerHTML = effectsHtml;
-  document.getElementById('btn-use-building').textContent = `消费 ${fee} CC`;
   document.getElementById('building-overlay').classList.add('show');
 }
 
@@ -1481,7 +1480,7 @@ function animate() {
 
   // 建筑等级动画 (浮动光环、闪烁光点)
   for (const bldgGroup of mapMeshGroup.children) {
-    if (!bldgGroup.userData?.type === 'building' || !bldgGroup.children) continue;
+    if (bldgGroup.userData?.type !== 'building' || !bldgGroup.children) continue;
     for (const child of bldgGroup.children) {
       if (child.userData?._floatingRing) {
         child.position.y = 0.6 + Math.sin(t * 2) * 0.1;
