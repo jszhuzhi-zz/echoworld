@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EchoWorld - 投资游戏</title>
+  <title>EchoWorld - 大富翁</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -13,148 +13,235 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh;
+      background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden;
     }
-    nav {
-      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
-      border-bottom: 1px solid var(--border); padding: 12px 24px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .nav-left { display: flex; align-items: center; gap: 24px; }
-    .nav-logo {
-      font-size: 20px; font-weight: 700;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .nav-links { display: flex; gap: 4px; }
-    .nav-links a {
-      color: var(--text2); text-decoration: none; padding: 6px 14px;
-      border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s;
-    }
+    /* Nav */
+    nav { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-left { display: flex; align-items: center; gap: 20px; }
+    .nav-logo { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: flex; gap: 2px; }
+    .nav-links a { color: var(--text2); text-decoration: none; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; }
     .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
     .nav-links a.active { color: white; background: var(--accent); }
-    .nav-right { display: flex; align-items: center; gap: 12px; }
-    .nav-user { font-size: 13px; color: var(--text2); }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-user { font-size: 12px; color: var(--text2); }
     .nav-user strong { color: var(--yellow); }
-    .btn-logout {
-      padding: 5px 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3);
-      border-radius: 6px; color: var(--red); font-size: 12px; cursor: pointer;
-    }
-    .btn-logout:hover { background: rgba(239,68,68,0.25); }
+    .btn-logout { padding: 4px 10px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 5px; color: var(--red); font-size: 11px; cursor: pointer; }
 
-    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    /* Layout */
+    .game-layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; max-width: 1400px; margin: 0 auto; padding: 16px; }
+    @media (max-width: 1100px) { .game-layout { grid-template-columns: 1fr; } }
 
-    .card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    /* ====== BOARD ====== */
+    .board-wrapper { position: relative; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 2px;
+      aspect-ratio: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      background: var(--border);
+      border-radius: 8px;
+      overflow: hidden;
     }
-    .card-title {
-      font-size: 15px; font-weight: 600; margin-bottom: 14px;
-      display: flex; align-items: center; gap: 8px;
+    /* Tile */
+    .tile {
+      position: relative;
+      background: var(--bg2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      min-height: 0;
+      cursor: pointer;
+      transition: all 0.15s;
+      overflow: hidden;
     }
+    .tile:hover { z-index: 2; transform: scale(1.08); box-shadow: 0 0 12px rgba(59,130,246,0.4); }
+    .tile.current-tile { box-shadow: inset 0 0 0 2px var(--yellow), 0 0 8px rgba(245,158,11,0.5); z-index: 1; }
+    .tile-color { position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+    .tile-icon { font-size: 16px; line-height: 1; margin-top: 4px; }
+    .tile-name { font-size: 8px; font-weight: 600; text-align: center; line-height: 1.1; margin-top: 1px; color: var(--text); }
+    .tile-cost { font-size: 7px; color: var(--yellow); font-weight: 600; }
+    .tile.corner { background: var(--bg3); }
+    .tile.corner .tile-icon { font-size: 20px; }
+    .tile.corner .tile-name { font-size: 9px; }
 
-    /* Stats bar */
-    .stats-bar {
-      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+    /* Player tokens on tile */
+    .tile-players { display: flex; flex-wrap: wrap; gap: 1px; position: absolute; bottom: 1px; left: 1px; right: 1px; justify-content: center; }
+    .token {
+      width: 12px; height: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 6px; font-weight: 700; color: white; border: 1px solid rgba(255,255,255,0.3);
+      flex-shrink: 0;
     }
-    .stat-box {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
-      padding: 16px 24px; flex: 1; min-width: 160px; text-align: center;
-    }
-    .stat-box .label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
-    .stat-box .value { font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; }
-    .stat-box .value.money { color: var(--yellow); }
-    .stat-box .value.green { color: var(--green); }
-    .stat-box .value.blue { color: var(--accent); }
+    .token.me { border: 2px solid var(--yellow); box-shadow: 0 0 4px var(--yellow); }
 
-    /* Resources */
-    .resource-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-    .resource-card {
-      background: var(--bg3); border-radius: 8px; padding: 12px;
-      display: flex; justify-content: space-between; align-items: center;
+    /* Board center */
+    .board-center {
+      grid-column: 2 / 8;
+      grid-row: 2 / 8;
+      background: radial-gradient(ellipse at center, #1a2332 0%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      gap: 12px;
     }
-    .resource-name { font-size: 13px; font-weight: 500; }
-    .resource-amount { font-size: 15px; font-weight: 600; color: var(--green); font-family: monospace; }
+    .center-title {
+      font-size: 22px; font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #f59e0b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .center-subtitle { font-size: 11px; color: var(--text2); }
 
-    /* Market */
-    .market-item {
-      display: flex; align-items: center; gap: 12px; padding: 10px;
-      background: var(--bg3); border-radius: 8px; margin-bottom: 8px;
+    /* Dice */
+    .dice-area { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .dice-display { display: flex; gap: 8px; align-items: center; }
+    .dice {
+      width: 52px; height: 52px; background: white; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 900; color: #1f2937;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.3s;
     }
-    .market-item .name { flex: 1; font-size: 14px; font-weight: 500; }
-    .market-item .price { font-size: 16px; font-weight: 700; color: var(--yellow); font-family: monospace; min-width: 80px; text-align: right; }
-    .market-item .actions { display: flex; gap: 6px; }
+    .dice.rolling { animation: diceRoll 0.5s ease; }
+    @keyframes diceRoll {
+      0% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(90deg) scale(1.1); }
+      50% { transform: rotate(180deg) scale(1); }
+      75% { transform: rotate(270deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .btn-roll {
+      padding: 10px 32px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 8px; color: white; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
+    }
+    .btn-roll:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+    .btn-roll:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .actions-left { font-size: 11px; color: var(--text2); }
+    .actions-left strong { color: var(--yellow); }
 
-    .btn {
-      padding: 8px 18px; border: none; border-radius: 6px;
-      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    /* Tile info popup */
+    .tile-info-panel {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; margin-top: 6px; display: none;
     }
+    .tile-info-panel.open { display: block; }
+    .tile-info-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .tile-info-header .icon { font-size: 24px; }
+    .tile-info-header .name { font-size: 16px; font-weight: 600; }
+    .tile-info-desc { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+    .tile-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ====== RIGHT PANEL ====== */
+    .side-panel { display: flex; flex-direction: column; gap: 12px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .card-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .card-title .badge { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(59,130,246,0.15); color: var(--accent); }
+
+    /* Stats mini */
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .mini-stat { background: var(--bg3); border-radius: 6px; padding: 8px; text-align: center; }
+    .mini-stat .label { font-size: 10px; color: var(--text2); }
+    .mini-stat .val { font-size: 16px; font-weight: 700; font-family: monospace; }
+    .mini-stat .val.money { color: var(--yellow); }
+    .mini-stat .val.green { color: var(--green); }
+    .mini-stat .val.blue { color: var(--accent); }
+    .mini-stat .val.red { color: var(--red); }
+
+    /* Resources bar */
+    .res-bar { display: flex; gap: 4px; flex-wrap: wrap; }
+    .res-item { background: var(--bg3); border-radius: 6px; padding: 4px 8px; font-size: 11px; display: flex; gap: 4px; align-items: center; }
+    .res-item .rname { color: var(--text2); }
+    .res-item .rval { font-weight: 600; color: var(--green); font-family: monospace; }
+
+    /* Needs */
+    .need-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12px; }
+    .need-row .nname { width: 50px; color: var(--text2); }
+    .need-bar { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+    .need-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    .need-bar-fill.high { background: var(--green); }
+    .need-bar-fill.mid { background: var(--yellow); }
+    .need-bar-fill.low { background: var(--red); }
+
+    /* Buildings list */
+    .bld-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 12px; }
+    .bld-item:last-child { border-bottom: none; }
+    .bld-item .bname { flex: 1; }
+    .bld-item .blevel { color: var(--accent2); font-weight: 700; }
+
+    /* Leaderboard */
+    .lb-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(55,65,81,0.2); font-size: 12px; }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+    .lb-rank.t1 { background: var(--yellow); color: #000; }
+    .lb-rank.t2 { background: #94a3b8; color: #000; }
+    .lb-rank.t3 { background: #b45309; color: white; }
+    .lb-rank.tn { background: var(--bg3); color: var(--text2); }
+    .lb-name { flex: 1; font-size: 11px; }
+    .lb-money { color: var(--yellow); font-family: monospace; font-size: 11px; }
+    .lb-row.me { background: rgba(59,130,246,0.1); border-radius: 4px; padding: 4px 6px; }
+
+    /* Event log */
+    .event-log { max-height: 200px; overflow-y: auto; }
+    .event-log::-webkit-scrollbar { width: 3px; }
+    .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .log-item { padding: 4px 0; border-bottom: 1px solid rgba(55,65,81,0.2); font-size: 11px; color: var(--text2); }
+    .log-item .log-time { color: var(--accent); font-weight: 600; }
+    .log-item .log-msg { color: var(--text); }
+
+    /* Buttons */
+    .btn { padding: 6px 14px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-green { background: var(--green); color: white; }
     .btn-red { background: var(--red); color: white; }
     .btn-blue { background: var(--accent); color: white; }
     .btn-yellow { background: var(--yellow); color: #000; }
-    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-sm { padding: 4px 10px; font-size: 11px; }
     .btn:hover { opacity: 0.85; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Buildings */
-    .building-item {
-      display: flex; align-items: center; gap: 12px; padding: 10px;
-      background: var(--bg3); border-radius: 8px; margin-bottom: 8px;
-    }
-    .building-item .info { flex: 1; }
-    .building-item .info .name { font-size: 14px; font-weight: 500; }
-    .building-item .info .detail { font-size: 12px; color: var(--text2); margin-top: 2px; }
-    .building-item .level { font-size: 18px; font-weight: 700; color: var(--accent2); min-width: 60px; text-align: center; }
-
-    /* Input */
-    .input-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
-    .input-group { display: flex; flex-direction: column; gap: 4px; }
-    .input-group label { font-size: 11px; color: var(--text2); }
-    .input-group input, .input-group select {
-      padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 6px; color: var(--text); font-size: 13px; outline: none;
-    }
-    .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
-
-    /* Trade modal */
-    .modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;
-    }
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
-    .modal {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-      padding: 24px; min-width: 360px; max-width: 90vw;
-    }
-    .modal h3 { font-size: 16px; margin-bottom: 16px; }
-    .modal .input-group { margin-bottom: 12px; }
-    .modal .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; min-width: 320px; max-width: 90vw; }
+    .modal h3 { font-size: 15px; margin-bottom: 12px; }
+    .modal .input-group { margin-bottom: 10px; }
+    .modal .input-group label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+    .modal .input-group input { width: 100%; padding: 6px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; outline: none; }
+    .modal .btn-row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
 
-    /* Leaderboard */
-    .lb-row {
-      display: flex; align-items: center; gap: 10px; padding: 6px 0;
-      border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 13px;
-    }
-    .lb-row .rank { width: 24px; font-weight: 700; color: var(--text2); }
-    .lb-row .name { flex: 1; }
-    .lb-row .money { color: var(--yellow); font-family: monospace; }
-    .lb-row.me { background: rgba(59,130,246,0.1); border-radius: 6px; padding: 6px 8px; }
-
-    .toast {
-      position: fixed; bottom: 20px; right: 20px; padding: 12px 20px;
-      border-radius: 8px; font-size: 13px; z-index: 9999;
-      animation: slideIn 0.3s ease; display: none;
-    }
+    /* Toast */
+    .toast { position: fixed; bottom: 16px; right: 16px; padding: 10px 18px; border-radius: 8px; font-size: 12px; z-index: 9999; display: none; animation: slideIn 0.3s ease; }
     .toast.success { background: rgba(16,185,129,0.9); color: white; }
     .toast.error { background: rgba(239,68,68,0.9); color: white; }
+    .toast.info { background: rgba(59,130,246,0.9); color: white; }
     @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .scroll-box { max-height: 350px; overflow-y: auto; }
-    .scroll-box::-webkit-scrollbar { width: 4px; }
-    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Effect overlay */
+    .effect-overlay {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 32px; font-weight: 900; z-index: 999;
+      pointer-events: none; opacity: 0; transition: all 0.5s;
+    }
+    .effect-overlay.show {
+      opacity: 1; animation: effectPop 1.5s ease forwards;
+    }
+    @keyframes effectPop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -70%) scale(1); opacity: 0; }
+    }
+
+    .scroll-box { max-height: 180px; overflow-y: auto; }
+    .scroll-box::-webkit-scrollbar { width: 3px; }
+    .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -169,359 +256,542 @@
       </div>
     </div>
     <div class="nav-right">
-      <span class="nav-user">投资者: <strong id="navUsername">-</strong></span>
+      <span class="nav-user"><strong id="navUsername">-</strong></span>
       <button class="btn-logout" onclick="logout()">退出</button>
     </div>
   </nav>
 
-  <div class="container">
-    <!-- Player Stats -->
-    <div class="stats-bar" id="statsBar">
-      <div class="stat-box"><div class="label">资金</div><div class="value money" id="myMoney">-</div></div>
-      <div class="stat-box"><div class="label">建筑数</div><div class="value blue" id="myBuildings">-</div></div>
-      <div class="stat-box"><div class="label">排名</div><div class="value green" id="myRank">-</div></div>
-      <div class="stat-box"><div class="label">世界日期</div><div class="value" id="worldDay" style="color:var(--text)">-</div></div>
+  <div class="game-layout">
+    <!-- LEFT: Board -->
+    <div class="board-wrapper">
+      <div class="board" id="board">
+        <!-- Tiles generated by JS -->
+      </div>
+
+      <!-- Tile action panel -->
+      <div class="tile-info-panel" id="tileInfo">
+        <div class="tile-info-header">
+          <span class="icon" id="tileInfoIcon">-</span>
+          <span class="name" id="tileInfoName">-</span>
+        </div>
+        <div class="tile-info-desc" id="tileInfoDesc">-</div>
+        <div class="tile-actions" id="tileInfoActions"></div>
+      </div>
     </div>
 
-    <div class="grid-2">
-      <!-- My Resources -->
+    <!-- RIGHT: Side Panel -->
+    <div class="side-panel">
+      <!-- My Status -->
+      <div class="card">
+        <div class="card-title">我的状态</div>
+        <div class="mini-stats">
+          <div class="mini-stat"><div class="label">资金</div><div class="val money" id="myMoney">-</div></div>
+          <div class="mini-stat"><div class="label">排名</div><div class="val green" id="myRank">-</div></div>
+          <div class="mini-stat"><div class="label">建筑</div><div class="val blue" id="myBuildings">0</div></div>
+          <div class="mini-stat"><div class="label">存活</div><div class="val" id="mySurvival" style="color:var(--text)">0天</div></div>
+        </div>
+      </div>
+
+      <!-- Survival Needs -->
+      <div class="card">
+        <div class="card-title">生存需求</div>
+        <div id="needsContainer">
+          <div class="need-row">
+            <span class="nname">食物</span>
+            <div class="need-bar"><div class="need-bar-fill high" id="needFood" style="width:100%"></div></div>
+          </div>
+          <div class="need-row">
+            <span class="nname">能源</span>
+            <div class="need-bar"><div class="need-bar-fill high" id="needEnergy" style="width:100%"></div></div>
+          </div>
+          <div class="need-row">
+            <span class="nname">商品</span>
+            <div class="need-bar"><div class="need-bar-fill high" id="needGoods" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources -->
       <div class="card">
         <div class="card-title">我的资源</div>
-        <div class="resource-grid" id="myResources">
-          <div style="color:var(--text2);font-size:13px;">加载中...</div>
-        </div>
+        <div class="res-bar" id="myResources">-</div>
       </div>
 
-      <!-- Market Prices & Trading -->
+      <!-- My Buildings -->
       <div class="card">
-        <div class="card-title">市场交易</div>
-        <div class="scroll-box" id="marketList">
-          <div style="color:var(--text2);font-size:13px;">加载中...</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <!-- Buildings -->
-      <div class="card">
-        <div class="card-title">我的建筑</div>
+        <div class="card-title">我的建筑 <span class="badge" id="bldCount">0</span></div>
         <div class="scroll-box" id="myBuildingList">
-          <div style="color:var(--text2);font-size:13px;">加载中...</div>
-        </div>
-        <div style="margin-top:12px;">
-          <div class="card-title" style="font-size:13px;">建造新建筑</div>
-          <div class="input-row">
-            <div class="input-group">
-              <label>类型</label>
-              <select id="buildType">
-                <option value="farm">农场 (Farm)</option>
-                <option value="factory">工厂 (Factory)</option>
-                <option value="shop">商店 (Shop)</option>
-                <option value="house">住宅 (House)</option>
-                <option value="warehouse">仓库 (Warehouse)</option>
-              </select>
-            </div>
-            <button class="btn btn-blue" onclick="buildBuilding()">建造</button>
-          </div>
+          <div style="color:var(--text2);font-size:11px;">暂无建筑</div>
         </div>
       </div>
 
-      <!-- Banking & Leaderboard -->
-      <div>
-        <div class="card">
-          <div class="card-title">银行服务</div>
-          <div class="input-row" style="margin-bottom:10px;">
-            <div class="input-group">
-              <label>贷款金额</label>
-              <input type="number" id="loanAmount" placeholder="1000" style="width:120px">
-            </div>
-            <button class="btn btn-yellow" onclick="requestLoan()">申请贷款</button>
-          </div>
-          <div class="input-row">
-            <div class="input-group">
-              <label>存款金额</label>
-              <input type="number" id="depositAmount" placeholder="500" style="width:120px">
-            </div>
-            <button class="btn btn-green" onclick="makeDeposit()">存入银行</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">排行榜</div>
-          <div class="scroll-box" id="leaderboard">
-            <div style="color:var(--text2);font-size:13px;">加载中...</div>
-          </div>
+      <!-- Leaderboard -->
+      <div class="card">
+        <div class="card-title">排行榜</div>
+        <div class="scroll-box" id="leaderboard">-</div>
+      </div>
+
+      <!-- Game Log -->
+      <div class="card">
+        <div class="card-title">行动日志</div>
+        <div class="event-log" id="gameLog">
+          <div class="log-item"><span class="log-msg" style="color:var(--text2)">等待行动...</span></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Trade Modal -->
-  <div class="modal-overlay" id="tradeModal">
+  <!-- Action Modal -->
+  <div class="modal-overlay" id="actionModal">
     <div class="modal">
-      <h3 id="tradeTitle">交易</h3>
-      <div class="input-group">
-        <label>数量</label>
-        <input type="number" id="tradeAmount" placeholder="1" min="1" value="1">
-      </div>
-      <div style="font-size:13px;color:var(--text2);margin-top:8px;">
-        预估: <strong id="tradeEstimate">-</strong>
-      </div>
+      <h3 id="modalTitle">操作</h3>
+      <div id="modalBody"></div>
       <div class="btn-row">
-        <button class="btn btn-red btn-sm" onclick="closeTradeModal()">取消</button>
-        <button class="btn btn-green btn-sm" id="tradeConfirmBtn" onclick="confirmTrade()">确认</button>
+        <button class="btn btn-red btn-sm" onclick="closeModal()">取消</button>
+        <button class="btn btn-green btn-sm" id="modalConfirm" onclick="confirmModalAction()">确认</button>
       </div>
     </div>
   </div>
 
+  <div class="effect-overlay" id="effectOverlay"></div>
   <div class="toast" id="toast"></div>
 
   <script>
+    // ============ CONFIG ============
+    const PLAYER_COLORS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16','#64748b','#a855f7','#14b8a6'];
+    const RESOURCE_ICONS = { food: '🍎', material: '🪨', goods: '📱', energy: '⚡', labor: '👷' };
+    const RESOURCE_NAMES = { food: '食物', material: '原料', goods: '商品', energy: '能源', labor: '劳动力' };
+
+    // ============ AUTH ============
     const API = '';
     let token = localStorage.getItem('echoworld_token');
     let currentUser = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
-
     if (!token || !currentUser || currentUser.role !== 'investor') {
-      if (currentUser?.role === 'admin') { window.location.href = '/admin'; }
-      else if (currentUser?.role === 'observer') { window.location.href = '/news'; }
-      else { window.location.href = '/login'; }
+      if (currentUser?.role === 'admin') window.location.href = '/admin';
+      else if (currentUser?.role === 'observer') window.location.href = '/news';
+      else window.location.href = '/login';
     }
     document.getElementById('navUsername').textContent = currentUser?.username || '-';
+    function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+    function logout() { localStorage.removeItem('echoworld_token'); localStorage.removeItem('echoworld_user'); window.location.href = '/login'; }
 
-    function authHeaders() {
-      return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-    }
-    function logout() {
-      localStorage.removeItem('echoworld_token');
-      localStorage.removeItem('echoworld_user');
-      window.location.href = '/login';
-    }
+    // ============ STATE ============
+    let boardTiles = [];
+    let boardPlayers = [];
+    let myBoardState = null;
+    let myEntity = null;
+    let myBuildings = [];
+    let marketPrices = {};
+    let entityMap = {};      // id -> {name, color}
+    let gameLog = [];
+    let modalAction = null;
+
+    // ============ TOAST / EFFECT ============
     function showToast(msg, type = 'success') {
       const t = document.getElementById('toast');
       t.textContent = msg; t.className = 'toast ' + type; t.style.display = 'block';
-      setTimeout(() => t.style.display = 'none', 3000);
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.style.display = 'none', 3000);
+    }
+    function showEffect(text, color) {
+      const el = document.getElementById('effectOverlay');
+      el.textContent = text; el.style.color = color || 'var(--yellow)';
+      el.className = 'effect-overlay show';
+      setTimeout(() => el.className = 'effect-overlay', 1500);
+    }
+    function addLog(msg) {
+      gameLog.unshift({ time: new Date().toLocaleTimeString(), msg });
+      if (gameLog.length > 50) gameLog.pop();
+      renderLog();
+    }
+    function renderLog() {
+      document.getElementById('gameLog').innerHTML = gameLog.map(l =>
+        `<div class="log-item"><span class="log-time">[${l.time}]</span> <span class="log-msg">${l.msg}</span></div>`
+      ).join('');
     }
 
-    let myEntity = null;
-    let marketPrices = {};
-    let tradeInfo = { action: '', resource: '', price: 0 };
+    // ============ BOARD LAYOUT ============
+    // Position → grid cell mapping for 8x8 board
+    function getTileGridPosition(id) {
+      // Bottom row L→R: ids 0-7 → row 8, col 1-8
+      if (id >= 0 && id <= 7) return { row: 8, col: id + 1 };
+      // Right col B→T: ids 8-13 → col 8, row 7 down to 2
+      if (id >= 8 && id <= 13) return { row: 7 - (id - 8), col: 8 };
+      // Top row R→L: ids 14-21 → row 1, col 8 down to 1
+      if (id >= 14 && id <= 21) return { row: 1, col: 8 - (id - 14) };
+      // Left col T→B: ids 22-27 → col 1, row 2-7
+      if (id >= 22 && id <= 27) return { row: id - 20, col: 1 };
+      return { row: 1, col: 1 };
+    }
 
-    // ========== My Status ==========
-    async function loadMyStatus() {
-      try {
-        const res = await fetch(API + '/api/game/me', { headers: authHeaders() });
-        if (!res.ok) throw new Error('获取状态失败');
-        const data = await res.json();
-        myEntity = data.entity;
+    function isCorner(id) { return id === 0 || id === 7 || id === 14 || id === 21; }
 
-        document.getElementById('myMoney').textContent = '$' + myEntity.money.toFixed(0);
-        document.getElementById('myBuildings').textContent = data.buildings.length;
+    function buildBoard(tiles, players) {
+      const board = document.getElementById('board');
+      board.innerHTML = '';
 
-        // Resources
-        const rc = document.getElementById('myResources');
-        const resources = myEntity.resources || {};
-        const resKeys = Object.keys(resources);
-        if (resKeys.length === 0) {
-          rc.innerHTML = '<div style="color:var(--text2);font-size:13px;">暂无资源</div>';
+      // Build entity color map
+      let colorIdx = 0;
+      players.forEach(p => {
+        if (!entityMap[p.entityId]) {
+          entityMap[p.entityId] = { name: p.name || '?', color: PLAYER_COLORS[colorIdx % PLAYER_COLORS.length] };
+          colorIdx++;
         } else {
-          rc.innerHTML = resKeys.map(k => `
-            <div class="resource-card">
-              <span class="resource-name">${k}</span>
-              <span class="resource-amount">${resources[k]}</span>
-            </div>
-          `).join('');
+          entityMap[p.entityId].name = p.name || entityMap[p.entityId].name;
+        }
+      });
+
+      // Build player position map
+      const posMap = {};
+      players.forEach(p => {
+        if (!posMap[p.position]) posMap[p.position] = [];
+        posMap[p.position].push(p.entityId);
+      });
+
+      // Render tiles
+      tiles.forEach(tile => {
+        const pos = getTileGridPosition(tile.id);
+        const div = document.createElement('div');
+        div.className = 'tile' + (isCorner(tile.id) ? ' corner' : '');
+        div.style.gridRow = pos.row;
+        div.style.gridColumn = pos.col;
+        div.dataset.tileId = tile.id;
+        div.onclick = () => showTileInfo(tile);
+
+        // Highlight current position
+        if (myBoardState && myBoardState.position === tile.id) {
+          div.classList.add('current-tile');
         }
 
-        // Buildings
-        const bc = document.getElementById('myBuildingList');
-        if (data.buildings.length === 0) {
-          bc.innerHTML = '<div style="color:var(--text2);font-size:13px;">暂无建筑，快去建造吧！</div>';
-        } else {
-          bc.innerHTML = data.buildings.map(b => `
-            <div class="building-item">
-              <div class="info">
-                <div class="name">${b.type} - ${b.name || b.id.slice(0,8)}</div>
-                <div class="detail">状态: ${b.condition?.toFixed(0) || '-'}% | 收入: $${(b.income || 0).toFixed(0)}/天</div>
-              </div>
-              <div class="level">Lv.${b.level || 1}</div>
-              <button class="btn btn-blue btn-sm" onclick="upgradeBuilding('${b.id}')">升级</button>
-            </div>
-          `).join('');
+        // Color strip
+        const colorStrip = document.createElement('div');
+        colorStrip.className = 'tile-color';
+        colorStrip.style.background = tile.color;
+        div.appendChild(colorStrip);
+
+        // Icon
+        const icon = document.createElement('div');
+        icon.className = 'tile-icon';
+        icon.textContent = tile.icon;
+        div.appendChild(icon);
+
+        // Name
+        const name = document.createElement('div');
+        name.className = 'tile-name';
+        name.textContent = tile.name;
+        div.appendChild(name);
+
+        // Cost
+        if (tile.cost) {
+          const cost = document.createElement('div');
+          cost.className = 'tile-cost';
+          cost.textContent = '$' + tile.cost;
+          div.appendChild(cost);
         }
 
-        // Rank
-        await loadLeaderboard();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    // ========== World Time ==========
-    async function loadWorldTime() {
-      try {
-        const res = await fetch(API + '/api/world/time');
-        const data = await res.json();
-        document.getElementById('worldDay').textContent = `Day ${data.time.day}`;
-      } catch (e) {}
-    }
-
-    // ========== Market ==========
-    async function loadMarket() {
-      try {
-        const res = await fetch(API + '/api/market/prices');
-        marketPrices = await res.json();
-        const mc = document.getElementById('marketList');
-        const priceEntries = Object.entries(marketPrices);
-        if (priceEntries.length === 0) {
-          mc.innerHTML = '<div style="color:var(--text2)">暂无市场数据</div>';
-          return;
+        // Player tokens
+        const playersHere = posMap[tile.id] || [];
+        if (playersHere.length > 0) {
+          const tokensDiv = document.createElement('div');
+          tokensDiv.className = 'tile-players';
+          playersHere.forEach(eid => {
+            const em = entityMap[eid] || { name: '?', color: '#666' };
+            const tok = document.createElement('div');
+            tok.className = 'token' + (eid === currentUser?.entityId ? ' me' : '');
+            tok.style.background = em.color;
+            tok.textContent = em.name.charAt(0);
+            tok.title = em.name;
+            tokensDiv.appendChild(tok);
+          });
+          div.appendChild(tokensDiv);
         }
-        mc.innerHTML = priceEntries.map(([resource, price]) => `
-          <div class="market-item">
-            <span class="name">${resource}</span>
-            <span class="price">$${(typeof price === 'number' ? price : price.price || 0).toFixed(2)}</span>
-            <div class="actions">
-              <button class="btn btn-green btn-sm" onclick="openTrade('buy','${resource}',${typeof price === 'number' ? price : price.price || 0})">买入</button>
-              <button class="btn btn-red btn-sm" onclick="openTrade('sell','${resource}',${typeof price === 'number' ? price : price.price || 0})">卖出</button>
-            </div>
+
+        board.appendChild(div);
+      });
+
+      // Center area
+      const center = document.createElement('div');
+      center.className = 'board-center';
+      center.innerHTML = `
+        <div class="center-title">EchoWorld</div>
+        <div class="center-subtitle">AI 大富翁 | Day <span id="centerDay">-</span></div>
+        <div class="dice-area">
+          <div class="dice-display">
+            <div class="dice" id="diceDisplay">?</div>
           </div>
-        `).join('');
+          <button class="btn-roll" id="btnRoll" onclick="rollDice()">掷骰子</button>
+          <div class="actions-left">今日行动: <strong id="actionsUsed">0</strong> / <strong id="actionsMax">6</strong></div>
+        </div>
+      `;
+      board.appendChild(center);
+    }
+
+    // ============ TILE INFO ============
+    function showTileInfo(tile) {
+      document.getElementById('tileInfoIcon').textContent = tile.icon;
+      document.getElementById('tileInfoName').textContent = tile.name + (tile.cost ? ` ($${tile.cost})` : '');
+      document.getElementById('tileInfoDesc').textContent = tile.description;
+
+      const actionsDiv = document.getElementById('tileInfoActions');
+      actionsDiv.innerHTML = '';
+
+      // Only show actions if it's our current tile
+      const isMyTile = myBoardState && myBoardState.position === tile.id;
+      if (isMyTile) {
+        if (tile.type === 'property' && tile.buildingType) {
+          actionsDiv.innerHTML = `<button class="btn btn-blue btn-sm" onclick="boardAction('build')">建造 ${tile.name} ($${tile.cost})</button>`;
+        } else if (tile.type === 'market' && tile.resourceType) {
+          actionsDiv.innerHTML = `
+            <button class="btn btn-green btn-sm" onclick="openTradeModal('buy','${tile.resourceType}')">买入${RESOURCE_NAMES[tile.resourceType]||tile.resourceType}</button>
+            <button class="btn btn-red btn-sm" onclick="openTradeModal('sell','${tile.resourceType}')">卖出${RESOURCE_NAMES[tile.resourceType]||tile.resourceType}</button>
+          `;
+        } else if (tile.type === 'bank') {
+          if (tile.name.includes('贷')) {
+            actionsDiv.innerHTML = `<button class="btn btn-yellow btn-sm" onclick="openBankModal('loan')">申请贷款</button>`;
+          } else {
+            actionsDiv.innerHTML = `<button class="btn btn-green btn-sm" onclick="openBankModal('deposit')">存款</button>`;
+          }
+        }
+      } else {
+        actionsDiv.innerHTML = '<span style="font-size:11px;color:var(--text2)">移动到此格才能操作</span>';
+      }
+
+      document.getElementById('tileInfo').classList.add('open');
+    }
+
+    // ============ DICE ROLL ============
+    async function rollDice() {
+      const btn = document.getElementById('btnRoll');
+      btn.disabled = true;
+
+      // Animate dice
+      const dice = document.getElementById('diceDisplay');
+      dice.classList.add('rolling');
+      let animInterval = setInterval(() => {
+        dice.textContent = Math.floor(Math.random() * 6) + 1;
+      }, 80);
+
+      try {
+        const res = await fetch(API + '/api/board/roll', { method: 'POST', headers: authHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        // Stop animation, show result
+        clearInterval(animInterval);
+        dice.textContent = data.roll || '!';
+        setTimeout(() => dice.classList.remove('rolling'), 500);
+
+        // Update board state
+        myBoardState = data.boardState;
+        document.getElementById('actionsUsed').textContent = myBoardState.actionsToday;
+        document.getElementById('actionsMax').textContent = myBoardState.maxActions;
+
+        // Log
+        if (data.roll > 0) {
+          addLog(`掷出 ${data.roll}，移动到 [${data.tile.name}]`);
+        } else {
+          addLog(`困境中，无法移动`);
+        }
+
+        if (data.passedGo) {
+          showEffect('+$200 经过起点', 'var(--green)');
+          addLog('经过起点，收取 $200');
+        }
+
+        // Tile effect
+        if (data.tileEffect && data.tileEffect.message) {
+          addLog(data.tileEffect.message);
+          if (data.tileEffect.type === 'tax') {
+            showEffect(data.tileEffect.message, 'var(--red)');
+          } else if (data.tileEffect.type === 'trouble') {
+            showEffect('陷入困境!', 'var(--red)');
+          } else if (data.tileEffect.amount > 0) {
+            showEffect(data.tileEffect.message, 'var(--green)');
+          }
+        }
+
+        // Refresh
+        await loadAll();
+
+        // Show tile info for new position
+        if (data.tile) showTileInfo(data.tile);
+
       } catch (e) {
-        console.error(e);
+        clearInterval(animInterval);
+        dice.classList.remove('rolling');
+        showToast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
       }
     }
 
-    // ========== Trade ==========
-    function openTrade(action, resource, price) {
-      tradeInfo = { action, resource, price };
-      document.getElementById('tradeTitle').textContent = `${action === 'buy' ? '买入' : '卖出'} ${resource}`;
-      document.getElementById('tradeAmount').value = 1;
-      updateTradeEstimate();
-      document.getElementById('tradeModal').classList.add('open');
-    }
-    function closeTradeModal() {
-      document.getElementById('tradeModal').classList.remove('open');
-    }
-    function updateTradeEstimate() {
-      const amt = parseInt(document.getElementById('tradeAmount').value) || 0;
-      const total = (amt * tradeInfo.price).toFixed(2);
-      document.getElementById('tradeEstimate').textContent =
-        `${amt} x $${tradeInfo.price.toFixed(2)} = $${total}`;
-    }
-    document.getElementById('tradeAmount').addEventListener('input', updateTradeEstimate);
-
-    async function confirmTrade() {
-      const amount = parseInt(document.getElementById('tradeAmount').value);
-      if (!amount || amount <= 0) return showToast('请输入有效数量', 'error');
-      const url = tradeInfo.action === 'buy' ? '/api/game/buy' : '/api/game/sell';
+    // ============ BOARD ACTIONS ============
+    async function boardAction(action, amount) {
       try {
-        const res = await fetch(API + url, {
+        const res = await fetch(API + '/api/board/action', {
           method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ resource: tradeInfo.resource, amount })
+          body: JSON.stringify({ action, amount })
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error);
-        }
-        showToast(`${tradeInfo.action === 'buy' ? '买入' : '卖出'}成功！`);
-        closeTradeModal();
-        loadMyStatus();
-        loadMarket();
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showToast(data.message || '操作成功');
+        addLog(data.message || action);
+        showEffect(data.message || '操作成功', 'var(--green)');
+        await loadAll();
       } catch (e) {
         showToast(e.message, 'error');
       }
     }
 
-    // ========== Building ==========
-    async function buildBuilding() {
-      const type = document.getElementById('buildType').value;
+    // ============ MODALS ============
+    function openTradeModal(action, resource) {
+      const name = RESOURCE_NAMES[resource] || resource;
+      document.getElementById('modalTitle').textContent = `${action === 'buy' ? '买入' : '卖出'} ${name}`;
+      document.getElementById('modalBody').innerHTML = `
+        <div class="input-group">
+          <label>数量</label>
+          <input type="number" id="modalAmount" value="1" min="1">
+        </div>
+        <div style="font-size:11px;color:var(--text2)">市场价: $${(marketPrices[resource] || 0).toFixed(2)}</div>
+      `;
+      modalAction = () => boardAction(action, document.getElementById('modalAmount').value);
+      document.getElementById('actionModal').classList.add('open');
+    }
+    function openBankModal(type) {
+      document.getElementById('modalTitle').textContent = type === 'loan' ? '申请贷款' : '银行存款';
+      document.getElementById('modalBody').innerHTML = `
+        <div class="input-group">
+          <label>金额</label>
+          <input type="number" id="modalAmount" value="500" min="1">
+        </div>
+      `;
+      modalAction = () => boardAction(type, document.getElementById('modalAmount').value);
+      document.getElementById('actionModal').classList.add('open');
+    }
+    function closeModal() { document.getElementById('actionModal').classList.remove('open'); modalAction = null; }
+    function confirmModalAction() { if (modalAction) modalAction(); closeModal(); }
+
+    // ============ DATA LOADING ============
+    async function loadBoard() {
       try {
-        const res = await fetch(API + '/api/game/build', {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ type })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        showToast('建造成功！');
-        loadMyStatus();
-      } catch (e) {
-        showToast('建造失败: ' + e.message, 'error');
-      }
+        const res = await fetch(API + '/api/board');
+        const data = await res.json();
+        boardTiles = data.tiles;
+        boardPlayers = data.players;
+        buildBoard(boardTiles, boardPlayers);
+      } catch (e) { console.error('Board load error:', e); }
     }
 
-    async function upgradeBuilding(id) {
+    async function loadMyBoardState() {
       try {
-        const res = await fetch(API + `/api/game/buildings/${id}/upgrade`, {
-          method: 'POST', headers: authHeaders()
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        showToast('升级成功！');
-        loadMyStatus();
-      } catch (e) {
-        showToast('升级失败: ' + e.message, 'error');
-      }
+        const res = await fetch(API + '/api/board/me', { headers: authHeaders() });
+        if (res.ok) {
+          myBoardState = await res.json();
+          document.getElementById('actionsUsed').textContent = myBoardState.actionsToday;
+          document.getElementById('actionsMax').textContent = myBoardState.maxActions;
+        }
+      } catch (e) { console.error(e); }
     }
 
-    // ========== Banking ==========
-    async function requestLoan() {
-      const amount = parseFloat(document.getElementById('loanAmount').value);
-      if (!amount || amount <= 0) return showToast('请输入有效金额', 'error');
+    async function loadMyStatus() {
       try {
-        const res = await fetch(API + '/api/game/loan', {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        showToast('贷款申请成功！');
-        loadMyStatus();
-      } catch (e) {
-        showToast('贷款失败: ' + e.message, 'error');
-      }
+        const res = await fetch(API + '/api/game/me', { headers: authHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        myEntity = data.entity;
+        myBuildings = data.buildings;
+
+        document.getElementById('myMoney').textContent = '$' + (myEntity.currency ?? myEntity.money ?? 0).toFixed(0);
+        document.getElementById('myBuildings').textContent = myBuildings.length;
+        document.getElementById('bldCount').textContent = myBuildings.length;
+        document.getElementById('mySurvival').textContent = (myEntity.survivalDays || 0) + '天';
+
+        // Resources
+        const inv = myEntity.inventory || myEntity.resources || {};
+        const rc = document.getElementById('myResources');
+        const keys = Object.keys(inv);
+        rc.innerHTML = keys.length === 0 ? '<span style="font-size:11px;color:var(--text2)">暂无</span>' :
+          keys.map(k => `<div class="res-item"><span class="rname">${RESOURCE_ICONS[k]||''} ${RESOURCE_NAMES[k]||k}</span><span class="rval">${inv[k]}</span></div>`).join('');
+
+        // Needs
+        updateNeeds(inv);
+
+        // Buildings
+        const bc = document.getElementById('myBuildingList');
+        bc.innerHTML = myBuildings.length === 0 ? '<div style="color:var(--text2);font-size:11px;">暂无建筑</div>' :
+          myBuildings.map(b => `
+            <div class="bld-item">
+              <span class="bname">${b.type || '?'} ${b.name ? '- '+b.name : ''}</span>
+              <span class="blevel">Lv.${b.level || 1}</span>
+            </div>
+          `).join('');
+      } catch (e) { console.error(e); }
     }
 
-    async function makeDeposit() {
-      const amount = parseFloat(document.getElementById('depositAmount').value);
-      if (!amount || amount <= 0) return showToast('请输入有效金额', 'error');
-      try {
-        const res = await fetch(API + '/api/game/deposit', {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ amount })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        showToast('存款成功！');
-        loadMyStatus();
-      } catch (e) {
-        showToast('存款失败: ' + e.message, 'error');
-      }
+    function updateNeeds(inv) {
+      // Food need: 3/day, Energy: 2/day, Goods: 1/day
+      const foodPct = Math.min(100, ((inv.food || 0) / 3) * 100);
+      const energyPct = Math.min(100, ((inv.energy || 0) / 2) * 100);
+      const goodsPct = Math.min(100, ((inv.goods || 0) / 1) * 100);
+      setNeedBar('needFood', foodPct);
+      setNeedBar('needEnergy', energyPct);
+      setNeedBar('needGoods', goodsPct);
+    }
+    function setNeedBar(id, pct) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.width = pct + '%';
+      el.className = 'need-bar-fill ' + (pct >= 60 ? 'high' : pct >= 30 ? 'mid' : 'low');
     }
 
-    // ========== Leaderboard ==========
+    async function loadMarket() {
+      try {
+        const res = await fetch(API + '/api/market/prices');
+        const data = await res.json();
+        // Normalize prices
+        for (const [k, v] of Object.entries(data)) {
+          marketPrices[k] = typeof v === 'number' ? v : (v.price || 0);
+        }
+      } catch (e) {}
+    }
+
     async function loadLeaderboard() {
       try {
-        const res = await fetch(API + '/api/entities/leaderboard?limit=20');
+        const res = await fetch(API + '/api/entities/leaderboard?limit=10');
         const data = await res.json();
         const lc = document.getElementById('leaderboard');
         lc.innerHTML = data.map((e, i) => `
           <div class="lb-row ${e.id === currentUser?.entityId ? 'me' : ''}">
-            <span class="rank">${i + 1}</span>
-            <span class="name">${e.name}${e.id === currentUser?.entityId ? ' (我)' : ''}</span>
-            <span class="money">$${e.money.toFixed(0)}</span>
+            <div class="lb-rank ${i===0?'t1':i===1?'t2':i===2?'t3':'tn'}">${i+1}</div>
+            <span class="lb-name">${e.name}${e.id === currentUser?.entityId ? ' (我)' : ''}</span>
+            <span class="lb-money">$${(e.currency ?? e.money ?? e.netWorth ?? 0).toFixed(0)}</span>
           </div>
-        `).join('');
+        `).join('') || '<div style="color:var(--text2);font-size:11px;">暂无</div>';
 
-        // Find my rank
         const myIdx = data.findIndex(e => e.id === currentUser?.entityId);
-        document.getElementById('myRank').textContent = myIdx >= 0 ? `#${myIdx + 1}` : '-';
-      } catch (e) { console.error(e); }
+        document.getElementById('myRank').textContent = myIdx >= 0 ? `#${myIdx+1}` : '-';
+      } catch (e) {}
     }
 
-    // ========== Init ==========
-    function refreshAll() {
-      loadMyStatus();
-      loadWorldTime();
-      loadMarket();
+    async function loadWorldTime() {
+      try {
+        const res = await fetch(API + '/api/world/time');
+        const data = await res.json();
+        const el = document.getElementById('centerDay');
+        if (el) el.textContent = `${data.time.day}, ${data.time.hour}:00`;
+      } catch (e) {}
     }
-    refreshAll();
-    setInterval(loadWorldTime, 5000);
-    setInterval(() => { loadMyStatus(); loadMarket(); }, 15000);
+
+    // ============ MAIN LOOP ============
+    async function loadAll() {
+      await Promise.all([loadMyBoardState(), loadMyStatus(), loadMarket()]);
+      await loadBoard();  // rebuild board after we know positions
+      loadLeaderboard();
+      loadWorldTime();
+    }
+
+    loadAll();
+    setInterval(loadAll, 8000);
   </script>
 </body>
 </html>
