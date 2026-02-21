@@ -523,14 +523,15 @@ function levelGlow(level) {
 }
 
 /** 根据lot坐标计算偏移方向（不依赖父节点查找）
- * lot总是在intersection的对角线方向(±1,±1)，intersection在偶数坐标
- * 所以lot的偏移方向 = lot坐标 - 最近的偶数坐标 */
+ * lot总是在intersection的对角线方向(±1,±1)，intersection在SPACING(14)的倍数坐标
+ * 所以lot的偏移方向 = lot坐标 - 最近的SPACING倍数坐标 */
 function calcLotOffset(x, y) {
-  // 最近的偶数坐标就是parent intersection的位置
-  const nearEvenX = Math.round(x / 2) * 2;
-  const nearEvenY = Math.round(y / 2) * 2;
-  const dx = x - nearEvenX;
-  const dy = y - nearEvenY;
+  const SPACING = 14;
+  // 最近的SPACING倍数坐标就是parent intersection的位置
+  const nearIntX = Math.round(x / SPACING) * SPACING;
+  const nearIntY = Math.round(y / SPACING) * SPACING;
+  const dx = x - nearIntX;
+  const dy = y - nearIntY;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
   return { offX: (dx / len) * 0.5, offZ: (dy / len) * 0.5 };
 }
