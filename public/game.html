@@ -133,6 +133,40 @@
     .recharge-opt .amount{font-size:16px;font-weight:700;color:var(--yellow)}
     .recharge-opt .label{font-size:9px;color:var(--text2);margin-top:2px}
 
+    /* === Wealth Page Modal === */
+    #wealth-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
+    #wealth-modal.show{display:flex}
+    .wealth-content{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;
+      width:min(440px,calc(100vw - 32px));max-height:85vh;overflow-y:auto}
+    .wealth-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+    .wealth-balance{text-align:center;padding:16px;background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(249,115,22,0.12));
+      border-radius:12px;margin-bottom:14px}
+    .wealth-balance .big{font-size:32px;font-weight:900;color:var(--yellow)}
+    .wealth-balance .sub{font-size:11px;color:var(--text2);margin-top:4px}
+    .wealth-section{margin-bottom:14px}
+    .wealth-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;
+      padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:8px}
+    .wealth-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px}
+    .wealth-row .wlabel{color:var(--text2)}
+    .wealth-row .wval{font-weight:600}
+    .wealth-row .wval.pos{color:var(--green)}.wealth-row .wval.neg{color:var(--red)}
+    .wealth-asset{display:flex;align-items:center;gap:8px;padding:6px;border-radius:6px;background:var(--bg3);margin-bottom:4px}
+    .wealth-asset .wa-icon{font-size:18px}
+    .wealth-asset .wa-info{flex:1;min-width:0}
+    .wealth-asset .wa-info .wa-name{font-size:11px;font-weight:600}
+    .wealth-asset .wa-info .wa-detail{font-size:9px;color:var(--text2)}
+    .wealth-asset .wa-val{text-align:right;font-size:10px}
+    .wealth-asset .wa-val .wa-fee{color:var(--yellow);font-weight:600}
+    .wealth-asset .wa-val .wa-uses{color:var(--text2);font-size:8px}
+    .btn-recharge{width:100%;padding:12px;border-radius:10px;border:none;
+      background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:15px;font-weight:700;cursor:pointer;
+      margin-top:10px;transition:transform .2s}
+    .btn-recharge:hover{transform:scale(1.02)}
+    .wealth-referral{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;
+      padding:10px;text-align:center;margin-top:10px}
+    .wealth-referral .ref-code{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:3px;cursor:pointer}
+    .wealth-referral .ref-desc{font-size:10px;color:var(--text2);margin-top:4px}
+
     /* === Scrollbar === */
     ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
@@ -174,8 +208,7 @@
     <div class="dice-info" id="dice-info">🎲 -</div>
   </div>
   <div class="top-right">
-    <div class="money-badge" id="money-badge">0 CC</div>
-    <button class="btn-sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;font-weight:700" onclick="openRechargeModal()">充值</button>
+    <div class="money-badge" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">0 CC</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
     <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout">退出</button>
   </div>
@@ -280,6 +313,44 @@
     <div style="margin-top:10px">
       <label style="font-size:11px;color:var(--text2)">自定义名称 (可选)</label>
       <input id="build-custom-name" type="text" placeholder="留空使用默认名" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;margin-top:4px">
+    </div>
+  </div>
+</div>
+
+<!-- Wealth Page Modal -->
+<div id="wealth-modal">
+  <div class="wealth-content">
+    <div class="wealth-title">
+      <span>个人财富</span>
+      <button class="btn-close-modal" onclick="closeWealthPage()">&times;</button>
+    </div>
+    <div class="wealth-balance">
+      <div class="big" id="wp-balance">0 CC</div>
+      <div class="sub">净资产: <span id="wp-networth">0</span> CC</div>
+    </div>
+    <div class="wealth-section">
+      <div class="wealth-section-title">收支概览</div>
+      <div class="wealth-row"><span class="wlabel">今日收入</span><span class="wval pos" id="wp-income">+0 CC</span></div>
+      <div class="wealth-row"><span class="wlabel">今日支出</span><span class="wval neg" id="wp-expense">-0 CC</span></div>
+      <div class="wealth-row"><span class="wlabel">信用评分</span><span class="wval" id="wp-credit">500</span></div>
+      <div class="wealth-row"><span class="wlabel">生存天数</span><span class="wval" id="wp-days">0</span></div>
+      <div class="wealth-row"><span class="wlabel">累计充值</span><span class="wval" id="wp-recharged">0 CC</span></div>
+    </div>
+    <div class="wealth-section">
+      <div class="wealth-section-title">我的资产</div>
+      <div id="wp-buildings"><div style="font-size:11px;color:var(--text2)">暂无资产</div></div>
+    </div>
+    <div class="wealth-section">
+      <div class="wealth-section-title">世界经济</div>
+      <div class="wealth-row"><span class="wlabel">世界总财富</span><span class="wval" id="wp-world-total">0 CC</span></div>
+      <div class="wealth-row"><span class="wlabel">世界国库</span><span class="wval" id="wp-treasury">0 CC</span></div>
+      <div class="wealth-row"><span class="wlabel">活跃玩家</span><span class="wval" id="wp-players">0</span></div>
+    </div>
+    <button class="btn-recharge" onclick="closeWealthPage();openRechargeModal()">充值购买 CC 币</button>
+    <div class="wealth-referral">
+      <div style="font-size:10px;color:var(--text2);margin-bottom:4px">我的邀请码</div>
+      <div class="ref-code" id="wp-referral" onclick="copyReferralCode()">-</div>
+      <div class="ref-desc">分享邀请码，好友注册后你获得 100 CC</div>
     </div>
   </div>
 </div>
@@ -1405,6 +1476,68 @@ window.confirmDeath = async function() {
   addLog('角色已永久死亡', 'danger');
   // 返回首页
   setTimeout(() => { location.href = '/'; }, 1500);
+};
+
+/** 打开个人财富页 */
+window.openWealthPage = async function() {
+  const modal = document.getElementById('wealth-modal');
+
+  // 填充已有数据
+  const currency = myEntity?.currency ?? 0;
+  document.getElementById('wp-balance').textContent = currency.toFixed(0) + ' CC';
+  document.getElementById('wp-networth').textContent = (myEntity?.netWorth ?? currency).toFixed(0);
+  document.getElementById('wp-income').textContent = '+' + (myEntity?.dailyIncome ?? 0).toFixed(0) + ' CC';
+  document.getElementById('wp-expense').textContent = '-' + (myEntity?.dailyExpense ?? 0).toFixed(0) + ' CC';
+  document.getElementById('wp-credit').textContent = myEntity?.creditScore ?? 500;
+  document.getElementById('wp-days').textContent = myEntity?.survivalDays ?? 0;
+  document.getElementById('wp-recharged').textContent = (currentUser?.totalRecharged ?? 0) + ' CC';
+  document.getElementById('wp-referral').textContent = currentUser?.referralCode || '-';
+
+  // 加载建筑资产列表
+  try {
+    const res = await fetch(API + '/api/game/me', { headers: authHeaders() });
+    if (res.ok) {
+      const data = await res.json();
+      const buildings = data.buildings || [];
+      if (buildings.length > 0) {
+        document.getElementById('wp-buildings').innerHTML = buildings.map(b => {
+          const tpl = buildingCatalog.find(t => t.type === b.templateType);
+          const lvMult = 1 + (b.level - 1) * 0.3;
+          const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+          return `<div class="wealth-asset">
+            <span class="wa-icon">${tpl?.icon || '🏗'}</span>
+            <div class="wa-info">
+              <div class="wa-name">${b.name} (Lv.${b.level})</div>
+              <div class="wa-detail">${tpl?.name || b.templateType} · 使用 ${b.usageCount || 0} 次</div>
+            </div>
+            <div class="wa-val">
+              <div class="wa-fee">${fee} CC/次</div>
+              <div class="wa-uses">累计收入 ~${fee * (b.usageCount || 0)} CC</div>
+            </div>
+          </div>`;
+        }).join('');
+      } else {
+        document.getElementById('wp-buildings').innerHTML = '<div style="font-size:11px;color:var(--text2)">暂无资产，建造设施获得被动收入</div>';
+      }
+    }
+  } catch (e) { /* ignore */ }
+
+  // 加载世界经济数据
+  try {
+    const res = await fetch(API + '/api/world/economy');
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('wp-world-total').textContent = (data.totalWorldWealth ?? 0).toFixed(0) + ' CC';
+      document.getElementById('wp-treasury').textContent = (data.treasuryBalance ?? 0).toFixed(0) + ' CC';
+      document.getElementById('wp-players').textContent = data.playerCount ?? 0;
+    }
+  } catch (e) { /* ignore */ }
+
+  modal.classList.add('show');
+};
+
+window.closeWealthPage = function() {
+  document.getElementById('wealth-modal').classList.remove('show');
 };
 
 /** 打开充值面板 */
