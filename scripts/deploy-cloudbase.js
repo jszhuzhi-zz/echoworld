@@ -258,56 +258,54 @@ async function deploy() {
     console.log('  ModifyCloudBaseGWPrivilege:', err.message);
   }
 
-  // Also try uploading to COS storage (as a fallback for static hosting 418)
+  // Upload to COS storage (alternative to static hosting)
   const COS_CDN = '6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la';
   try {
     console.log('  上传 index.html 到 COS 存储...');
-    const htmlFilePath = path.join(publicDir, 'index.html');
     await manager.storage.uploadFile({
+      localPath: path.join(publicDir, 'index.html'),
       cloudPath: 'echoworld/index.html',
-      filePath: htmlFilePath,
     });
-    console.log(`  COS 上传成功: https://${COS_CDN}/echoworld/index.html`);
+    console.log(`  COS 上传成功!`);
   } catch (err) {
-    console.log('  COS 上传 (filePath):', err.message);
-    // Try alternative parameter format
+    console.log('  COS 上传 (localPath):', err.message);
+    // Try uploadDirectory as fallback
     try {
-      const htmlContent = fs.readFileSync(path.join(publicDir, 'index.html'));
-      await manager.storage.uploadFile({
-        cloudPath: 'echoworld/index.html',
-        fileContent: htmlContent,
+      console.log('  尝试 uploadDirectory...');
+      await manager.storage.uploadDirectory({
+        localPath: publicDir,
+        cloudPath: 'echoworld/',
       });
-      console.log(`  COS 上传成功 (fileContent): https://${COS_CDN}/echoworld/index.html`);
+      console.log('  目录上传成功!');
     } catch (err2) {
-      console.log('  COS 上传 (fileContent):', err2.message);
+      console.log('  uploadDirectory:', err2.message);
     }
   }
 
-  // Get temporary download URL (works regardless of CDN restrictions)
+  // Generate signed temporary URL (works regardless of CDN geo-restrictions)
   try {
+    const fileId = await manager.storage.cloudPathToFileId('echoworld/index.html');
+    console.log(`  文件ID: ${fileId}`);
     const urls = await manager.storage.getTemporaryUrl([
       { cloudPath: 'echoworld/index.html', maxAge: 86400 * 30 },
     ]);
-    if (urls && urls.length > 0) {
-      console.log(`  COS 临时链接 (30天): ${urls[0].url}`);
+    if (urls && urls.length > 0 && urls[0].url) {
+      console.log(`  COS 签名链接 (30天有效):`);
+      console.log(`  ${urls[0].url}`);
     }
   } catch (err) {
-    console.log('  获取临时链接:', err.message);
+    console.log('  获取签名链接:', err.message);
   }
 
-  // List storage files
+  // Verify upload
   try {
-    if (manager.storage && typeof manager.storage.listDirectoryFiles === 'function') {
-      const files = await manager.storage.listDirectoryFiles({ cloudPath: 'echoworld/' });
-      console.log('  COS echoworld/ 文件:', JSON.stringify(files, null, 2));
+    const files = await manager.storage.listDirectoryFiles({ cloudPath: 'echoworld/' });
+    console.log(`  COS echoworld/ 文件数: ${files.length}`);
+    for (const f of files.slice(0, 5)) {
+      console.log(`    ${f.Key} (${f.Size} bytes)`);
     }
-  } catch (err) {}
-
-  // Check storage module methods
-  if (manager.storage) {
-    const proto = Object.getPrototypeOf(manager.storage);
-    const methods = Object.getOwnPropertyNames(proto).filter(n => n !== 'constructor');
-    console.log('  storage methods:', methods.join(', '));
+  } catch (err) {
+    console.log('  列出COS文件:', err.message);
   }
 
   // Check static hosting status
