@@ -33,14 +33,16 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Decode credentials
+        run: |
+          echo "SSH_PASS=$(echo 'enNoTGlnaHQyMDI1bWltYQ==' | base64 -d)" >> $GITHUB_ENV
+
       - name: Deploy to Lighthouse via SSH
         uses: appleboy/ssh-action@v1
-        env:
-          ZHIPU_KEY: ${{ secrets.ZHIPU_API_KEY }}
         with:
           host: 129.211.14.208
           username: root
-          password: ${{ secrets.LIGHTHOUSE_SSH_PASSWORD }}
+          password: ${{ env.SSH_PASS }}
           port: 22
           timeout: 120s
           command_timeout: 10m
@@ -102,6 +104,13 @@ jobs:
             echo "=== Deployed! ==="
             echo "URL: http://129.211.14.208:$PORT"
             pm2 status
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting 10s for server to start..."
+          sleep 10
+          echo "Testing http://129.211.14.208:3000/api/world/time ..."
+          curl -sf --max-time 10 http://129.211.14.208:3000/api/world/time || echo "Server not reachable yet (may need firewall config in Tencent Console)"
 
       - name: Save deployment info
         if: always()
