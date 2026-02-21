@@ -262,22 +262,52 @@ async function deploy() {
   const COS_CDN = '6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la';
   try {
     console.log('  上传 index.html 到 COS 存储...');
-    const htmlContent = fs.readFileSync(path.join(publicDir, 'index.html'));
+    const htmlFilePath = path.join(publicDir, 'index.html');
     await manager.storage.uploadFile({
       cloudPath: 'echoworld/index.html',
-      fileContent: htmlContent,
+      filePath: htmlFilePath,
     });
     console.log(`  COS 上传成功: https://${COS_CDN}/echoworld/index.html`);
+  } catch (err) {
+    console.log('  COS 上传 (filePath):', err.message);
+    // Try alternative parameter format
+    try {
+      const htmlContent = fs.readFileSync(path.join(publicDir, 'index.html'));
+      await manager.storage.uploadFile({
+        cloudPath: 'echoworld/index.html',
+        fileContent: htmlContent,
+      });
+      console.log(`  COS 上传成功 (fileContent): https://${COS_CDN}/echoworld/index.html`);
+    } catch (err2) {
+      console.log('  COS 上传 (fileContent):', err2.message);
+    }
+  }
 
-    // Get temporary download URL
+  // Get temporary download URL (works regardless of CDN restrictions)
+  try {
     const urls = await manager.storage.getTemporaryUrl([
       { cloudPath: 'echoworld/index.html', maxAge: 86400 * 30 },
     ]);
     if (urls && urls.length > 0) {
-      console.log(`  临时下载链接: ${urls[0].url}`);
+      console.log(`  COS 临时链接 (30天): ${urls[0].url}`);
     }
   } catch (err) {
-    console.log('  COS 上传:', err.message);
+    console.log('  获取临时链接:', err.message);
+  }
+
+  // List storage files
+  try {
+    if (manager.storage && typeof manager.storage.listDirectoryFiles === 'function') {
+      const files = await manager.storage.listDirectoryFiles({ cloudPath: 'echoworld/' });
+      console.log('  COS echoworld/ 文件:', JSON.stringify(files, null, 2));
+    }
+  } catch (err) {}
+
+  // Check storage module methods
+  if (manager.storage) {
+    const proto = Object.getPrototypeOf(manager.storage);
+    const methods = Object.getOwnPropertyNames(proto).filter(n => n !== 'constructor');
+    console.log('  storage methods:', methods.join(', '));
   }
 
   // Check static hosting status
