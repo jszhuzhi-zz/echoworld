@@ -178,11 +178,32 @@
   <div class="action-group">
     <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
     <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰 消费</button>
+    <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()">❤️ +行动</button>
   </div>
 </div>
 
 <!-- Right Panel -->
 <div id="right-panel">
+  <div class="panel-card">
+    <div class="panel-title">健康状态</div>
+    <div id="health-panel" style="font-size:10px;line-height:2">
+      <div style="display:flex;align-items:center;gap:4px">
+        <span>🍔 饥饿</span>
+        <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-hunger-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#ef4444,#f97316);width:80%;transition:width .5s"></div></div>
+        <span id="hp-hunger-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span>⚡ 体力</span>
+        <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-energy-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#06b6d4);width:80%;transition:width .5s"></div></div>
+        <span id="hp-energy-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span>😊 快乐</span>
+        <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-happy-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#a855f7,#ec4899);width:80%;transition:width .5s"></div></div>
+        <span id="hp-happy-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
+      </div>
+    </div>
+  </div>
   <div class="panel-card">
     <div class="panel-title">排行榜</div>
     <div id="leaderboard">-</div>
@@ -211,6 +232,15 @@
   <div style="display:flex;gap:10px">
     <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()">知道了</button>
   </div>
+</div>
+
+<!-- Passed Buildings (路过消费) -->
+<div id="passed-buildings-panel" style="display:none;position:fixed;z-index:16;bottom:90px;right:12px;
+  background:rgba(17,24,39,0.92);border:1px solid var(--border);border-radius:12px;padding:10px 14px;
+  backdrop-filter:blur(10px);max-width:260px;max-height:220px;overflow-y:auto">
+  <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">路过可消费建筑</div>
+  <div id="passed-buildings-list"></div>
+  <button onclick="closePassedBuildings()" style="margin-top:6px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text2);font-size:10px;cursor:pointer;width:100%">跳过</button>
 </div>
 
 <!-- Build Modal -->
@@ -910,15 +940,25 @@ function focusCamera(x, y, animate = true) {
 // ============ UI UPDATES ============
 function updateStats(stats) {
   const h = stats?.hunger ?? 0, e = stats?.energy ?? 0, hp = stats?.happiness ?? 0;
+  // Top bar
   document.getElementById('bar-hunger').style.width = h + '%';
   document.getElementById('bar-energy').style.width = e + '%';
   document.getElementById('bar-happy').style.width = hp + '%';
   document.getElementById('val-hunger').textContent = h;
   document.getElementById('val-energy').textContent = e;
   document.getElementById('val-happy').textContent = hp;
-  // Warning colors
   document.getElementById('bar-hunger').parentElement.parentElement.style.opacity = h <= 20 ? '1' : '0.85';
   document.getElementById('bar-energy').parentElement.parentElement.style.opacity = e <= 15 ? '1' : '0.85';
+  // Right panel health bars
+  document.getElementById('hp-hunger-bar').style.width = h + '%';
+  document.getElementById('hp-energy-bar').style.width = e + '%';
+  document.getElementById('hp-happy-bar').style.width = hp + '%';
+  document.getElementById('hp-hunger-val').textContent = h;
+  document.getElementById('hp-energy-val').textContent = e;
+  document.getElementById('hp-happy-val').textContent = hp;
+  // 低血量警告 - 变红
+  document.getElementById('hp-hunger-val').style.color = h <= 20 ? 'var(--red)' : 'var(--text2)';
+  document.getElementById('hp-energy-val').style.color = e <= 15 ? 'var(--red)' : 'var(--text2)';
 }
 
 function updateMoney(entity) {
@@ -927,7 +967,10 @@ function updateMoney(entity) {
 
 function updateActions(state) {
   document.getElementById('action-badge').textContent = `行动 ${state?.actionsToday ?? 0}/${state?.maxActions ?? 8}`;
-  document.getElementById('btn-roll').disabled = !state?.alive || (state?.actionsToday ?? 0) >= (state?.maxActions ?? 8) || state?.pendingRoll !== null;
+  const actionsUsedUp = (state?.actionsToday ?? 0) >= (state?.maxActions ?? 8);
+  document.getElementById('btn-roll').disabled = !state?.alive || actionsUsedUp || state?.pendingRoll !== null;
+  // 行动次数用完时显示 "购买额外行动" 按钮
+  document.getElementById('btn-extra-action').style.display = (actionsUsedUp && state?.alive) ? 'block' : 'none';
 }
 
 function updatePosInfo(node) {
@@ -1143,6 +1186,8 @@ async function chooseDirection(directionNodeId) {
       document.getElementById('dice-info').textContent = `🎲 剩余 ${data.remainingSteps} 步`;
       myState = data.state;
       showDirButtons(data.directions);
+      // 岔路途中也可以消费路过的建筑
+      if (data.passedBuildings?.length) showPassedBuildings(data.passedBuildings);
       return;
     }
 
@@ -1152,6 +1197,9 @@ async function chooseDirection(directionNodeId) {
     updateStats(data.stats);
     updateMoney(data.entity);
     updateActions(data.state);
+
+    // 显示路过的可消费建筑
+    if (data.passedBuildings?.length) showPassedBuildings(data.passedBuildings);
 
     // Log messages
     for (const msg of data.messages) {
@@ -1294,6 +1342,74 @@ window.respawn = async function() {
   } catch (e) {
     addLog('重生失败', 'danger');
   }
+};
+
+// ============ EXTRA ACTIONS & PATH CONSUMPTION ============
+
+window.buyExtraAction = async function() {
+  try {
+    const res = await fetch(API + '/api/world/buy-action', { method: 'POST', headers: authHeaders() });
+    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    const data = await res.json();
+    addLog(data.message, 'warn');
+    updateStats(data.stats);
+    updateActions(data.state);
+    myState = data.state;
+  } catch (e) {
+    addLog('购买行动失败', 'danger');
+  }
+};
+
+let pendingPassedBuildings = [];
+
+function showPassedBuildings(buildings) {
+  if (!buildings || buildings.length === 0) return;
+  pendingPassedBuildings = buildings;
+  const list = document.getElementById('passed-buildings-list');
+  list.innerHTML = buildings.map((pb, i) =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer" onclick="consumePassedBuilding(${i})">
+      <span style="font-size:14px">${pb.template?.icon || '🏗'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:600">${pb.building.name} Lv.${pb.building.level}</div>
+        <div style="font-size:8px;color:var(--text2)">${pb.building.ownerName} · ${Object.entries(pb.template?.effects || {}).map(([k,v]) => {
+          const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
+          return (names[k] || k) + '+' + v;
+        }).join(' ')}</div>
+      </div>
+      <span style="font-size:10px;font-weight:700;color:var(--yellow)">${pb.fee} CC</span>
+    </div>`
+  ).join('');
+  document.getElementById('passed-buildings-panel').style.display = 'block';
+}
+
+window.consumePassedBuilding = async function(index) {
+  const pb = pendingPassedBuildings[index];
+  if (!pb) return;
+  try {
+    const res = await fetch(API + '/api/world/use-building-at', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId: pb.nodeId }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || '消费失败', 'warn'); return; }
+    const data = await res.json();
+    for (const msg of data.messages) addLog(msg, 'good');
+    updateStats(data.stats);
+    updateMoney(data.entity);
+    // 移除已消费的建筑
+    pendingPassedBuildings.splice(index, 1);
+    if (pendingPassedBuildings.length === 0) {
+      closePassedBuildings();
+    } else {
+      showPassedBuildings(pendingPassedBuildings);
+    }
+  } catch (e) {
+    addLog('消费失败', 'danger');
+  }
+};
+
+window.closePassedBuildings = function() {
+  document.getElementById('passed-buildings-panel').style.display = 'none';
+  pendingPassedBuildings = [];
 };
 
 // ============ CLICK HANDLER ============

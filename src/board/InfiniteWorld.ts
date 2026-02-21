@@ -100,6 +100,15 @@ export interface DirectionOption {
   label: string;
 }
 
+export interface PassedBuilding {
+  nodeId: number;
+  x: number;
+  y: number;
+  building: WorldBuilding;
+  template: BuildingTemplate;
+  fee: number;
+}
+
 export interface MoveResult {
   path: { x: number; y: number }[];
   finalNode: MapNode;
@@ -108,6 +117,7 @@ export interface MoveResult {
   fork: boolean;           // true = 遇到岔路需要选择
   directions: DirectionOption[]; // fork时的可选方向
   remainingSteps: number;  // 剩余步数
+  passedBuildings: PassedBuilding[]; // 路过的可消费建筑
 }
 
 // ============ 无限世界 ============
@@ -267,7 +277,7 @@ export class InfiniteWorld {
 
     let remaining = state.pendingRoll;
 
-    // 沿道路行走，遇岔路暂停
+    // 沿道路行走，遇岔路暂停；同时收集路过的可消费建筑
     let current = firstStepNodeId;
     let prev = state.nodeId;
     const startNode = this.nodes.get(state.nodeId)!;
@@ -276,6 +286,30 @@ export class InfiniteWorld {
       { x: this.nodes.get(current)!.x, y: this.nodes.get(current)!.y },
     ];
     remaining--;
+    const passedBuildings: PassedBuilding[] = [];
+
+    // 检查当前路径节点旁边的lot是否有可消费建筑
+    const collectNearbyBuildings = (nodeId: number) => {
+      const node = this.nodes.get(nodeId)!;
+      for (const cid of node.connections) {
+        const cn = this.nodes.get(cid);
+        if (cn?.type === 'lot' && cn.building && cn.building.ownerId !== entityId) {
+          // 避免重复
+          if (passedBuildings.some(pb => pb.nodeId === cid)) continue;
+          const tpl = MASLOW_BUILDINGS.find(b => b.type === cn.building!.templateType);
+          if (!tpl) continue;
+          const fee = Math.floor(tpl.baseFee * (1 + (cn.building!.level - 1) * 0.3));
+          passedBuildings.push({
+            nodeId: cid, x: cn.x, y: cn.y,
+            building: cn.building!, template: tpl, fee,
+          });
+        }
+      }
+    };
+
+    // 收集起始节点附近建筑
+    collectNearbyBuildings(state.nodeId);
+    collectNearbyBuildings(current);
 
     while (remaining > 0) {
       const node = this.nodes.get(current)!;
@@ -313,6 +347,7 @@ export class InfiniteWorld {
           fork: true,
           directions,
           remainingSteps: remaining,
+          passedBuildings,
         };
       }
 
@@ -322,6 +357,7 @@ export class InfiniteWorld {
       prev = current;
       current = nextId;
       remaining--;
+      collectNearbyBuildings(current);
     }
 
     // 移动完成 - 结算
@@ -366,6 +402,7 @@ export class InfiniteWorld {
       fork: false,
       directions: [],
       remainingSteps: 0,
+      passedBuildings,
     };
   }
 
@@ -458,6 +495,23 @@ export class InfiniteWorld {
     }
     const state = this.players.get(referrerEntityId);
     if (state) state.referralCount++;
+  }
+
+  /** 消耗健康值换取额外行动次数 (每次花费10饥饿+10体力，获得1次行动) */
+  buyExtraAction(entityId: string): { success: boolean; message: string; stats?: any } {
+    const state = this.players.get(entityId);
+    if (!state?.alive) return { success: false, message: '角色已死亡' };
+    if (state.hunger < 15 || state.energy < 15) {
+      return { success: false, message: '健康值不足（需要饥饿≥15且体力≥15）' };
+    }
+    state.hunger -= 10;
+    state.energy -= 10;
+    state.maxActions++;
+    return {
+      success: true,
+      message: `消耗 10饥饿+10体力，行动次数+1 (${state.actionsToday}/${state.maxActions})`,
+      stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
+    };
   }
 
   /** 死亡后重生到起点 */

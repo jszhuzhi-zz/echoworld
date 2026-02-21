@@ -419,6 +419,7 @@ export function createServer(world: World, port = 3000): express.Application {
         fork: true,
         directions: moveResult.directions,
         remainingSteps: moveResult.remainingSteps,
+        passedBuildings: moveResult.passedBuildings,
       });
     }
 
@@ -467,6 +468,7 @@ export function createServer(world: World, port = 3000): express.Application {
       fork: false,
       directions: [],
       remainingSteps: 0,
+      passedBuildings: moveResult.passedBuildings,
     });
   });
 
@@ -556,6 +558,52 @@ export function createServer(world: World, port = 3000): express.Application {
     if (!state) return res.status(400).json({ error: '重生失败' });
     const entity = world.entities.getEntity(user.entityId);
     res.json({ state, entity: entity?.getSummary(), message: '已在起点重生' });
+  });
+
+  /** 消耗健康值换取额外行动次数 */
+  app.post('/api/world/buy-action', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const result = infiniteWorld.buyExtraAction(user.entityId);
+    if (!result.success) return res.status(400).json({ error: result.message });
+    const state = infiniteWorld.getPlayer(user.entityId);
+    res.json({ message: result.message, stats: result.stats, state });
+  });
+
+  /** 在指定节点消费建筑 (路过消费) */
+  app.post('/api/world/use-building-at', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: '角色不存在' });
+
+    const { nodeId } = req.body;
+    if (nodeId === undefined) return res.status(400).json({ error: '缺少 nodeId' });
+
+    const result = infiniteWorld.useBuilding(user.entityId, nodeId);
+    if (!result) return res.status(400).json({ error: '无法消费该建筑' });
+
+    entity.pay(result.fee);
+    // 业主收费
+    const ownerEntity = world.entities.getEntity(result.building.ownerId);
+    if (ownerEntity) ownerEntity.receive(result.fee);
+
+    const messages: string[] = [];
+    messages.push(`消费了 ${result.building.name}，支付 ${result.fee} CC`);
+    const effectDescs = Object.entries(result.effects).map(([k, v]) => {
+      const names: Record<string, string> = { hunger: '饥饿', energy: '体力', happiness: '快乐' };
+      return `${names[k] || k} +${v}`;
+    });
+    if (effectDescs.length) messages.push(`效果: ${effectDescs.join(', ')}`);
+    if (result.upgraded) messages.push(`🎉 ${result.building.name} 升级到 Lv.${result.building.level}！`);
+
+    const state = infiniteWorld.getPlayer(user.entityId);
+    res.json({
+      messages,
+      entity: entity.getSummary(),
+      stats: state ? { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive } : null,
+      state,
+    });
   });
 
   /** 管理员: 重置每日行动 */
