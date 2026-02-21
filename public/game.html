@@ -52,7 +52,13 @@
     .btn-dice .dice-num{font-size:26px;font-weight:900}
     .dir-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
       color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
-    .dir-btn:hover{background:rgba(16,185,129,0.35);transform:translateY(-2px)}
+    .dir-btn:hover{transform:translateY(-2px)}
+    .dir-btn.dir-left{border-color:#38bdf8;background:rgba(56,189,248,0.18);color:#7dd3fc}
+    .dir-btn.dir-left:hover{background:rgba(56,189,248,0.35)}
+    .dir-btn.dir-right{border-color:#fb923c;background:rgba(251,146,60,0.18);color:#fdba74}
+    .dir-btn.dir-right:hover{background:rgba(251,146,60,0.35)}
+    .dir-btn.dir-forward{border-color:var(--green);background:rgba(16,185,129,0.15);color:#6ee7b7}
+    .dir-btn.dir-forward:hover{background:rgba(16,185,129,0.35)}
     .dice-info{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:8px;font-weight:700;white-space:nowrap}
 
     /* === Right Panel === */
@@ -165,9 +171,9 @@
 <!-- Bottom Action Bar -->
 <div id="action-bar">
   <div class="action-group">
-    <button class="dir-btn" id="btn-left" style="display:none">← 左</button>
+    <button class="dir-btn dir-left" id="btn-left" style="display:none">← 左</button>
     <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
-    <button class="dir-btn" id="btn-right" style="display:none">右 →</button>
+    <button class="dir-btn dir-right" id="btn-right" style="display:none">右 →</button>
   </div>
   <div class="action-group">
     <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
@@ -333,12 +339,341 @@ const clickableMeshes = [];
 
 // ============ RENDER FUNCTIONS ============
 
+// ============ 3D BUILDING SHAPES ============
+
+/** 每种建筑类型的3D形状定义 */
+const BUILDING_SHAPES = {
+  // L1 生理需求 - 简朴风格
+  food_stand:    { shape: 'stall',    roofColor: 0xff6b6b },  // 小食摊 - 带棚子的摊位
+  water_station: { shape: 'tank',     roofColor: 0x60a5fa },  // 水站 - 圆柱水塔
+  shelter:       { shape: 'hut',      roofColor: 0x8b7355 },  // 简易棚 - 三角屋顶
+
+  // L2 安全需求 - 方正风格
+  clinic:        { shape: 'cross',    roofColor: 0xf87171 },  // 诊所 - 十字造型
+  pharmacy:      { shape: 'capsule',  roofColor: 0x34d399 },  // 药店 - 胶囊形
+  savings:       { shape: 'vault',    roofColor: 0x94a3b8 },  // 储蓄所 - 保险箱
+
+  // L3 社交需求 - 温馨风格
+  tea_house:     { shape: 'pagoda',   roofColor: 0xfbbf24 },  // 茶馆 - 宝塔式
+  bar:           { shape: 'barrel',   roofColor: 0xf97316 },  // 酒吧 - 桶形
+  community:     { shape: 'dome',     roofColor: 0xa78bfa },  // 社区中心 - 穹顶
+
+  // L4 尊重需求 - 精致风格
+  restaurant:    { shape: 'tower',    roofColor: 0xfbbf24 },  // 餐厅 - 塔楼
+  hotel:         { shape: 'highrise', roofColor: 0x38bdf8 },  // 酒店 - 高楼
+  bank:          { shape: 'columns',  roofColor: 0xd4af37 },  // 银行 - 柱廊
+
+  // L5 自我实现 - 未来风格
+  academy:       { shape: 'pyramid',  roofColor: 0xa855f7 },  // 学院 - 金字塔
+  gallery:       { shape: 'crystal',  roofColor: 0xec4899 },  // 艺术馆 - 水晶
+  hub:           { shape: 'rocket',   roofColor: 0x22d3ee },  // 创业中心 - 火箭
+};
+
+/** 根据建筑等级计算光晕强度 */
+function levelGlow(level) {
+  return 0.08 + level * 0.12; // Lv1=0.2, Lv2=0.32, Lv3=0.44, Lv4=0.56, Lv5=0.68
+}
+
+/** 创建建筑3D模型 */
+function createBuilding3D(node, tpl) {
+  const bldg = node.building;
+  const level = bldg.level || 1;
+  const ml = tpl?.maslowLevel || 1;
+  const baseColor = MASLOW_COLORS[ml] || 0x888888;
+  const shapeInfo = BUILDING_SHAPES[bldg.templateType] || { shape: 'box', roofColor: baseColor };
+  const glow = levelGlow(level);
+
+  const group = new THREE.Group();
+  group.position.set(node.x, 0, node.y);
+
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: baseColor, emissive: baseColor, emissiveIntensity: glow,
+    roughness: Math.max(0.15, 0.6 - level * 0.1), metalness: Math.min(0.8, level * 0.15),
+  });
+  const roofMat = new THREE.MeshStandardMaterial({
+    color: shapeInfo.roofColor, emissive: shapeInfo.roofColor,
+    emissiveIntensity: glow * 0.8, roughness: 0.3, metalness: 0.2,
+  });
+
+  const S = 1.1; // 统一基础尺寸
+
+  switch (shapeInfo.shape) {
+    case 'stall': { // 小食摊：方形底座 + 倾斜棚顶
+      const base = new THREE.Mesh(new THREE.BoxGeometry(S, 0.5, S), baseMat);
+      base.position.y = 0.25;
+      group.add(base);
+      // 棚顶
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(S * 1.2, 0.08, S * 1.2), roofMat);
+      roof.position.y = 0.7;
+      roof.rotation.z = 0.15;
+      group.add(roof);
+      // 柱子
+      for (const [px, pz] of [[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]]) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 6), baseMat);
+        pole.position.set(px, 0.55, pz);
+        group.add(pole);
+      }
+      break;
+    }
+    case 'tank': { // 水塔：圆柱体
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.4, S * 0.45, 0.8, 12), baseMat);
+      body.position.y = 0.4;
+      group.add(body);
+      const top = new THREE.Mesh(new THREE.SphereGeometry(S * 0.42, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), roofMat);
+      top.position.y = 0.8;
+      group.add(top);
+      break;
+    }
+    case 'hut': { // 简易棚：方底 + 三角屋顶
+      const base = new THREE.Mesh(new THREE.BoxGeometry(S, 0.5, S), baseMat);
+      base.position.y = 0.25;
+      group.add(base);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(S * 0.75, 0.45, 4), roofMat);
+      roof.position.y = 0.75;
+      roof.rotation.y = Math.PI / 4;
+      group.add(roof);
+      break;
+    }
+    case 'cross': { // 诊所：十字造型
+      const c1 = new THREE.Mesh(new THREE.BoxGeometry(S * 0.35, 0.7, S), baseMat);
+      c1.position.y = 0.35;
+      group.add(c1);
+      const c2 = new THREE.Mesh(new THREE.BoxGeometry(S, 0.7, S * 0.35), baseMat);
+      c2.position.y = 0.35;
+      group.add(c2);
+      // 顶部红十字标志
+      const cross1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.3), roofMat);
+      cross1.position.y = 0.75;
+      group.add(cross1);
+      const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.06), roofMat);
+      cross2.position.y = 0.75;
+      group.add(cross2);
+      break;
+    }
+    case 'capsule': { // 药店：胶囊形
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.35, S * 0.35, 0.5, 12), baseMat);
+      body.position.y = 0.35;
+      group.add(body);
+      const topCap = new THREE.Mesh(new THREE.SphereGeometry(S * 0.35, 12, 8), roofMat);
+      topCap.position.y = 0.6;
+      group.add(topCap);
+      break;
+    }
+    case 'vault': { // 储蓄所：保险箱造型
+      const box = new THREE.Mesh(new THREE.BoxGeometry(S, 0.7, S * 0.8), baseMat);
+      box.position.y = 0.35;
+      group.add(box);
+      // 门
+      const door = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.04, 16), roofMat);
+      door.position.set(0, 0.4, S * 0.41);
+      door.rotation.x = Math.PI / 2;
+      group.add(door);
+      break;
+    }
+    case 'pagoda': { // 茶馆：宝塔层叠
+      const floors = 2 + Math.min(level, 3);
+      for (let i = 0; i < floors; i++) {
+        const s = S * (1 - i * 0.15);
+        const h = 0.25;
+        const fl = new THREE.Mesh(new THREE.BoxGeometry(s, h, s), i % 2 === 0 ? baseMat : roofMat);
+        fl.position.y = i * 0.28 + h / 2;
+        group.add(fl);
+      }
+      // 顶尖
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 6), roofMat);
+      spire.position.y = floors * 0.28 + 0.15;
+      group.add(spire);
+      break;
+    }
+    case 'barrel': { // 酒吧：桶造型
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.35, S * 0.4, 0.7, 12), baseMat);
+      barrel.position.y = 0.35;
+      group.add(barrel);
+      // 桶箍
+      for (const ry of [0.15, 0.55]) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(S * 0.38, 0.02, 8, 16), roofMat);
+        ring.position.y = ry;
+        ring.rotation.x = Math.PI / 2;
+        group.add(ring);
+      }
+      break;
+    }
+    case 'dome': { // 社区中心：穹顶
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.5, S * 0.5, 0.3, 16), baseMat);
+      base.position.y = 0.15;
+      group.add(base);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(S * 0.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), roofMat);
+      dome.position.y = 0.3;
+      group.add(dome);
+      break;
+    }
+    case 'tower': { // 高级餐厅：方塔
+      const h = 0.8 + level * 0.15;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(S * 0.7, h, S * 0.7), baseMat);
+      body.position.y = h / 2;
+      group.add(body);
+      // 顶部装饰
+      const top = new THREE.Mesh(new THREE.BoxGeometry(S * 0.85, 0.1, S * 0.85), roofMat);
+      top.position.y = h + 0.05;
+      group.add(top);
+      const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 6), roofMat);
+      antenna.position.y = h + 0.25;
+      group.add(antenna);
+      break;
+    }
+    case 'highrise': { // 酒店：高楼
+      const h = 1.0 + level * 0.2;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(S * 0.6, h, S * 0.8), baseMat);
+      body.position.y = h / 2;
+      group.add(body);
+      // 窗户层（横条纹装饰）
+      for (let i = 0; i < Math.floor(h / 0.25); i++) {
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(S * 0.62, 0.03, S * 0.82), roofMat);
+        stripe.position.y = 0.2 + i * 0.25;
+        group.add(stripe);
+      }
+      break;
+    }
+    case 'columns': { // 银行：柱廊
+      const base = new THREE.Mesh(new THREE.BoxGeometry(S, 0.12, S), baseMat);
+      base.position.y = 0.06;
+      group.add(base);
+      // 柱子
+      for (const [px, pz] of [[-0.35, -0.45], [0.35, -0.45], [-0.35, 0.45], [0.35, 0.45]]) {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.6, 8), baseMat);
+        col.position.set(px, 0.42, pz);
+        group.add(col);
+      }
+      // 三角楣
+      const pediment = new THREE.Mesh(new THREE.ConeGeometry(S * 0.6, 0.25, 3), roofMat);
+      pediment.position.y = 0.85;
+      pediment.rotation.y = Math.PI / 6;
+      pediment.scale.set(1, 1, 0.5);
+      group.add(pediment);
+      break;
+    }
+    case 'pyramid': { // 学院：金字塔
+      const h = 0.9 + level * 0.12;
+      const pyr = new THREE.Mesh(new THREE.ConeGeometry(S * 0.6, h, 4), baseMat);
+      pyr.position.y = h / 2;
+      pyr.rotation.y = Math.PI / 4;
+      group.add(pyr);
+      // 门
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.3, 0.05), roofMat);
+      door.position.set(0, 0.15, S * 0.45);
+      group.add(door);
+      break;
+    }
+    case 'crystal': { // 艺术馆：水晶
+      const h = 0.9 + level * 0.1;
+      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(S * 0.45), baseMat.clone());
+      crystal.material.transparent = true;
+      crystal.material.opacity = 0.85;
+      crystal.material.metalness = 0.4;
+      crystal.position.y = S * 0.45 + 0.05;
+      crystal.scale.y = h / (S * 0.9);
+      group.add(crystal);
+      break;
+    }
+    case 'rocket': { // 创业中心：火箭
+      const h = 1.0 + level * 0.15;
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(S * 0.2, S * 0.3, h, 8), baseMat);
+      body.position.y = h / 2;
+      group.add(body);
+      const nose = new THREE.Mesh(new THREE.ConeGeometry(S * 0.2, 0.35, 8), roofMat);
+      nose.position.y = h + 0.17;
+      group.add(nose);
+      // 尾翼
+      for (let a = 0; a < 4; a++) {
+        const fin = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.25, 0.2), roofMat);
+        fin.position.y = 0.15;
+        fin.rotation.y = a * Math.PI / 2;
+        fin.position.x = Math.sin(a * Math.PI / 2) * S * 0.3;
+        fin.position.z = Math.cos(a * Math.PI / 2) * S * 0.3;
+        group.add(fin);
+      }
+      break;
+    }
+    default: { // 通用方块
+      const h = 0.6 + level * 0.3;
+      const box = new THREE.Mesh(new THREE.BoxGeometry(S, h, S), baseMat);
+      box.position.y = h / 2;
+      group.add(box);
+    }
+  }
+
+  // === 等级光环装饰 (Lv2+ 逐渐添加) ===
+  if (level >= 2) {
+    // 底部光圈
+    const ringGeo = new THREE.TorusGeometry(S * 0.6, 0.02 + level * 0.01, 8, 32);
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: baseColor, emissive: baseColor,
+      emissiveIntensity: 0.5 + level * 0.2, transparent: true, opacity: 0.4 + level * 0.1,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.y = 0.03;
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+  }
+
+  if (level >= 3) {
+    // 中层浮动光环
+    const ring2Geo = new THREE.TorusGeometry(S * 0.45, 0.015, 8, 24);
+    const ring2Mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, emissive: baseColor,
+      emissiveIntensity: 0.8, transparent: true, opacity: 0.3,
+    });
+    const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+    ring2.position.y = 0.6;
+    ring2.rotation.x = Math.PI / 2;
+    ring2.userData._floatingRing = true;
+    group.add(ring2);
+  }
+
+  if (level >= 4) {
+    // 顶部光点
+    const sparkGeo = new THREE.SphereGeometry(0.06, 8, 8);
+    const sparkMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, emissive: 0xffffff,
+      emissiveIntensity: 1.5, transparent: true, opacity: 0.7,
+    });
+    for (let a = 0; a < 4; a++) {
+      const spark = new THREE.Mesh(sparkGeo, sparkMat);
+      const angle = (a / 4) * Math.PI * 2;
+      spark.position.set(Math.cos(angle) * S * 0.5, 0.9, Math.sin(angle) * S * 0.5);
+      spark.userData._spark = true;
+      group.add(spark);
+    }
+  }
+
+  if (level >= 5) {
+    // 顶部王冠光柱
+    const beamGeo = new THREE.CylinderGeometry(0.02, 0.06, 0.5, 6);
+    const beamMat = new THREE.MeshStandardMaterial({
+      color: baseColor, emissive: baseColor,
+      emissiveIntensity: 2.0, transparent: true, opacity: 0.5,
+    });
+    const beam = new THREE.Mesh(beamGeo, beamMat);
+    beam.position.y = 1.5;
+    beam.userData._beam = true;
+    group.add(beam);
+  }
+
+  // Set shadow for all children
+  group.traverse(child => {
+    if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+  });
+
+  group.userData = { nodeId: node.id, type: 'building', node };
+  return group;
+}
+
 function renderMap(nodes) {
   // Dispose old
   while (mapMeshGroup.children.length) {
     const m = mapMeshGroup.children[0];
-    m.geometry?.dispose();
-    m.material?.dispose();
+    if (m.traverse) m.traverse(c => { c.geometry?.dispose(); c.material?.dispose(); });
+    else { m.geometry?.dispose(); m.material?.dispose(); }
     mapMeshGroup.remove(m);
   }
   clickableMeshes.length = 0;
@@ -346,17 +681,8 @@ function renderMap(nodes) {
   for (const node of nodes) {
     let mesh;
     if (node.building) {
-      // Building: colored box, height by level
       const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
-      const ml = tpl?.maslowLevel || 1;
-      const h = 0.6 + node.building.level * 0.5;
-      const color = MASLOW_COLORS[ml] || 0x888888;
-      const geo = new THREE.BoxGeometry(1.3, h, 1.3);
-      const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.15, roughness: 0.4 });
-      mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(node.x, h / 2, node.y);
-      mesh.castShadow = true;
-      mesh.userData = { nodeId: node.id, type: 'building', node };
+      mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
     } else if (node.type === 'lot') {
       // Empty lot: flat dashed outline
@@ -445,20 +771,31 @@ function renderPlayers(players) {
   }
 }
 
+const DIR_COLORS = {
+  left:    { color: 0x38bdf8, emissive: 0x38bdf8 },   // sky-blue
+  right:   { color: 0xfb923c, emissive: 0xfb923c },   // orange
+  forward: { color: 0x22d3ee, emissive: 0x22d3ee },   // cyan
+};
+
 function showDirectionArrows(directions) {
   clearDirectionArrows();
   const nodeMap = new Map(allNodes.map(n => [n.id, n]));
   const myNode = myState ? nodeMap.get(myState.nodeId) : null;
   if (!myNode) return;
 
-  for (const d of directions) {
+  for (let i = 0; i < directions.length; i++) {
+    const d = directions[i];
     const dx = d.x - myNode.x, dy = d.y - myNode.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist === 0) continue;
 
+    // 根据方向选择颜色：单方向=前进，双方向=左/右
+    const dirType = directions.length === 1 ? 'forward' : (i === 0 ? 'left' : 'right');
+    const dc = DIR_COLORS[dirType];
+
     // Arrow cone
-    const geo = new THREE.ConeGeometry(0.3, 0.8, 8);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x22d3ee, emissiveIntensity: 0.6, transparent: true, opacity: 0.8 });
+    const geo = new THREE.ConeGeometry(0.35, 0.9, 8);
+    const mat = new THREE.MeshStandardMaterial({ color: dc.color, emissive: dc.emissive, emissiveIntensity: 0.7, transparent: true, opacity: 0.85 });
     const arrow = new THREE.Mesh(geo, mat);
     const mx = myNode.x + dx * 0.6, my = myNode.y + dy * 0.6;
     arrow.position.set(mx, 1.2, my);
@@ -468,7 +805,7 @@ function showDirectionArrows(directions) {
     arrow.rotation.order = 'YXZ';
     arrow.rotation.y = angle;
     arrow.rotation.x = Math.PI / 2;
-    arrow.userData = { directionNodeId: d.nodeId, label: d.label };
+    arrow.userData = { directionNodeId: d.nodeId, label: d.label, dirType };
     directionMeshGroup.add(arrow);
     clickableMeshes.push(arrow);
   }
@@ -728,14 +1065,20 @@ function showDirButtons(directions) {
   btnLeft.style.display = 'none';
   btnRight.style.display = 'none';
 
-  if (directions.length >= 1) {
+  if (directions.length === 1) {
+    // 只有一个方向 - 前进
     btnLeft.style.display = 'block';
     btnLeft.textContent = directions[0].label;
+    btnLeft.className = 'dir-btn dir-forward';
     btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
-  }
-  if (directions.length >= 2) {
+  } else if (directions.length >= 2) {
+    btnLeft.style.display = 'block';
+    btnLeft.textContent = directions[0].label;
+    btnLeft.className = 'dir-btn dir-left';
+    btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
     btnRight.style.display = 'block';
     btnRight.textContent = directions[1].label;
+    btnRight.className = 'dir-btn dir-right';
     btnRight.onclick = () => chooseDirection(directions[1].nodeId);
   }
 
@@ -959,13 +1302,17 @@ renderer.domElement.addEventListener('click', (event) => {
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
-  const intersects = raycaster.intersectObjects([...directionMeshGroup.children, ...mapMeshGroup.children]);
+  const intersects = raycaster.intersectObjects([...directionMeshGroup.children, ...mapMeshGroup.children], true);
   if (intersects.length > 0) {
-    const obj = intersects[0].object;
+    let obj = intersects[0].object;
     // Direction arrow click
     if (obj.userData?.directionNodeId) {
       chooseDirection(obj.userData.directionNodeId);
       return;
+    }
+    // 建筑组: 向上查找含 node 数据的 parent group
+    while (obj && !obj.userData?.node && obj.parent && obj.parent !== mapMeshGroup && obj.parent !== scene) {
+      obj = obj.parent;
     }
     // Node click
     if (obj.userData?.node) {
@@ -995,6 +1342,24 @@ function animate() {
   for (const arrow of directionMeshGroup.children) {
     arrow.position.y = 1.2 + Math.sin(t * 3) * 0.15;
     if (arrow.material) arrow.material.opacity = 0.5 + Math.sin(t * 4) * 0.3;
+  }
+
+  // 建筑等级动画 (浮动光环、闪烁光点)
+  for (const bldgGroup of mapMeshGroup.children) {
+    if (!bldgGroup.userData?.type === 'building' || !bldgGroup.children) continue;
+    for (const child of bldgGroup.children) {
+      if (child.userData?._floatingRing) {
+        child.position.y = 0.6 + Math.sin(t * 2) * 0.1;
+        child.rotation.z = t * 0.5;
+      }
+      if (child.userData?._spark) {
+        child.material.opacity = 0.3 + Math.sin(t * 5 + child.position.x * 10) * 0.4;
+      }
+      if (child.userData?._beam) {
+        child.material.opacity = 0.3 + Math.sin(t * 1.5) * 0.3;
+        child.scale.y = 1 + Math.sin(t * 2) * 0.2;
+      }
+    }
   }
 
   controls.update();
