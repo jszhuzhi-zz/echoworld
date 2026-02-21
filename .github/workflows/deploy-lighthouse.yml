@@ -35,109 +35,95 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Prepare deployment package
+        run: |
+          # Create deployment package with built files
+          mkdir -p /tmp/deploy-pkg
+          cp -r dist/ /tmp/deploy-pkg/
+          cp -r public/ /tmp/deploy-pkg/
+          cp package.json package-lock.json /tmp/deploy-pkg/
+          cp scripts/fn-entry.js /tmp/deploy-pkg/ 2>/dev/null || true
+          cd /tmp && tar czf echoworld-deploy.tar.gz -C deploy-pkg .
+          ls -lh /tmp/echoworld-deploy.tar.gz
+
       - name: Deploy to server
         run: |
-          # Decode credentials
           SSH_PASS=$(echo 'enNoTGlnaHQyMDI1bWltYQ==' | base64 -d)
           ZHIPU_KEY=$(echo 'ZmRhZmRkMjEwNzVmNDg0OThlZTQxNjFiZjdkZWFlMzcuT3VoUW9tNkd1aXJ4ZzRxNQ==' | base64 -d)
 
-          # Install sshpass
-          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
-
-          # SSH options
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass > /dev/null 2>&1
           SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
 
-          echo "=== Testing SSH connection ==="
-          sshpass -p "$SSH_PASS" ssh $SSH_OPTS root@$SERVER_HOST "echo 'SSH connection OK'" 2>&1 | tee -a /tmp/deploy.log
+          echo "=== [1] Upload package ===" | tee /tmp/deploy.log
+          sshpass -p "$SSH_PASS" scp $SSH_OPTS /tmp/echoworld-deploy.tar.gz root@$SERVER_HOST:/tmp/ 2>&1 | tee -a /tmp/deploy.log
+          echo "Upload done" | tee -a /tmp/deploy.log
 
-          echo "=== Deploying to server ==="
-          sshpass -p "$SSH_PASS" ssh $SSH_OPTS root@$SERVER_HOST bash -s -- "$ZHIPU_KEY" "$SERVER_PORT" << 'DEPLOY_SCRIPT'
-          set -e
-          ZHIPU_KEY="$1"
-          PORT="$2"
-          APP_DIR="/opt/echoworld"
-          BRANCH="claude/ai-agent-commerce-world-U3fxB"
-
-          echo "=== EchoWorld Lighthouse Deploy ==="
-
-          # 1. Install Node.js if needed
-          if ! command -v node &> /dev/null || [[ "$(node -v | cut -d. -f1 | tr -d v)" -lt 18 ]]; then
-            echo "[1] Installing Node.js 20..."
+          echo "=== [2] Install Node.js & PM2 ===" | tee -a /tmp/deploy.log
+          sshpass -p "$SSH_PASS" ssh $SSH_OPTS root@$SERVER_HOST 'bash -s' 2>&1 <<'EOF' | tee -a /tmp/deploy.log
+          if ! command -v node &> /dev/null; then
+            echo "Installing Node.js..."
             curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
             apt-get install -y nodejs
-          else
-            echo "[1] Node.js: $(node -v)"
           fi
-
-          # 2. Install PM2
+          echo "Node: $(node -v 2>/dev/null || echo 'not found')"
+          echo "NPM: $(npm -v 2>/dev/null || echo 'not found')"
           if ! command -v pm2 &> /dev/null; then
-            echo "[2] Installing PM2..."
+            echo "Installing PM2..."
             npm install -g pm2
-          else
-            echo "[2] PM2: $(pm2 -v)"
           fi
+          echo "PM2: $(pm2 -v 2>/dev/null || echo 'not found')"
+          EOF
 
-          # 3. Install git if needed
-          if ! command -v git &> /dev/null; then
-            apt-get install -y git
-          fi
+          echo "=== [3] Deploy app ===" | tee -a /tmp/deploy.log
+          sshpass -p "$SSH_PASS" ssh $SSH_OPTS root@$SERVER_HOST "bash -s" 2>&1 <<EOF | tee -a /tmp/deploy.log
+          set -e
+          APP_DIR="/opt/echoworld"
+          mkdir -p \$APP_DIR
+          cd \$APP_DIR
 
-          # 4. Clone or update code
-          echo "[3] Fetching code..."
-          if [ -d "$APP_DIR/.git" ]; then
-            cd "$APP_DIR"
-            git fetch origin "$BRANCH"
-            git reset --hard "origin/$BRANCH"
-          else
-            rm -rf "$APP_DIR"
-            git clone -b "$BRANCH" https://github.com/jszhuzhi-zz/echoworld.git "$APP_DIR"
-            cd "$APP_DIR"
-          fi
+          echo "Extracting package..."
+          tar xzf /tmp/echoworld-deploy.tar.gz
+          rm -f /tmp/echoworld-deploy.tar.gz
 
-          # 5. Build
-          echo "[4] Installing dependencies..."
-          npm ci --omit=dev
-          npm ci
-          echo "[5] Building..."
-          npm run build
+          echo "Installing production dependencies..."
+          npm ci --omit=dev 2>&1 | tail -3
 
-          # 6. Start/restart
-          echo "[6] Starting service..."
+          echo "Stopping old process..."
           pm2 delete echoworld 2>/dev/null || true
-          PORT=$PORT ZHIPU_API_KEY="$ZHIPU_KEY" ZHIPU_MODEL="glm-4-flash" \
-            pm2 start dist/index.js --name echoworld --update-env
+
+          echo "Starting EchoWorld..."
+          PORT=${SERVER_PORT} ZHIPU_API_KEY="${ZHIPU_KEY}" ZHIPU_MODEL="glm-4-flash" pm2 start dist/index.js --name echoworld --update-env
 
           pm2 save
           pm2 startup systemd -u root --hp /root 2>/dev/null || true
 
-          # 7. Open firewall (iptables level)
-          iptables -I INPUT -p tcp --dport $PORT -j ACCEPT 2>/dev/null || true
+          iptables -I INPUT -p tcp --dport ${SERVER_PORT} -j ACCEPT 2>/dev/null || true
 
           echo ""
-          echo "=== Deploy Complete ==="
           pm2 status
-          echo "URL: http://$(curl -s ifconfig.me 2>/dev/null || echo '129.211.14.208'):$PORT"
-
-          # Quick test
           sleep 3
-          curl -s http://localhost:$PORT/api/world/time && echo " [API OK]" || echo " [API not ready yet]"
-          DEPLOY_SCRIPT
+          echo "API test:"
+          curl -s http://localhost:${SERVER_PORT}/api/world/time || echo "API not responding yet"
+          echo ""
+          echo "Deploy complete! URL: http://${SERVER_HOST}:${SERVER_PORT}"
+          EOF
 
           echo "=== SSH deploy finished ===" | tee -a /tmp/deploy.log
 
       - name: Verify deployment
         run: |
-          echo "Waiting 15s for server to fully start..."
-          sleep 15
-          echo "Testing http://$SERVER_HOST:$SERVER_PORT/api/world/time ..."
-          RESULT=$(curl -sf --max-time 15 http://$SERVER_HOST:$SERVER_PORT/api/world/time 2>&1) && {
+          echo "Waiting 10s..."
+          sleep 10
+          echo "Testing http://$SERVER_HOST:$SERVER_PORT ..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://$SERVER_HOST:$SERVER_PORT/ 2>/dev/null) || HTTP_CODE="000"
+          echo "HTTP status: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
             echo "DEPLOY_STATUS=SUCCESS" >> $GITHUB_ENV
-            echo "Server response: $RESULT"
-          } || {
-            echo "DEPLOY_STATUS=UNREACHABLE" >> $GITHUB_ENV
-            echo "Server not reachable externally."
-            echo "Please open port $SERVER_PORT (TCP) in Lighthouse firewall settings."
-          }
+            echo "Server is live!"
+          else
+            echo "DEPLOY_STATUS=FIREWALL_NEEDED" >> $GITHUB_ENV
+            echo "Server may need port $SERVER_PORT opened in Lighthouse firewall."
+          fi
 
       - name: Save deployment info
         if: always()
@@ -154,8 +140,9 @@ jobs:
             cat /tmp/deploy.log 2>/dev/null || echo "无日志"
             echo ""
             if [ "${DEPLOY_STATUS}" != "SUCCESS" ]; then
-              echo "提示: 如果无法访问，请在腾讯云轻量服务器控制台开放 $SERVER_PORT 端口 (TCP)"
-              echo "防火墙: https://console.cloud.tencent.com/lighthouse/instance/detail?id=lhins-fa84ogo8"
+              echo ""
+              echo "如果无法访问，请在腾讯云轻量服务器控制台开放 $SERVER_PORT 端口 (TCP)"
+              echo "控制台: https://console.cloud.tencent.com/lighthouse/instance/detail?id=lhins-fa84ogo8"
             fi
           } > DEPLOY_INFO.txt
 
