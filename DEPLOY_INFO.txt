@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 03:23:05 UTC
-Commit: 6d389c8f68c99efa18f6c0ab83be1c25782dda95
+部署时间: 2026-02-21 03:28:12 UTC
+Commit: 4ca977d79c4ec5d6ffef7ad4ca610e07f61cf172
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -8,7 +8,7 @@ Commit: 6d389c8f68c99efa18f6c0ab83be1c25782dda95
 [0] 环境信息
   georgezhu-0gnrnw9ae9fca59a | 体验版 | NORMAL
 
-[1/4] 打包函数代码...
+[1/5] 打包函数代码...
 
 added 71 packages, and audited 72 packages in 2s
 
@@ -18,34 +18,36 @@ added 71 packages, and audited 72 packages in 2s
 found 0 vulnerabilities
   函数包大小: 3.3M
 
-[2/4] 部署云函数...
+[2/5] 部署云函数...
 [echoworld] 部署方式: COS 上传
 [echoworld] 部署方式: COS 上传
   云函数部署成功!
+  等待函数就绪...
 
-[3/4] 配置静态托管...
+[3/5] 配置静态托管...
+  hosting.getInfo: [
+  {
+    "EnvId": "georgezhu-0gnrnw9ae9fca59a",
+    "CdnDomain": "georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com",
+    "Bucket": "39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149",
+    "Regoin": "ap-shanghai",
+    "Status": "online",
+    "MaxDomain": 4,
+    "Id": 1160822,
+    "PolicyId": 264241099,
+    "Region": "ap-shanghai"
+  }
+]
+  hosting.enableService: 静态网站服务已开启，请勿重复操作！
+  hosting.checkStatus: {"EnvId":"georgezhu-0gnrnw9ae9fca59a","CdnDomain":"georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com","Bucket":"39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149","Regoin":"ap-shanghai","Status":"online","MaxDomain":4,"Id":1160822,"PolicyId":264241099,"Region":"ap-shanghai"}
+  hosting.getHostingConfig: {
+  "appId": "",
+  "proxy": "",
+  "envId": "georgezhu-0gnrnw9ae9fca59a"
+}
   静态文件已上传
-  hosting 方法: getInfo, enableService, findFiles, listFiles, destroyService, uploadFiles, deleteFiles, downloadFile, downloadDirectory, walkLocalDir, CreateHostingDomain, deleteHostingDomain, tcbCheckResource, tcbModifyAttribute, getWebsiteConfig, setWebsiteDocument, checkStatus, getHostingConfig, getCloudKey
-  DescribeCloudBaseGWService: {
-  "AccessFlag": 1,
-  "CustomRoutingRules": "",
-  "DefaultDomain": "georgezhu-0gnrnw9ae9fca59a.service.tcloudbase.com",
-  "EnableCheckAcrossDomain": true,
-  "EnableService": false,
-  "EnableUnion": false,
-  "OriginDomain": "georgezhu-0gnrnw9ae9fca59a.tcbaccess-in.tencentcloudbase.com",
-  "RequestId": "fb28d57e-e82b-4b6f-bba9-23f73f18911b",
-  "ServiceSet": []
-}
-  DescribeHostingDomainTask: {
-  "RequestId": "c8764bf7-0d27-44eb-b5d9-e5df971b2db7",
-  "Status": "done"
-}
-  DescribeCloudBaseBuildService: [DescribeCloudBaseBuildService] The request is missing the required parameter `ServiceName`.
-  获取到 storage COS 实例
-  网站配置已设置 (storage COS)
-  Bucket ACL 设置为 public-read (storage)
-  当前网站配置: {
+  hosting.setWebsiteDocument: {"statusCode":200,"headers":{"content-length":"0","connection":"keep-alive","date":"Sat, 21 Feb 2026 03:27:59 GMT","server":"tencent-cos","x-cos-request-id":"Njk5OTI2M2ZfZjNkMGYxZV8xNjgwNV8xZWFmNGY5"},"RequestId":"Njk5OTI2M2ZfZjNkMGYxZV8xNjgwNV8xZWFmNGY5"}
+  hosting.getWebsiteConfig: {
   "WebsiteConfiguration": {
     "IndexDocument": {
       "Suffix": "index.html"
@@ -59,29 +61,53 @@ found 0 vulnerabilities
     "content-type": "application/xml",
     "content-length": "170",
     "connection": "keep-alive",
-    "date": "Sat, 21 Feb 2026 03:23:02 GMT",
+    "date": "Sat, 21 Feb 2026 03:27:59 GMT",
     "server": "tencent-cos",
-    "x-cos-request-id": "Njk5OTI1MTZfMzg4ZWI1MDlfNzI3NV8zNTBlOWRm"
+    "x-cos-request-id": "Njk5OTI2M2ZfZjNkMGYxZV8xNjgwZl8xZjAxYjNk"
   },
-  "RequestId": "Njk5OTI1MTZfMzg4ZWI1MDlfNzI3NV8zNTBlOWRm"
+  "RequestId": "Njk5OTI2M2ZfZjNkMGYxZV8xNjgwZl8xZjAxYjNk"
+}
+  hosting.tcbModifyAttribute: [TcbModifyAttribute] The request is missing the required parameter `Domain`.
+  hosting.getCloudKey: ""
+  hosting.listFiles: undefined
+  DescribeStaticStore: {
+  "Data": [
+    {
+      "EnvId": "georgezhu-0gnrnw9ae9fca59a",
+      "CdnDomain": "georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com",
+      "Bucket": "39aa-static-georgezhu-0gnrnw9ae9fca59a-1398720149",
+      "Regoin": "ap-shanghai",
+      "Status": "online",
+      "MaxDomain": 4,
+      "Id": 1160822,
+      "PolicyId": 264241099,
+      "Region": "ap-shanghai"
+    }
+  ],
+  "RequestId": "6f36a45e-66c7-4873-9b1e-f7de6066038d"
+}
+  ModifyEnv: [ModifyEnv] The parameter `Conf` is not recognized.
+  TurnOffStaticStore: [TurnOffStaticStore] The request action=`TurnOffStaticStore` is invalid or not found in service=`tcb` and version=`2018-06-08`.
+  TurnOnStaticStore: [TurnOnStaticStore] The request action=`TurnOnStaticStore` is invalid or not found in service=`tcb` and version=`2018-06-08`.
+  DescribeLoginConfigs: {
+  "ConfigList": [],
+  "RequestId": "03ac3f64-81fa-45d3-af04-4cd04c2af3f0"
 }
 
-[4/4] 配置匿名登录...
+[4/5] 配置匿名登录...
   匿名登录已配置
+  非登录访问已配置
+  CreateAuthDomain: [CreateAuthDomain] 当前套餐无法执行此操作
+
+[5/5] 配置HTTP路由...
+  路由配置: [EstablishCloudBaseRunServer] The parameter `PathPrefix` is not recognized.
 
 ========== 测试 ==========
-  函数调用: {"RequestId":"512c44a4-ca7f-4ab6-b1b2-300df0980f7f","FunctionRequestId":"512c44a4-ca7f-4ab6-b1b2-300df0980f7f","InvokeResult":0,"Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unava
+  函数调用: {"RequestId":"697e6e38-6cb4-4771-90ee-3f8676faf118","Duration":0,"BillDuration":0,"FunctionRequestId":"697e6e38-6cb4-4771-90ee-3f8676faf118","InvokeResult":0,"Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unavailable, AvailableStatus = InsufficientBalance.\",\"requestId\":\"697e6
+  函数HTTP调用: {"RequestId":"e4b15442-db28-411f-a5a2-7f9897f910be","Duration":0,"BillDuration":0,"FunctionRequestId":"e4b15442-db28-411f-a5a2-7f9897f910be","InvokeResult":0,"Log":"","RetMsg":"{\"errorCode\":1,\"errorMessage\":\"Function is Unavailable, AvailableStatus = InsufficientBalance.\",\"requestId\":\"e4b15
 
   测试 https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
   HTTP 418 | body: 0 bytes
-  headers: {
-  "content-length": "0",
-  "x-nws-log-uuid": "5311165943436144813",
-  "connection": "close",
-  "server": "TCB",
-  "date": "Sat, 21 Feb 2026 03:23:04 GMT",
-  "x-cache-lookup": "Return Directly"
-}
 
   测试 https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com/index.html
   HTTP 418 | body: 0 bytes
