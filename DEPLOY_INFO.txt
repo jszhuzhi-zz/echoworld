@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 02:35:38 UTC
-Commit: 89883b713f47bc7c5a0dc1e2f58f4cb621e14795
+部署时间: 2026-02-21 02:39:55 UTC
+Commit: c59f6f2e2b10d7acee843dc822224f51855c6d90
 
 --- 部署日志 ---
 === CloudBase Deploy Script ===
@@ -10,15 +10,15 @@ Commit: 89883b713f47bc7c5a0dc1e2f58f4cb621e14795
   套餐: 体验版
 
 [1/5] 配置匿名登录...
-  CreateLoginConfig 成功: {"RequestId":"ed8cdbbf-5349-42fd-ad2b-a21df65dd0ff"}
-  CreateLoginConfig 成功: {"RequestId":"69c5ad41-5f2a-4d8c-865e-a2b3e0d8b503"}
+  CreateLoginConfig 成功: {"RequestId":"508975fd-47f3-436a-b5bb-2083dde24fef"}
+  CreateLoginConfig 成功: {"RequestId":"451c09c1-3a82-444a-ad39-95857639d314"}
   ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The request is missing the required parameter `ServiceId`.
   登录配置: {
   "ConfigList": [],
-  "RequestId": "ddceac83-b89c-45a6-8734-5d16acf586a2"
+  "RequestId": "7ce1e328-42b5-494c-8203-51785a2db690"
 }
   安全规则: {
-  "RequestId": "533cb648-ae3d-46a7-8200-a36702f29da3",
+  "RequestId": "0450961a-e807-45cd-b88a-8575f6043e46",
   "SmsFreeQuotaList": [
     {
       "FreeQuota": 0,
@@ -59,6 +59,10 @@ found 0 vulnerabilities
 [4/5] 部署静态托管...
   使用 hosting.uploadFiles()...
   静态文件已上传
+  尝试关闭静态托管登录鉴权...
+  ModifyCloudBaseGWPrivilege: [ModifyCloudBaseGWPrivilege] The parameter `EnvId` is not recognized.
+  上传 index.html 到 COS 存储...
+  COS 上传: The "paths[0]" argument must be of type string. Received undefined
   检查静态托管状态...
   静态托管: {
   "Data": [
@@ -74,7 +78,7 @@ found 0 vulnerabilities
       "Region": "ap-shanghai"
     }
   ],
-  "RequestId": "cd59fbe0-a26b-4008-9caf-a33df857065b"
+  "RequestId": "f62a9fa1-905e-4089-af1c-5a534e39b25a"
 }
 
 [5/5] 配置 HTTP 访问...
@@ -4928,7 +4932,7 @@ found 0 vulnerabilities
   },
   {
     "Key": "index.html",
-    "LastModified": "2026-02-21T02:35:10.000Z",
+    "LastModified": "2026-02-21T02:39:27.000Z",
     "ETag": "\"99d8a3992bf1533c1fb4beaab4411a25\"",
     "Size": "24740",
     "Owner": {
@@ -9061,11 +9065,13 @@ found 0 vulnerabilities
   [尝试3] HTTP 418 (body length: 0)
   /index.html: HTTP 418 (body length: 0)
 
-HTTP 服务: ✗ 未开通
+测试 COS URL: https://6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la/echoworld/index.html
+  HTTP 418 (body length: 0)
 
 ========================================
-  访问地址:
-  静态托管: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  部署完成! 访问地址:
+  1. 静态托管: https://georgezhu-0gnrnw9ae9fca59a-1398720149.tcloudbaseapp.com
+  2. COS存储: https://6765-georgezhu-0gnrnw9ae9fca59a-1398720149.tcb.qcloud.la/echoworld/index.html
 ========================================
 
 控制台: https://console.cloud.tencent.com/tcb/env/overview?envId=georgezhu-0gnrnw9ae9fca59a
