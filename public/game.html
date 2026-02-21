@@ -30,8 +30,7 @@
     .fill-hunger{background:linear-gradient(90deg,#ef4444,#f97316)}
     .fill-energy{background:linear-gradient(90deg,#3b82f6,#06b6d4)}
     .fill-happy{background:linear-gradient(90deg,#a855f7,#ec4899)}
-    .top-center{flex:1;text-align:center;min-width:0}
-    .pos-info{display:inline-block;font-size:11px;color:var(--text2);background:rgba(0,0,0,0.4);padding:3px 12px;border-radius:10px}
+    .pos-info{display:inline-block;font-size:11px;color:var(--text2);background:rgba(0,0,0,0.4);padding:3px 12px;border-radius:10px;white-space:nowrap}
     .top-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
     .money-badge{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:3px 10px;border-radius:10px;font-weight:700;font-size:12px;white-space:nowrap}
     .action-badge{background:rgba(59,130,246,0.2);color:var(--accent);padding:3px 8px;border-radius:8px;font-size:10px;border:1px solid rgba(59,130,246,0.3);white-space:nowrap}
@@ -40,10 +39,11 @@
     .btn-nav:hover{background:rgba(255,255,255,0.15);color:#fff}
 
     /* === Bottom Action Bar === */
-    #action-bar{position:fixed;z-index:15;bottom:16px;left:50%;transform:translateX(-50%);
-      display:flex;gap:8px;align-items:center;
-      background:rgba(10,14,23,0.85);border:1px solid var(--border);border-radius:18px;padding:8px 14px;
+    #action-bar{position:fixed;z-index:15;bottom:16px;left:16px;right:16px;
+      display:flex;justify-content:space-between;align-items:center;
+      background:rgba(10,14,23,0.85);border:1px solid var(--border);border-radius:18px;padding:8px 18px;
       backdrop-filter:blur(10px)}
+    .action-group{display:flex;gap:8px;align-items:center}
     .btn-dice{width:52px;height:52px;border-radius:14px;border:2px solid var(--accent);background:rgba(59,130,246,0.15);
       color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
       transition:all .3s;flex-shrink:0}
@@ -53,6 +53,7 @@
     .dir-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
       color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
     .dir-btn:hover{background:rgba(16,185,129,0.35);transform:translateY(-2px)}
+    .dice-info{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:8px;font-weight:700;white-space:nowrap}
 
     /* === Right Panel === */
     #right-panel{position:fixed;z-index:12;top:56px;right:8px;bottom:80px;width:200px;
@@ -122,9 +123,10 @@
       #right-panel{display:none}
       #game-log{width:calc(100% - 24px);left:12px;right:12px;max-height:100px}
       .stat-bars{display:none}
+      .pos-info,.dice-info{display:none!important}
       #top-bar{padding:6px 10px}
       .logo{font-size:13px}
-      #action-bar{padding:6px 10px;bottom:10px}
+      #action-bar{padding:6px 10px;bottom:10px;left:10px;right:10px}
       .btn-dice{width:44px;height:44px;font-size:18px}
       .dir-btn{padding:6px 10px;font-size:11px}
       #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
@@ -150,9 +152,8 @@
       <div class="stat-bar"><span class="label">⚡</span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
       <div class="stat-bar"><span class="label">😊</span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
     </div>
-  </div>
-  <div class="top-center">
     <div class="pos-info" id="pos-info">加载中...</div>
+    <div class="dice-info" id="dice-info">🎲 -</div>
   </div>
   <div class="top-right">
     <div class="money-badge" id="money-badge">0 CC</div>
@@ -163,9 +164,15 @@
 
 <!-- Bottom Action Bar -->
 <div id="action-bar">
-  <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
-  <div id="direction-buttons" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-  <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
+  <div class="action-group">
+    <button class="dir-btn" id="btn-left" style="display:none">← 左</button>
+    <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
+    <button class="dir-btn" id="btn-right" style="display:none">右 →</button>
+  </div>
+  <div class="action-group">
+    <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨 建造</button>
+    <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰 消费</button>
+  </div>
 </div>
 
 <!-- Right Panel -->
@@ -196,8 +203,7 @@
   <div class="bo-desc" id="bo-desc"></div>
   <div class="bo-effects" id="bo-effects"></div>
   <div style="display:flex;gap:10px">
-    <button class="btn-use btn-use-pay" id="btn-use-building" onclick="useBuilding()">消费</button>
-    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()">跳过</button>
+    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()">知道了</button>
   </div>
 </div>
 
@@ -626,9 +632,15 @@ async function fetchMe() {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // Check building on current tile
+    // Check building on current tile - show consume in action bar
+    document.getElementById('btn-consume').style.display = 'none';
     if (meData.node?.building && meData.node.building.ownerId !== currentUser.entityId) {
       showBuildingOverlay(meData.node);
+      document.getElementById('btn-consume').style.display = 'block';
+      const tpl = buildingCatalog.find(t => t.type === meData.node.building.templateType);
+      const lvMult = 1 + (meData.node.building.level - 1) * 0.3;
+      const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+      document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
     }
 
     // Show build button if near empty lots
@@ -676,21 +688,28 @@ window.rollDice = async function() {
 
     addLog(`掷出 ${data.roll} 点`, 'good');
 
-    // Show dice number on button
+    // Show dice number on button and in top bar
     const btn = document.getElementById('btn-roll');
     btn.innerHTML = `<span class="dice-num">${data.roll}</span>`;
     btn.disabled = true;
+    document.getElementById('dice-info').textContent = `🎲 ${data.roll} 步`;
 
-    // Show direction buttons
+    // Show fixed left/right direction buttons
     pendingDirections = data.directions;
-    const dirDiv = document.getElementById('direction-buttons');
-    dirDiv.innerHTML = '';
-    for (const d of data.directions) {
-      const b = document.createElement('button');
-      b.className = 'dir-btn';
-      b.textContent = d.label;
-      b.onclick = () => chooseDirection(d.nodeId);
-      dirDiv.appendChild(b);
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    btnLeft.style.display = 'none';
+    btnRight.style.display = 'none';
+
+    if (data.directions.length >= 1) {
+      btnLeft.style.display = 'block';
+      btnLeft.textContent = data.directions[0].label;
+      btnLeft.onclick = () => chooseDirection(data.directions[0].nodeId);
+    }
+    if (data.directions.length >= 2) {
+      btnRight.style.display = 'block';
+      btnRight.textContent = data.directions[1].label;
+      btnRight.onclick = () => chooseDirection(data.directions[1].nodeId);
     }
 
     // Show 3D arrows
@@ -703,7 +722,8 @@ window.rollDice = async function() {
 
 async function chooseDirection(directionNodeId) {
   try {
-    document.getElementById('direction-buttons').innerHTML = '';
+    document.getElementById('btn-left').style.display = 'none';
+    document.getElementById('btn-right').style.display = 'none';
     clearDirectionArrows();
 
     const res = await fetch(API + '/api/world/move', {
@@ -742,10 +762,16 @@ async function chooseDirection(directionNodeId) {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // Check building
+    // Check building - show consume in action bar + info overlay
     closeBuildingOverlay();
+    document.getElementById('btn-consume').style.display = 'none';
     if (data.finalNode.building && data.finalNode.building.ownerId !== currentUser?.entityId) {
       showBuildingOverlay(data.finalNode);
+      document.getElementById('btn-consume').style.display = 'block';
+      const tpl = buildingCatalog.find(t => t.type === data.finalNode.building.templateType);
+      const lvMult = 1 + (data.finalNode.building.level - 1) * 0.3;
+      const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+      document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
     }
 
     // Refresh map
@@ -771,6 +797,7 @@ window.useBuilding = async function() {
     updateStats(data.stats);
     updateMoney(data.entity);
     closeBuildingOverlay();
+    document.getElementById('btn-consume').style.display = 'none';
     await fetchMap();
 
   } catch (e) {

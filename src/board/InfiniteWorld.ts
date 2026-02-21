@@ -227,19 +227,34 @@ export class InfiniteWorld {
     state.pendingRoll = roll;
 
     const node = this.nodes.get(state.nodeId)!;
-    const directions: DirectionOption[] = [];
+    let directions: DirectionOption[] = [];
 
     for (const cid of node.connections) {
       const cn = this.nodes.get(cid)!;
       if (cn.type === 'lot') continue; // 不能走进纯地块
-      const dx = cn.x - node.x, dy = cn.y - node.y;
-      let label = '前方';
-      if (dx > 0) label = '东 →';
-      else if (dx < 0) label = '← 西';
-      else if (dy > 0) label = '南 ↓';
-      else if (dy < 0) label = '↑ 北';
-      directions.push({ nodeId: cid, x: cn.x, y: cn.y, label });
+      directions.push({ nodeId: cid, x: cn.x, y: cn.y, label: '' });
     }
+
+    // 限制最多2个方向 (多于2个时随机选取2个)
+    if (directions.length > 2) {
+      for (let i = directions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [directions[i], directions[j]] = [directions[j], directions[i]];
+      }
+      directions = directions.slice(0, 2);
+    }
+
+    // 按空间位置排序: x小的在左, x相同则y小的在左
+    directions.sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
+
+    // 标注 左/右
+    if (directions.length === 1) {
+      directions[0].label = '→ 前进';
+    } else if (directions.length >= 2) {
+      directions[0].label = '← 左';
+      directions[1].label = '右 →';
+    }
+
     return { roll, directions };
   }
 
