@@ -122,49 +122,112 @@ export interface MoveResult {
 
 // ============ 无限世界 ============
 
+const SPACING = 14;
+const INITIAL_BOUNDS = 100; // 初始世界范围 ±100
+
 export class InfiniteWorld {
   nodes: Map<number, MapNode> = new Map();
   private coordIndex: Map<string, number> = new Map();
   players: Map<string, PlayerWorldState> = new Map();
   private nextId = 0;
+  private generatedChunks: Set<string> = new Set(); // 已生成的区块
+  private worldBounds = INITIAL_BOUNDS; // 当前世界半径 (随玩家扩展)
 
   constructor() {
-    this.generateMap();
+    // 预生成原点附近区域
+    this.ensureRegion(0, 0, INITIAL_BOUNDS);
   }
 
-  // ── 地图生成 ──
+  // ── 世界边界追踪 ──
 
-  private generateMap(): void {
-    const GRID = 84;
-    const SPACING = 14;
+  /** 获取当前世界半径 */
+  getWorldBounds(): number { return this.worldBounds; }
 
-    // 主干道节点 (水平路 + 垂直路，节点间距 2)
-    for (let r = 0; r <= GRID; r += SPACING) {
-      for (let c = 0; c <= GRID; c += 2) {
-        this.ensureNode(c, r, this.classifyNode(c, r, SPACING));
+  /** 根据所有玩家位置更新世界边界 */
+  private updateBounds(): void {
+    let maxCoord = INITIAL_BOUNDS;
+    for (const state of this.players.values()) {
+      const node = this.nodes.get(state.nodeId);
+      if (node) {
+        maxCoord = Math.max(maxCoord, Math.abs(node.x), Math.abs(node.y));
       }
-      for (let c = 0; c <= GRID; c += 2) {
-        if (c % SPACING !== 0) {
-          this.ensureNode(r, c, this.classifyNode(r, c, SPACING));
-        }
+    }
+    this.worldBounds = maxCoord;
+  }
+
+  // ── 懒加载地图生成 ──
+
+  /** 确保 (cx, cy) 为中心、radius 半径的区域已生成 */
+  ensureRegion(cx: number, cy: number, radius: number): void {
+    // 按 SPACING 对齐到区块边界
+    const chunkSize = SPACING * 2;
+    const minCX = Math.floor((cx - radius) / chunkSize) * chunkSize;
+    const maxCX = Math.ceil((cx + radius) / chunkSize) * chunkSize;
+    const minCY = Math.floor((cy - radius) / chunkSize) * chunkSize;
+    const maxCY = Math.ceil((cy + radius) / chunkSize) * chunkSize;
+
+    for (let bx = minCX; bx <= maxCX; bx += chunkSize) {
+      for (let by = minCY; by <= maxCY; by += chunkSize) {
+        this.ensureChunk(bx, by, chunkSize);
+      }
+    }
+  }
+
+  /** 对齐到 SPACING 的整数倍 (向下取整) */
+  private alignDown(v: number, step: number): number {
+    return Math.floor(v / step) * step;
+  }
+
+  /** 对齐到偶数 (向上取整) */
+  private alignEvenUp(v: number): number {
+    return v % 2 === 0 ? v : v + 1;
+  }
+
+  /** 生成一个区块内的所有节点和连接 */
+  private ensureChunk(ox: number, oy: number, size: number): void {
+    const key = `${ox},${oy}`;
+    if (this.generatedChunks.has(key)) return;
+    this.generatedChunks.add(key);
+
+    const newNodes: MapNode[] = [];
+
+    // 找到区块内所有 SPACING 对齐的行/列
+    const rowStart = this.alignDown(ox, SPACING);
+    const rowEnd = ox + size;
+    const colStart = this.alignDown(oy, SPACING);
+    const colEnd = oy + size;
+
+    for (let row = rowStart; row <= rowEnd; row += SPACING) {
+      // 水平主干道: 在 row 行上每隔2个单位放节点
+      const cStart = this.alignEvenUp(oy);
+      for (let c = cStart; c < colEnd; c += 2) {
+        const n = this.ensureNode(c, row, this.classifyNode(c, row));
+        newNodes.push(n);
+      }
+      // 垂直主干道: 在 row 列上每隔2个单位放节点 (跳过已有交叉节点)
+      const rStart = this.alignEvenUp(ox);
+      for (let r = rStart; r < rowEnd; r += 2) {
+        if (r % SPACING === 0 && row % SPACING === 0) continue; // 跳过交叉点 (已生成)
+        const n = this.ensureNode(row, r, this.classifyNode(row, r));
+        newNodes.push(n);
       }
     }
 
-    // 连接相邻节点 (距离 ≤ 2)
-    for (const node of this.nodes.values()) {
+    // 连接新生成的节点 (包括与邻居区块的边界节点)
+    for (const node of newNodes) {
       for (const [dx, dy] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) {
         const nid = this.coordIndex.get(`${node.x + dx},${node.y + dy}`);
         if (nid !== undefined && !node.connections.includes(nid)) {
           node.connections.push(nid);
+          const neighbor = this.nodes.get(nid)!;
+          if (!neighbor.connections.includes(node.id)) neighbor.connections.push(node.id);
         }
       }
     }
 
     // 在交叉路口旁添加建筑地块
-    const intersections = [...this.nodes.values()].filter(
-      n => n.type === 'intersection' || n.type === 'start'
-    );
-    for (const node of intersections) {
+    for (const node of newNodes) {
+      if (node.type !== 'intersection' && node.type !== 'start') continue;
       for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
         const lx = node.x + dx, ly = node.y + dy;
         if (!this.coordIndex.has(`${lx},${ly}`) && this.hash(lx, ly) % 3 !== 0) {
@@ -186,9 +249,9 @@ export class InfiniteWorld {
     return node;
   }
 
-  private classifyNode(x: number, y: number, spacing: number): NodeType {
+  private classifyNode(x: number, y: number): NodeType {
     if (x === 0 && y === 0) return 'start';
-    if (x % spacing === 0 && y % spacing === 0) {
+    if (x % SPACING === 0 && y % SPACING === 0) {
       const h = this.hash(x, y);
       if (h % 7 === 0) return 'tax';
       if (h % 11 === 0) return 'welfare';
@@ -208,10 +271,13 @@ export class InfiniteWorld {
 
   initPlayer(entityId: string): PlayerWorldState {
     if (this.players.has(entityId)) return this.players.get(entityId)!;
-    const startId = this.coordIndex.get('0,0') ?? 0;
+
+    // 随机出生点: 在当前世界范围内随机选择一个 road/intersection 节点
+    const spawnNode = this.findRandomSpawnNode();
+
     const state: PlayerWorldState = {
       entityId,
-      nodeId: startId,
+      nodeId: spawnNode,
       hunger: 80,
       energy: 80,
       happiness: 80,
@@ -223,7 +289,24 @@ export class InfiniteWorld {
       referralCount: 0,
     };
     this.players.set(entityId, state);
+    this.updateBounds();
     return state;
+  }
+
+  /** 在当前世界范围内找到一个随机可行走节点作为出生点 */
+  private findRandomSpawnNode(): number {
+    const bounds = this.worldBounds;
+    // 候选节点: 当前世界范围内所有 road / intersection / start 类型
+    const candidates: MapNode[] = [];
+    for (const node of this.nodes.values()) {
+      if (Math.abs(node.x) > bounds || Math.abs(node.y) > bounds) continue;
+      if (node.type === 'road' || node.type === 'intersection' || node.type === 'start') {
+        candidates.push(node);
+      }
+    }
+    if (candidates.length === 0) return this.coordIndex.get('0,0') ?? 0;
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    return chosen.id;
   }
 
   getPlayer(entityId: string): PlayerWorldState | undefined {
@@ -235,6 +318,10 @@ export class InfiniteWorld {
   rollDice(entityId: string): { roll: number; directions: DirectionOption[] } | null {
     const state = this.players.get(entityId);
     if (!state?.alive || state.actionsToday >= state.maxActions) return null;
+
+    // 确保玩家周围区域已生成 (骰子最大6步 × 步距2 = 12格)
+    const curNode = this.nodes.get(state.nodeId);
+    if (curNode) this.ensureRegion(curNode.x, curNode.y, 20);
 
     const roll = Math.floor(Math.random() * 6) + 1;
     state.pendingRoll = roll;
@@ -274,6 +361,10 @@ export class InfiniteWorld {
   moveToDirection(entityId: string, firstStepNodeId: number): MoveResult | null {
     const state = this.players.get(entityId);
     if (!state?.alive || state.pendingRoll === null) return null;
+
+    // 确保移动方向的区域已生成
+    const targetNode = this.nodes.get(firstStepNodeId);
+    if (targetNode) this.ensureRegion(targetNode.x, targetNode.y, 20);
 
     let remaining = state.pendingRoll;
 
@@ -365,6 +456,7 @@ export class InfiniteWorld {
     state.actionsToday++;
     state.turnsPlayed++;
     state.nodeId = current;
+    this.updateBounds();
 
     // 生存指标衰减
     state.hunger = Math.max(0, state.hunger - 5);
@@ -530,6 +622,8 @@ export class InfiniteWorld {
   // ── 查询 ──
 
   getVisibleNodes(cx: number, cy: number, radius = 20): MapNode[] {
+    // 懒加载: 确保请求区域已生成
+    this.ensureRegion(cx, cy, radius + SPACING);
     const result: MapNode[] = [];
     for (const node of this.nodes.values()) {
       if (Math.abs(node.x - cx) <= radius && Math.abs(node.y - cy) <= radius) {

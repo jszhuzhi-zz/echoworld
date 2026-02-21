@@ -975,10 +975,10 @@ function updateActions(state) {
 
 function updatePosInfo(node) {
   if (!node) return;
-  const labels = { start: '起点 🚀', tax: '税务站 💸', welfare: '福利站 🎁', event: '随机事件 🎲', intersection: '十字路口', road: '道路', lot: '空地' };
+  const labels = { start: '原点 🏛', tax: '税务站 💸', welfare: '福利站 🎁', event: '随机事件 🎲', intersection: '十字路口', road: '道路', lot: '空地' };
   let text = labels[node.type] || node.type;
   text += ` (${node.x}, ${node.y})`;
-  if (node.building) text = `${node.building.name} ${buildingCatalog.find(b => b.type === node.building.templateType)?.icon || ''} Lv.${node.building.level}`;
+  if (node.building) text = `${node.building.name} ${buildingCatalog.find(b => b.type === node.building.templateType)?.icon || ''} Lv.${node.building.level} (${node.x},${node.y})`;
   document.getElementById('pos-info').textContent = text;
 }
 
@@ -1491,8 +1491,10 @@ async function init() {
 
   if (meData) {
     const node = allNodes.find(n => n.id === myState?.nodeId);
-    if (node) focusCamera(node.x, node.y, false);
-    addLog(`欢迎回来，${currentUser?.username || '玩家'}！`, 'good');
+    if (node) {
+      focusCamera(node.x, node.y, false);
+      addLog(`欢迎回来，${currentUser?.username || '玩家'}！坐标 (${node.x}, ${node.y})`, 'good');
+    }
   }
 
   // Auto refresh

@@ -373,7 +373,7 @@ export function createServer(world: World, port = 3000): express.Application {
       const entity = world.entities.getEntity(p.entityId);
       return { ...p, name: entity?.name || '???', money: entity?.getSummary().currency ?? 0 };
     });
-    res.json({ nodes, players });
+    res.json({ nodes, players, worldBounds: infiniteWorld.getWorldBounds() });
   });
 
   /** 我的世界状态 */
