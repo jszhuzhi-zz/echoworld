@@ -1,8 +1,13 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-21 07:18:26 UTC
-Commit: 5f60979ba738400f177671f6fa66107b0c37f174
+部署时间: 2026-02-21 07:22:57 UTC
+Commit: e951e95919044776ca0f715b82dc43cfe8ad84c6
 部署目标: 轻量服务器 129.211.14.208:3000
 访问地址: http://129.211.14.208:3000
 部署状态: UNKNOWN
 
+--- 部署日志 ---
+Warning: Permanently added '129.211.14.208' (ED25519) to the list of known hosts.
+SSH connection OK
 
+提示: 如果无法访问，请在腾讯云轻量服务器控制台开放 3000 端口 (TCP)
+防火墙: https://console.cloud.tencent.com/lighthouse/instance/detail?id=lhins-fa84ogo8
