@@ -21,6 +21,14 @@ export function createServer(world: World, port = 3000): express.Application {
     boardState.initPlayer(entity.id);
   }
 
+  // 确保预置投资者账号有对应的游戏实体
+  const testUser = userStore.findByUsername('testplayer');
+  if (testUser && testUser.role === 'investor' && !testUser.entityId) {
+    const testEntity = world.createPlayer('testplayer');
+    userStore.updateUser(testUser.id, { entityId: testEntity.id });
+    boardState.initPlayer(testEntity.id);
+  }
+
   // CORS
   app.use((_req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -389,25 +397,25 @@ export function createServer(world: World, port = 3000): express.Application {
     if (tile.type === 'tax') {
       const tax = Math.floor(entity.getSummary().currency * 0.05);
       entity.pay(tax);
-      tileEffect = { type: 'tax', amount: tax, message: `缴税 $${tax}` };
+      tileEffect = { type: 'tax', amount: tax, message: `缴税 ${tax} CC` };
     } else if (tile.type === 'event' && tile.name === '福利') {
       entity.receive(100);
-      tileEffect = { type: 'welfare', amount: 100, message: '领取福利 $100' };
+      tileEffect = { type: 'welfare', amount: 100, message: '领取福利 100 CC' };
     } else if (tile.type === 'event' && tile.name === '机遇') {
       const bonus = Math.floor(Math.random() * 300) + 50;
       entity.receive(bonus);
-      tileEffect = { type: 'chance', amount: bonus, message: `机遇奖励 $${bonus}` };
+      tileEffect = { type: 'chance', amount: bonus, message: `机遇奖励 ${bonus} CC` };
     } else if (tile.type === 'event' && tile.name === '投资') {
       const gain = Math.floor(Math.random() * 400) - 100;
       if (gain >= 0) { entity.receive(gain); } else { entity.pay(Math.abs(gain)); }
-      tileEffect = { type: 'investment', amount: gain, message: gain >= 0 ? `投资收益 $${gain}` : `投资亏损 $${Math.abs(gain)}` };
+      tileEffect = { type: 'investment', amount: gain, message: gain >= 0 ? `投资收益 ${gain} CC` : `投资亏损 ${Math.abs(gain)} CC` };
     } else if (tile.id === 7) {
       // Rest stop - bonus
       tileEffect = { type: 'rest', message: '在休息站恢复体力' };
     } else if (tile.id === 14) {
       const fortune = Math.floor(Math.random() * 500) + 100;
       entity.receive(fortune);
-      tileEffect = { type: 'fortune', amount: fortune, message: `机遇奖金 $${fortune}` };
+      tileEffect = { type: 'fortune', amount: fortune, message: `机遇奖金 ${fortune} CC` };
     } else if (tile.id === 21) {
       tileEffect = { type: 'trouble', message: '陷入困境！跳过下一回合' };
     }
@@ -460,11 +468,11 @@ export function createServer(world: World, port = 3000): express.Application {
       if (action === 'loan') {
         const loan = world.bank.requestLoan(entity, amt);
         if (!loan) return res.status(400).json({ error: '贷款被拒绝' });
-        result = { type: 'loan', loan, message: `贷款 $${amt}` };
+        result = { type: 'loan', loan, message: `贷款 ${amt} CC` };
       } else if (action === 'deposit') {
         const dep = world.bank.makeDeposit(entity, amt);
         if (!dep) return res.status(400).json({ error: '存款失败' });
-        result = { type: 'deposit', deposit: dep, message: `存入 $${amt}` };
+        result = { type: 'deposit', deposit: dep, message: `存入 ${amt} CC` };
       } else {
         return res.status(400).json({ error: '无效操作' });
       }

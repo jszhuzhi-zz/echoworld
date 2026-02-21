@@ -255,7 +255,7 @@
         document.getElementById('wBuildings').textContent = buildings.length;
 
         const totalWealth = entities.reduce((sum, e) => sum + e.money, 0);
-        document.getElementById('wWealth').textContent = '$' + totalWealth.toFixed(0);
+        document.getElementById('wWealth').textContent = totalWealth.toFixed(0) + ' CC';
       } catch (e) { console.error(e); }
     }
 
@@ -314,7 +314,7 @@
             const parts = [];
             if (data.entityName || data.entity) parts.push(data.entityName || data.entity);
             if (data.action) parts.push(data.action);
-            if (data.amount) parts.push(`$${data.amount}`);
+            if (data.amount) parts.push(`${data.amount} CC`);
             if (data.resource) parts.push(data.resource);
             if (data.type) parts.push(data.type);
             if (data.ruleName) parts.push(`规则: ${data.ruleName}`);
@@ -340,7 +340,7 @@
           <div class="lb-row">
             <div class="lb-rank ${i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : 'other'}">${i + 1}</div>
             <span class="lb-name">${e.name}</span>
-            <span class="lb-money">$${e.money.toFixed(0)}</span>
+            <span class="lb-money">${e.money.toFixed(0)} CC</span>
           </div>
         `).join('') || '<div style="color:var(--text2)">暂无数据</div>';
       } catch (e) { console.error(e); }
@@ -357,7 +357,7 @@
           return `
             <div class="price-row">
               <span class="price-name">${name}</span>
-              <span class="price-val">$${p.toFixed(2)}</span>
+              <span class="price-val">${p.toFixed(2)} CC</span>
             </div>
           `;
         }).join('') || '<div style="color:var(--text2)">暂无数据</div>';
@@ -371,9 +371,9 @@
         const data = await res.json();
         document.getElementById('bankInfo').innerHTML = `
           <div class="price-row"><span class="price-name">利率</span><span class="price-val">${((data.interestRate || 0) * 100).toFixed(1)}%</span></div>
-          <div class="price-row"><span class="price-name">总贷款</span><span class="price-val" style="color:var(--red)">$${(data.totalLoans || 0).toFixed(0)}</span></div>
-          <div class="price-row"><span class="price-name">总存款</span><span class="price-val" style="color:var(--green)">$${(data.totalDeposits || 0).toFixed(0)}</span></div>
-          <div class="price-row"><span class="price-name">税收总额</span><span class="price-val" style="color:var(--orange)">$${(data.totalTaxCollected || 0).toFixed(0)}</span></div>
+          <div class="price-row"><span class="price-name">总贷款</span><span class="price-val" style="color:var(--red)">${(data.totalLoans || 0).toFixed(0)} CC</span></div>
+          <div class="price-row"><span class="price-name">总存款</span><span class="price-val" style="color:var(--green)">${(data.totalDeposits || 0).toFixed(0)} CC</span></div>
+          <div class="price-row"><span class="price-name">税收总额</span><span class="price-val" style="color:var(--orange)">${(data.totalTaxCollected || 0).toFixed(0)} CC</span></div>
         `;
       } catch (e) { console.error(e); }
     }

@@ -44,6 +44,19 @@ class UserStore {
       this.users.set(admin.id, admin);
       this.save();
     }
+    // Create default test investor if none exists
+    if (!this.findByUsername('testplayer')) {
+      const hash = bcrypt.hashSync('test123456', 10);
+      const tester: User = {
+        id: uuidv4(),
+        username: 'testplayer',
+        passwordHash: hash,
+        role: 'investor',
+        createdAt: new Date().toISOString(),
+      };
+      this.users.set(tester.id, tester);
+      this.save();
+    }
   }
 
   private load() {

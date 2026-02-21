@@ -448,13 +448,13 @@
           <div class="entity-bar">
             <span class="name">${e.name}</span>
             <div class="wealth-bar"><div class="wealth-bar-fill" style="width:${(e.money/maxMoney*100).toFixed(1)}%"></div></div>
-            <span class="money">$${e.money.toFixed(0)}</span>
+            <span class="money">${e.money.toFixed(0)} CC</span>
           </div>
         `).join('');
 
         // Update money entity select
         const sel = document.getElementById('moneyEntity');
-        sel.innerHTML = allEntities.map(e => `<option value="${e.id}">${e.name} ($${e.money.toFixed(0)})</option>`).join('');
+        sel.innerHTML = allEntities.map(e => `<option value="${e.id}">${e.name} (${e.money.toFixed(0)} CC)</option>`).join('');
       } catch (e) { console.error(e); }
     }
 
@@ -469,7 +469,7 @@
           body: JSON.stringify({ entityId, amount })
         });
         const data = await res.json();
-        showToast(`资金调整成功: ${data.name} 现有 $${data.money.toFixed(0)}`);
+        showToast(`资金调整成功: ${data.name} 现有 ${data.money.toFixed(0)} CC`);
         loadEntities();
       } catch (e) {
         showToast('操作失败', 'error');

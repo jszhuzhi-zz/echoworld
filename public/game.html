@@ -485,7 +485,7 @@
         if (tile.cost) {
           const cost = document.createElement('div');
           cost.className = 'tile-cost';
-          cost.textContent = '$' + tile.cost;
+          cost.textContent = tile.cost + ' CC';
           div.appendChild(cost);
         }
 
@@ -529,7 +529,7 @@
     // ============ TILE INFO ============
     function showTileInfo(tile) {
       document.getElementById('tileInfoIcon').textContent = tile.icon;
-      document.getElementById('tileInfoName').textContent = tile.name + (tile.cost ? ` ($${tile.cost})` : '');
+      document.getElementById('tileInfoName').textContent = tile.name + (tile.cost ? ` (${tile.cost} CC)` : '');
       document.getElementById('tileInfoDesc').textContent = tile.description;
 
       const actionsDiv = document.getElementById('tileInfoActions');
@@ -539,7 +539,7 @@
       const isMyTile = myBoardState && myBoardState.position === tile.id;
       if (isMyTile) {
         if (tile.type === 'property' && tile.buildingType) {
-          actionsDiv.innerHTML = `<button class="btn btn-blue btn-sm" onclick="boardAction('build')">建造 ${tile.name} ($${tile.cost})</button>`;
+          actionsDiv.innerHTML = `<button class="btn btn-blue btn-sm" onclick="boardAction('build')">建造 ${tile.name} (${tile.cost} CC)</button>`;
         } else if (tile.type === 'market' && tile.resourceType) {
           actionsDiv.innerHTML = `
             <button class="btn btn-green btn-sm" onclick="openTradeModal('buy','${tile.resourceType}')">买入${RESOURCE_NAMES[tile.resourceType]||tile.resourceType}</button>
@@ -594,8 +594,8 @@
         }
 
         if (data.passedGo) {
-          showEffect('+$200 经过起点', 'var(--green)');
-          addLog('经过起点，收取 $200');
+          showEffect('+200 CC 经过起点', 'var(--green)');
+          addLog('经过起点，收取 200 CC');
         }
 
         // Tile effect
@@ -652,7 +652,7 @@
           <label>数量</label>
           <input type="number" id="modalAmount" value="1" min="1">
         </div>
-        <div style="font-size:11px;color:var(--text2)">市场价: $${(marketPrices[resource] || 0).toFixed(2)}</div>
+        <div style="font-size:11px;color:var(--text2)">市场价: ${(marketPrices[resource] || 0).toFixed(2)} CC</div>
       `;
       modalAction = () => boardAction(action, document.getElementById('modalAmount').value);
       document.getElementById('actionModal').classList.add('open');
@@ -701,7 +701,7 @@
         myEntity = data.entity;
         myBuildings = data.buildings;
 
-        document.getElementById('myMoney').textContent = '$' + (myEntity.currency ?? myEntity.money ?? 0).toFixed(0);
+        document.getElementById('myMoney').textContent = (myEntity.currency ?? myEntity.money ?? 0).toFixed(0) + ' CC';
         document.getElementById('myBuildings').textContent = myBuildings.length;
         document.getElementById('bldCount').textContent = myBuildings.length;
         document.getElementById('mySurvival').textContent = (myEntity.survivalDays || 0) + '天';
@@ -764,7 +764,7 @@
           <div class="lb-row ${e.id === currentUser?.entityId ? 'me' : ''}">
             <div class="lb-rank ${i===0?'t1':i===1?'t2':i===2?'t3':'tn'}">${i+1}</div>
             <span class="lb-name">${e.name}${e.id === currentUser?.entityId ? ' (我)' : ''}</span>
-            <span class="lb-money">$${(e.currency ?? e.money ?? e.netWorth ?? 0).toFixed(0)}</span>
+            <span class="lb-money">${(e.currency ?? e.money ?? e.netWorth ?? 0).toFixed(0)} CC</span>
           </div>
         `).join('') || '<div style="color:var(--text2);font-size:11px;">暂无</div>';
 
