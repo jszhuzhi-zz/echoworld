@@ -58,12 +58,19 @@ jobs:
           sshpass -p "$SSH_PASS" scp $SSH_OPTS /tmp/echoworld-deploy.tar.gz root@$SERVER_HOST:/tmp/ 2>&1 | tee -a /tmp/deploy.log
           echo "Upload done" | tee -a /tmp/deploy.log
 
-          echo "=== [2] Install Node.js & PM2 ===" | tee -a /tmp/deploy.log
+          echo "=== [2] Check OS & Install Node.js + PM2 ===" | tee -a /tmp/deploy.log
           sshpass -p "$SSH_PASS" ssh $SSH_OPTS root@$SERVER_HOST 'bash -s' 2>&1 <<'EOF' | tee -a /tmp/deploy.log
-          if ! command -v node &> /dev/null; then
-            echo "Installing Node.js..."
-            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-            apt-get install -y nodejs
+          echo "OS: $(cat /etc/os-release 2>/dev/null | head -2 || uname -a)"
+          if ! command -v node &> /dev/null || [[ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 18 ]]; then
+            echo "Installing Node.js 20 (binary)..."
+            NODE_VER="v20.18.2"
+            ARCH=$(uname -m)
+            if [ "$ARCH" = "x86_64" ]; then ARCH="x64"; fi
+            if [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
+            curl -fsSL "https://nodejs.org/dist/${NODE_VER}/node-${NODE_VER}-linux-${ARCH}.tar.xz" -o /tmp/node.tar.xz
+            tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
+            rm -f /tmp/node.tar.xz
+            hash -r
           fi
           echo "Node: $(node -v 2>/dev/null || echo 'not found')"
           echo "NPM: $(npm -v 2>/dev/null || echo 'not found')"
