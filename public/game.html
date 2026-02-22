@@ -27,7 +27,11 @@
     .logo-m{display:none;width:22px;height:22px;text-align:center;line-height:22px;border-radius:6px;font-size:14px}
     .stat-bars{display:flex;gap:10px;align-items:center}
     .stat-bar{display:flex;align-items:center;gap:4px;font-size:10px}
-    .stat-bar .label{width:16px;text-align:center;font-size:12px}
+    .stat-bar .label{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;
+      border-radius:6px;font-size:11px;flex-shrink:0}
+    .stat-bar .label.lbl-hunger{background:rgba(239,68,68,0.15);color:#f87171}
+    .stat-bar .label.lbl-energy{background:rgba(59,130,246,0.15);color:#60a5fa}
+    .stat-bar .label.lbl-happy{background:rgba(168,85,247,0.15);color:#c084fc}
     .stat-bar .bar{width:60px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden}
     .stat-bar .fill{height:100%;border-radius:3px;transition:width .5s}
     .stat-bar .val{width:20px;text-align:right;font-size:9px;color:var(--text2)}
@@ -43,10 +47,13 @@
     .money-badge-bottom{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:6px 14px;border-radius:12px;font-weight:800;font-size:14px;white-space:nowrap;text-align:center;min-width:100px;box-shadow:0 2px 12px rgba(245,158,11,0.35);transition:transform .2s}
     .money-badge-bottom:hover{transform:scale(1.05)}
     .settings-item:hover{background:rgba(255,255,255,0.08)!important}
-    .action-badge{background:rgba(59,130,246,0.2);color:var(--accent);padding:3px 8px;border-radius:8px;font-size:10px;border:1px solid rgba(59,130,246,0.3);white-space:nowrap}
+    .action-badge{background:rgba(59,130,246,0.15);color:var(--accent);padding:4px 10px;border-radius:10px;font-size:10px;
+      border:none;white-space:nowrap;font-weight:700;backdrop-filter:blur(8px);
+      box-shadow:inset 0 0 0 1px rgba(59,130,246,0.25)}
     .btn-sm{padding:3px 8px;border:none;border-radius:5px;font-size:10px;cursor:pointer;font-weight:600;transition:all .2s}
-    .btn-nav{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
-    .btn-nav:hover{background:rgba(255,255,255,0.15);color:#fff}
+    .btn-nav{background:rgba(255,255,255,0.06);color:var(--text2);border:none;border-radius:8px;
+      backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08)}
+    .btn-nav:hover{background:rgba(255,255,255,0.12);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15)}
 
     /* === Stamina Confirm Modal === */
     #stamina-confirm{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
@@ -65,35 +72,50 @@
     .stamina-btns .btn-cancel{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
     .log-item.broadcast{color:var(--accent);border-left:2px solid rgba(59,130,246,0.4)}
 
-    /* === Bottom Action Bar === */
+    /* === Bottom Action Bar (Frosted Glass) === */
     #action-bar{position:fixed;z-index:15;bottom:16px;left:16px;right:16px;
       display:flex;align-items:center;
-      background:var(--bar-bg);border:1px solid var(--border);border-radius:22px;padding:8px 14px;
-      backdrop-filter:blur(10px)}
+      background:rgba(15,23,42,0.55);border:1px solid rgba(255,255,255,0.08);border-radius:26px;padding:10px 18px;
+      backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);
+      box-shadow:0 8px 32px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06)}
+    html.light #action-bar{background:rgba(255,255,255,0.55);border:1px solid rgba(0,0,0,0.06);
+      box-shadow:0 8px 32px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.5)}
     .action-side{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
     .action-side.left{justify-content:flex-start}
     .action-side.right{justify-content:flex-end}
-    .action-center{flex:0 0 auto;display:flex;align-items:center;gap:8px;margin:0 8px}
-    .btn-dice{width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);background:rgba(59,130,246,0.15);
-      color:#fff;font-size:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-      transition:all .3s;flex-shrink:0;box-shadow:0 4px 20px rgba(59,130,246,0.3)}
-    .btn-dice:hover{background:rgba(59,130,246,0.3);transform:scale(1.08)}
-    .btn-dice:disabled{opacity:.4;cursor:not-allowed;transform:none}
-    .btn-dice .dice-num{font-size:36px;font-weight:900}
-    .dir-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
-      color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
-    .dir-btn:hover{transform:translateY(-2px)}
-    .dir-btn.dir-cw{border-color:#38bdf8;background:rgba(56,189,248,0.18);color:#7dd3fc}
+    .action-center{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin:0 12px}
+    .btn-dice{width:100px;height:100px;border-radius:50%;border:none;
+      background:linear-gradient(145deg,rgba(59,130,246,0.3),rgba(139,92,246,0.3));
+      color:#fff;font-size:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:all .3s;flex-shrink:0;
+      box-shadow:0 6px 28px rgba(59,130,246,0.35),inset 0 0 0 3px rgba(255,255,255,0.15);
+      position:relative;overflow:hidden}
+    .btn-dice::before{content:'';position:absolute;inset:0;border-radius:50%;
+      background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.15),transparent 60%);pointer-events:none}
+    .btn-dice:hover{background:linear-gradient(145deg,rgba(59,130,246,0.5),rgba(139,92,246,0.5));
+      transform:scale(1.08);box-shadow:0 8px 36px rgba(59,130,246,0.5),inset 0 0 0 3px rgba(255,255,255,0.2)}
+    .btn-dice:disabled{opacity:.35;cursor:not-allowed;transform:none;
+      box-shadow:0 2px 10px rgba(59,130,246,0.15),inset 0 0 0 3px rgba(255,255,255,0.06)}
+    .btn-dice .dice-num{font-size:44px;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+    .dir-btn{padding:8px 14px;border-radius:12px;border:none;
+      background:rgba(16,185,129,0.2);backdrop-filter:blur(8px);
+      color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;
+      box-shadow:inset 0 0 0 1.5px rgba(16,185,129,0.4)}
+    .dir-btn:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 1.5px rgba(16,185,129,0.7)}
+    .dir-btn.dir-cw{background:rgba(56,189,248,0.2);color:#7dd3fc;box-shadow:inset 0 0 0 1.5px rgba(56,189,248,0.4)}
     .dir-btn.dir-cw:hover{background:rgba(56,189,248,0.35)}
-    .dir-btn.dir-ccw{border-color:#fb923c;background:rgba(251,146,60,0.18);color:#fdba74}
+    .dir-btn.dir-ccw{background:rgba(251,146,60,0.2);color:#fdba74;box-shadow:inset 0 0 0 1.5px rgba(251,146,60,0.4)}
     .dir-btn.dir-ccw:hover{background:rgba(251,146,60,0.35)}
-    .dir-btn.dir-forward{border-color:var(--green);background:rgba(16,185,129,0.15);color:#6ee7b7}
+    .dir-btn.dir-forward{background:rgba(16,185,129,0.2);color:#6ee7b7}
     .dir-btn.dir-forward:hover{background:rgba(16,185,129,0.35)}
-    .ctx-placeholder{width:40px;height:36px;display:inline-block}
+    .ctx-placeholder{width:42px;height:38px;display:inline-block}
+    .ctx-btn{min-width:40px;height:40px;padding:0 8px;display:none;align-items:center;justify-content:center;gap:2px;border-radius:12px;backdrop-filter:blur(8px)}
+    .ctx-btn:hover{transform:translateY(-2px) scale(1.05)}
+    .ctx-btn svg{flex-shrink:0}
     .dice-info{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:8px;font-weight:700;white-space:nowrap}
 
     /* === Right Panel === */
-    #right-panel{position:fixed;z-index:12;top:56px;right:8px;bottom:80px;width:200px;
+    #right-panel{position:fixed;z-index:12;top:84px;right:8px;bottom:80px;width:200px;
       display:flex;flex-direction:column;gap:6px;overflow-y:auto;
       pointer-events:auto}
     .panel-card{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:8px;backdrop-filter:blur(8px)}
@@ -113,6 +135,23 @@
     .log-item.warn{color:var(--yellow);border-left:2px solid var(--yellow)}
     .log-item.danger{color:var(--red);border-left:2px solid var(--red)}
     .log-item.good{color:var(--green);border-left:2px solid var(--green)}
+
+    /* === News Ticker (in-game) === */
+    #game-news-ticker{position:fixed;z-index:14;top:52px;left:0;right:0;height:30px;
+      display:flex;align-items:center;overflow:hidden;
+      background:rgba(15,23,42,0.45);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);
+      border-bottom:1px solid rgba(255,255,255,0.05)}
+    html.light #game-news-ticker{background:rgba(255,255,255,0.45);border-bottom:1px solid rgba(0,0,0,0.05)}
+    .gnt-label{flex-shrink:0;padding:0 12px;font-size:10px;font-weight:700;color:var(--accent);
+      border-right:1px solid rgba(255,255,255,0.06);height:100%;display:flex;align-items:center;gap:4px;letter-spacing:0.5px}
+    html.light .gnt-label{border-right:1px solid rgba(0,0,0,0.06)}
+    .gnt-scroll{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
+    .gnt-content{display:inline-flex;animation:gntScroll 80s linear infinite;white-space:nowrap;padding-left:100%}
+    .gnt-content:hover{animation-play-state:paused}
+    .gnt-item{display:inline-flex;align-items:center;gap:4px;padding:0 24px;font-size:11px;color:var(--text2)}
+    .gnt-item .gnt-time{opacity:0.5;font-size:10px}
+    .gnt-item .gnt-type{color:var(--accent);font-weight:600;font-size:10px}
+    @keyframes gntScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
     /* === Building Action Overlay (above action bar) === */
     #building-overlay{position:fixed;z-index:16;bottom:90px;left:50%;transform:translateX(-50%);
@@ -152,7 +191,7 @@
     .dead-msg{font-size:13px;color:var(--text2);text-align:center;max-width:320px;line-height:1.6}
     .btn-death-action{padding:10px 30px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer}
     .btn-go-home{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
-    .death-warning{display:none;position:fixed;z-index:18;top:56px;left:50%;transform:translateX(-50%);
+    .death-warning{display:none;position:fixed;z-index:18;top:86px;left:50%;transform:translateX(-50%);
       padding:8px 20px;border-radius:10px;font-size:12px;font-weight:700;text-align:center;
       max-width:420px;animation:pulse-warn 1.5s ease-in-out infinite}
     .death-warning.warn{background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.5);color:#fbbf24}
@@ -217,16 +256,20 @@
       #top-bar{padding:6px 10px}
       .logo-full{display:none}
       .logo-m{display:inline-block!important}
-      #action-bar{padding:6px 8px;bottom:8px;left:8px;right:8px;border-radius:18px}
-      .btn-dice{width:60px;height:60px;font-size:22px;border-width:2px}
-      .btn-dice .dice-num{font-size:28px}
+      #action-bar{padding:6px 10px;bottom:8px;left:8px;right:8px;border-radius:20px}
+      .btn-dice{width:76px;height:76px;font-size:26px}
+      .btn-dice .dice-num{font-size:34px}
       .dir-btn{padding:6px 10px;font-size:14px}
-      .action-center{margin:0 4px}
-      .ctx-placeholder{width:32px;height:30px}
+      .action-center{margin:0 6px}
+      .ctx-placeholder{width:34px;height:32px}
       #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
       .modal-content{width:calc(100vw - 16px);padding:12px}
       .inbox-text{display:none}
       .money-badge-bottom{font-size:11px;padding:4px 8px;min-width:60px;border-radius:8px}
+      #game-news-ticker{top:44px;height:24px}
+      .gnt-label{padding:0 8px;font-size:9px}
+      .gnt-item{font-size:10px;padding:0 16px}
+      .death-warning{top:72px!important}
     }
     @media(min-width:769px) and (max-width:1024px){
       #right-panel{width:170px}
@@ -243,30 +286,36 @@
     <span class="logo logo-full">EchoWorld 3D</span><span class="logo logo-m">E</span>
     <a href="/" class="btn-sm btn-nav" data-i18n="home">首页</a>
     <div class="stat-bars">
-      <div class="stat-bar"><span class="label">🍔</span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
-      <div class="stat-bar"><span class="label">⚡</span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
-      <div class="stat-bar"><span class="label">😊</span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
+      <div class="stat-bar"><span class="label lbl-hunger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
+      <div class="stat-bar"><span class="label lbl-energy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
+      <div class="stat-bar"><span class="label lbl-happy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
     </div>
     <div class="mobile-stats" id="mobile-stats">
-      <span class="ms">🍔<b id="ms-hunger">80</b></span>
-      <span class="ms">⚡<b id="ms-energy">80</b></span>
-      <span class="ms">😊<b id="ms-happy">80</b></span>
+      <span class="ms" style="color:#f87171"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg><b id="ms-hunger">80</b></span>
+      <span class="ms" style="color:#60a5fa"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><b id="ms-energy">80</b></span>
+      <span class="ms" style="color:#c084fc"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg><b id="ms-happy">80</b></span>
     </div>
     <div class="pos-info" id="pos-info" data-i18n="loading">加载中...</div>
     <div class="dice-info" id="dice-info">🎲 -</div>
   </div>
   <div class="top-right">
     <div class="action-badge" id="action-badge">行动 0/8</div>
-    <button class="btn-sm btn-nav" id="btn-trade-inbox" onclick="openTradeInbox()" style="position:relative;display:none">📨 <span class="inbox-text" data-i18n="inbox_badge">收件箱</span><span id="trade-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;min-width:14px;height:14px;border-radius:7px;text-align:center;line-height:14px;font-weight:700"></span></button>
+    <button class="btn-sm btn-nav" id="btn-trade-inbox" onclick="openTradeInbox()" style="position:relative;display:none;padding:5px 10px;display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span class="inbox-text" data-i18n="inbox_badge">收件箱</span><span id="trade-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;min-width:14px;height:14px;border-radius:7px;text-align:center;line-height:14px;font-weight:700"></span></button>
     <div class="settings-wrap" style="position:relative">
-      <button class="btn-sm btn-nav" id="btn-settings" onclick="toggleSettingsMenu()">⚙️</button>
+      <button class="btn-sm btn-nav" id="btn-settings" onclick="toggleSettingsMenu()" style="padding:5px 8px;display:inline-flex;align-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
       <div id="settings-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;min-width:120px;overflow:hidden;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,0.5)">
-        <button class="settings-item" id="settings-lang" onclick="switchLang();toggleSettingsMenu()" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px">🌐 <span id="lang-label">English</span></button>
-        <button class="settings-item" id="settings-theme" onclick="toggleTheme();toggleSettingsMenu()" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px">🌙 <span id="theme-label">亮色模式</span></button>
-        <button class="settings-item" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--red);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px" data-i18n="logout">🚪 退出</button>
+        <button class="settings-item" id="settings-lang" onclick="switchLang();toggleSettingsMenu()" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> <span id="lang-label">English</span></button>
+        <button class="settings-item" id="settings-theme" onclick="toggleTheme();toggleSettingsMenu()" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> <span id="theme-label">亮色模式</span></button>
+        <button class="settings-item" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--red);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px" data-i18n="logout"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 退出</button>
       </div>
     </div>
   </div>
+</div>
+
+<!-- News Ticker -->
+<div id="game-news-ticker">
+  <div class="gnt-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span data-i18n="broadcast">播报</span></div>
+  <div class="gnt-scroll"><div class="gnt-content" id="gnt-content"><span class="gnt-item" data-i18n="loading">加载中...</span></div></div>
 </div>
 
 <!-- Bottom Action Bar -->
@@ -284,12 +333,12 @@
   <!-- Right: context actions (placeholder keeps dice centered) -->
   <div class="action-side right" id="ctx-actions">
     <span class="ctx-placeholder" id="ctx-placeholder"></span>
-    <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰</button>
-    <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨</button>
-    <button class="dir-btn" id="btn-sell" style="display:none;border-color:var(--green);background:rgba(16,185,129,0.15)" onclick="openTradeListModal()">🏷️</button>
-    <button class="dir-btn" id="btn-trade" style="display:none;border-color:#38bdf8;background:rgba(56,189,248,0.15)" onclick="openTradeOfferModal()">🤝</button>
-    <button class="dir-btn" id="btn-demolish" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="demolishBuilding()">🗑️</button>
-    <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()" data-i18n="extra_act">❤️+1</button>
+    <button class="dir-btn ctx-btn" id="btn-consume" style="display:none;background:rgba(249,115,22,0.2);box-shadow:inset 0 0 0 1.5px rgba(249,115,22,0.4)" onclick="useBuilding()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-build" style="display:none;background:rgba(168,85,247,0.2);box-shadow:inset 0 0 0 1.5px rgba(168,85,247,0.4)" onclick="openBuildModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-sell" style="display:none;background:rgba(16,185,129,0.2);box-shadow:inset 0 0 0 1.5px rgba(16,185,129,0.4)" onclick="openTradeListModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="#6ee7b7"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-trade" style="display:none;background:rgba(56,189,248,0.2);box-shadow:inset 0 0 0 1.5px rgba(56,189,248,0.4)" onclick="openTradeOfferModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-demolish" style="display:none;background:rgba(239,68,68,0.15);box-shadow:inset 0 0 0 1.5px rgba(239,68,68,0.35)" onclick="demolishBuilding()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-extra-action" style="display:none;background:rgba(239,68,68,0.15);box-shadow:inset 0 0 0 1.5px rgba(239,68,68,0.35)" onclick="buyExtraAction()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
   </div>
 </div>
 
@@ -299,17 +348,17 @@
     <div class="panel-title" data-i18n="health">健康状态</div>
     <div id="health-panel" style="font-size:10px;line-height:2">
       <div style="display:flex;align-items:center;gap:4px">
-        <span>🍔 <span data-i18n="hunger">饥饿</span></span>
+        <span style="display:inline-flex;align-items:center;gap:2px;min-width:40px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg> <span data-i18n="hunger" style="color:#f87171">饥饿</span></span>
         <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-hunger-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#ef4444,#f97316);width:80%;transition:width .5s"></div></div>
         <span id="hp-hunger-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <span>⚡ <span data-i18n="energy">体力</span></span>
+        <span style="display:inline-flex;align-items:center;gap:2px;min-width:40px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> <span data-i18n="energy" style="color:#60a5fa">体力</span></span>
         <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-energy-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#06b6d4);width:80%;transition:width .5s"></div></div>
         <span id="hp-energy-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <span>😊 <span data-i18n="happiness">快乐</span></span>
+        <span style="display:inline-flex;align-items:center;gap:2px;min-width:40px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg> <span data-i18n="happiness" style="color:#c084fc">快乐</span></span>
         <div style="flex:1;height:8px;background:#1e293b;border-radius:4px;overflow:hidden"><div id="hp-happy-bar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#a855f7,#ec4899);width:80%;transition:width .5s"></div></div>
         <span id="hp-happy-val" style="width:24px;text-align:right;color:var(--text2)">80</span>
       </div>
@@ -757,8 +806,14 @@ function applyTheme() {
   if (themeLabel) themeLabel.textContent = isLight ? t('dark_mode') : t('light_mode');
   const themeBtn = document.getElementById('settings-theme');
   if (themeBtn) {
-    const icon = isLight ? '☀️' : '🌙';
-    themeBtn.firstChild.textContent = icon + ' ';
+    const svg = themeBtn.querySelector('svg');
+    if (svg) {
+      if (isLight) {
+        svg.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+      } else {
+        svg.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+      }
+    }
   }
 }
 
@@ -1601,7 +1656,7 @@ function updateActions(state) {
   document.getElementById('action-badge').textContent = `${t('action')} ${state?.actionsToday ?? 0}/${state?.maxActions ?? 8}`;
   const actionsUsedUp = (state?.actionsToday ?? 0) >= (state?.maxActions ?? 8);
   document.getElementById('btn-roll').disabled = !state?.alive || actionsUsedUp || state?.pendingRoll !== null;
-  document.getElementById('btn-extra-action').style.display = (actionsUsedUp && state?.alive) ? 'block' : 'none';
+  document.getElementById('btn-extra-action').style.display = (actionsUsedUp && state?.alive) ? 'inline-flex' : 'none';
 }
 
 function updatePosInfo(node) {
@@ -1717,7 +1772,7 @@ async function fetchMe() {
         const lvMult = 1 + (curNode.building.level - 1) * 0.3;
         const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
         document.getElementById('btn-consume').style.display = 'inline-flex';
-        document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
+        document.getElementById('btn-consume').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg><span style="font-size:10px;margin-left:2px">${fee}</span>`;
         document.getElementById('btn-trade').style.display = 'inline-flex';
         hasCtx = true;
       }
@@ -2186,6 +2241,25 @@ async function fetchEconomy() {
   } catch (e) { /* ignore */ }
 }
 
+/** 获取世界播报 → 新闻滚动条 */
+async function fetchNewsTicker() {
+  try {
+    const res = await fetch(API + '/api/events?count=30');
+    if (!res.ok) return;
+    const events = await res.json();
+    const el = document.getElementById('gnt-content');
+    if (!events.length) { el.innerHTML = '<span class="gnt-item">-</span>'; return; }
+    const items = events.map(ev => {
+      const d = ev.data || {};
+      const desc = d.description || d.reason || d.action || ev.type || '';
+      const time = ev.timestamp ? `D${ev.timestamp.day||'?'}` : '';
+      return `<span class="gnt-item"><span class="gnt-time">${time}</span><span class="gnt-type">${ev.type||''}</span>${desc}</span>`;
+    }).join('');
+    // Duplicate for seamless scrolling
+    el.innerHTML = items + items;
+  } catch(e) { /* ignore */ }
+}
+
 /** 获取世界播报 → 显示在底部日志区域 */
 let _lastBroadcastTime = 0;
 async function fetchWorldBroadcast() {
@@ -2519,6 +2593,7 @@ async function init() {
   }
 
   fetchWorldBroadcast();
+  fetchNewsTicker();
   fetchTradeOffers();
 
   // Auto refresh
@@ -2529,6 +2604,7 @@ async function init() {
     await fetchTradeOffers();
   }, 10000);
   setInterval(fetchWorldBroadcast, 15000);
+  setInterval(fetchNewsTicker, 30000);
 }
 
 animate();
