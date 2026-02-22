@@ -73,6 +73,13 @@ class UserStore {
       };
       this.users.set(admin.id, admin);
       this.save();
+    } else {
+      // 确保已有 admin 账号绑定了 email 和 nickname（兼容旧数据）
+      const admin = this.findByUsername('admin')!;
+      let needsSave = false;
+      if (!admin.email) { admin.email = 'jszhuzhi@gmail.com'; needsSave = true; }
+      if (!admin.nickname) { admin.nickname = 'Admin'; needsSave = true; }
+      if (needsSave) this.save();
     }
     // Create default test investor if none exists
     if (!this.findByUsername('testplayer')) {
