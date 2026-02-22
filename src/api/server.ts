@@ -1549,6 +1549,9 @@ export function createServer(world: World, port = 3000): express.Application {
   app.get('/news', (_req, res) => {
     res.sendFile(path.join(publicPath, 'news.html'));
   });
+  app.get('/api-docs', (_req, res) => {
+    res.sendFile(path.join(publicPath, 'api-docs.html'));
+  });
 
   // ==================== 启动 ====================
   if (!process.env.DEPLOY_ENV) {

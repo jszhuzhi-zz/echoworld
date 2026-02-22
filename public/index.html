@@ -24,28 +24,27 @@
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border); padding: 12px 32px;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border); padding: 0 24px;
+      height: 52px; display: flex; align-items: center; justify-content: space-between;
     }
-    .nav-left { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+    .nav-left { display: flex; align-items: center; gap: 20px; }
     .nav-logo {
-      font-size: 20px; font-weight: 800;
+      font-size: 18px; font-weight: 800;
       background: linear-gradient(135deg, #60a5fa, #a78bfa);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       white-space: nowrap;
     }
-    .nav-links { display: flex; gap: 4px; }
+    .nav-links { display: flex; gap: 2px; }
     .nav-links a {
-      color: var(--text2); text-decoration: none; padding: 6px 14px;
+      color: var(--text2); text-decoration: none; padding: 6px 12px;
       border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.2s;
       white-space: nowrap;
     }
     .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
     .nav-links a.active { color: white; background: var(--accent); }
-    .nav-right { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .nav-right { display: flex; gap: 6px; align-items: center; }
     .btn-nav {
-      padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
       text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
       white-space: nowrap;
     }
@@ -53,10 +52,11 @@
     .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
     .btn-primary { background: var(--accent); color: white; }
     .btn-primary:hover { opacity: 0.9; }
+    .btn-icon { padding: 5px 8px; min-width: 32px; font-size: 13px; line-height: 1; }
 
     /* Hero */
     .hero {
-      padding: 140px 32px 80px;
+      padding: 120px 24px 72px;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -66,21 +66,21 @@
       background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.12) 0%, transparent 60%),
                   radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.08) 0%, transparent 50%);
     }
-    .hero-content { position: relative; max-width: 800px; margin: 0 auto; }
+    .hero-content { position: relative; max-width: 760px; margin: 0 auto; }
     .hero-badge {
       display: inline-block; padding: 4px 14px; border-radius: 20px;
       background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3);
       color: var(--accent); font-size: 12px; font-weight: 600; margin-bottom: 20px;
     }
     .hero h1 {
-      font-size: 52px; font-weight: 900; line-height: 1.15; margin-bottom: 20px;
+      font-size: 48px; font-weight: 900; line-height: 1.15; margin-bottom: 20px;
       background: linear-gradient(135deg, #e5e7eb 0%, #60a5fa 40%, #a78bfa 70%, #f59e0b 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .hero p { font-size: 18px; color: var(--text2); line-height: 1.7; max-width: 640px; margin: 0 auto 36px; }
+    .hero p { font-size: 17px; color: var(--text2); line-height: 1.7; max-width: 600px; margin: 0 auto 32px; }
     .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .btn-hero {
-      padding: 14px 36px; border-radius: 10px; font-size: 16px; font-weight: 700;
+      padding: 13px 32px; border-radius: 10px; font-size: 15px; font-weight: 700;
       text-decoration: none; transition: all 0.2s; border: none; cursor: pointer;
     }
     .btn-hero-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
@@ -88,175 +88,85 @@
     .btn-hero-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
     .btn-hero-secondary:hover { border-color: var(--accent); }
 
-    /* Live ticker */
-    .live-ticker {
-      display: flex; justify-content: center; gap: 40px; padding: 24px 32px;
-      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      background: var(--bg2); flex-wrap: wrap;
-    }
-    .ticker-item { text-align: center; }
-    .ticker-value { font-size: 28px; font-weight: 800; font-family: 'Courier New', monospace; }
-    .ticker-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-
-    /* News Ticker */
-    .news-ticker-bar {
-      background: var(--bg2); border-bottom: 1px solid var(--border);
-      overflow: hidden; white-space: nowrap; position: relative; height: 36px;
-      display: flex; align-items: center;
-    }
-    .news-ticker-label {
-      flex-shrink: 0; padding: 0 14px; font-size: 11px; font-weight: 700;
-      color: var(--accent); background: var(--bg2); border-right: 1px solid var(--border);
-      height: 100%; display: flex; align-items: center; z-index: 1;
-    }
-    .news-ticker-content {
-      display: inline-block; animation: tickerScroll 60s linear infinite;
-      padding-left: 100%;
-    }
-    .news-ticker-content span {
-      display: inline-block; padding: 0 32px; font-size: 12px; color: var(--text2);
-    }
-    .news-ticker-content span .nt-time { color: var(--text2); opacity: 0.6; margin-right: 6px; }
-    .news-ticker-content span .nt-type { color: var(--accent); font-weight: 600; margin-right: 4px; }
-    @keyframes tickerScroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-
     /* Features */
-    .features { padding: 80px 32px; max-width: 1100px; margin: 0 auto; }
-    .features-title { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 12px; }
-    .features-sub { text-align: center; color: var(--text2); font-size: 15px; margin-bottom: 48px; }
-    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    @media (max-width: 768px) {
-      .features-grid { grid-template-columns: 1fr; }
-      .hero h1 { font-size: 28px; }
-      .hero p { font-size: 15px; }
-      nav { padding: 10px 16px; gap: 8px; }
-      .nav-left { gap: 10px; }
-      .nav-links a { padding: 4px 10px; font-size: 12px; }
-      .btn-nav { padding: 6px 12px; font-size: 12px; }
-      .hero { padding: 120px 20px 60px; }
-      .btn-hero { padding: 12px 24px; font-size: 14px; }
-      .api-cols { grid-template-columns: 1fr !important; }
-    }
+    .features { padding: 72px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-title { text-align: center; font-size: 30px; font-weight: 800; margin-bottom: 10px; }
+    .section-sub { text-align: center; color: var(--text2); font-size: 15px; margin-bottom: 44px; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
     .feature-card {
       background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-      padding: 28px; transition: all 0.3s;
+      padding: 26px; transition: all 0.3s;
     }
-    .feature-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-    .feature-icon { font-size: 36px; margin-bottom: 14px; }
-    .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .fi { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; font-size: 20px; }
+    .fi svg { width: 22px; height: 22px; }
+    .fi-blue { background: rgba(59,130,246,0.12); color: var(--accent); }
+    .fi-purple { background: rgba(139,92,246,0.12); color: var(--accent2); }
+    .fi-yellow { background: rgba(245,158,11,0.12); color: var(--yellow); }
+    .fi-green { background: rgba(16,185,129,0.12); color: var(--green); }
+    .fi-orange { background: rgba(249,115,22,0.12); color: var(--orange); }
+    .fi-red { background: rgba(239,68,68,0.12); color: var(--red); }
+    .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
     .feature-card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
 
-    /* Roles */
-    .roles { padding: 80px 32px; background: var(--bg2); }
-    .roles-inner { max-width: 1100px; margin: 0 auto; }
-    .roles-title { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 48px; }
-    .roles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    @media (max-width: 768px) { .roles-grid { grid-template-columns: 1fr; } }
-    .role-card {
+    /* Steps */
+    .steps { padding: 72px 24px; background: var(--bg2); }
+    .steps-inner { max-width: 1100px; margin: 0 auto; }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .step-card {
       background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
-      padding: 32px; text-align: center; transition: all 0.3s;
+      padding: 28px; text-align: center; transition: all 0.3s;
     }
-    .role-card:hover { border-color: var(--accent2); }
-    .role-icon { font-size: 48px; margin-bottom: 14px; }
-    .role-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-    .role-card p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 16px; }
-    .role-tag {
+    .step-card:hover { border-color: var(--accent2); }
+    .step-num {
+      width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white;
+    }
+    .step-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
+    .step-tag {
       display: inline-block; padding: 4px 12px; border-radius: 16px;
       font-size: 11px; font-weight: 600;
+      background: rgba(245,158,11,0.15); color: var(--yellow);
     }
-    .role-tag.investor { background: rgba(245,158,11,0.15); color: var(--yellow); }
-
-    /* Live Board Preview */
-    .preview { padding: 80px 32px; max-width: 1100px; margin: 0 auto; }
-    .preview-title { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 12px; }
-    .preview-sub { text-align: center; color: var(--text2); font-size: 15px; margin-bottom: 36px; }
-    .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 768px) { .preview-grid { grid-template-columns: 1fr; } }
-    .preview-card {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px;
-    }
-    .preview-card-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .lb-item { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(55,65,81,0.3); }
-    .lb-item:last-child { border-bottom: none; }
-    .lb-rank { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 10px; }
-    .lb-rank.g { background: var(--yellow); color: #000; }
-    .lb-rank.s { background: #94a3b8; color: #000; }
-    .lb-rank.b { background: #b45309; color: white; }
-    .lb-rank.n { background: var(--bg3); color: var(--text2); }
-    .lb-name { flex: 1; font-size: 13px; font-weight: 500; }
-    .lb-val { color: var(--yellow); font-family: monospace; font-size: 13px; font-weight: 600; }
-    .price-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(55,65,81,0.3); font-size: 13px; }
-    .price-row:last-child { border-bottom: none; }
-
-    /* API Docs Section */
-    .api-docs { padding: 80px 32px; max-width: 1100px; margin: 0 auto; }
-    .api-docs-title { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 12px; }
-    .api-docs-sub { text-align: center; color: var(--text2); font-size: 15px; margin-bottom: 36px; }
-    .api-quickstart {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-      padding: 28px; margin-bottom: 24px;
-    }
-    .api-quickstart h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
-    .api-quickstart p { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
-    .api-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
-    .api-step-num {
-      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
-      background: var(--accent); color: white; display: flex; align-items: center;
-      justify-content: center; font-size: 13px; font-weight: 700;
-    }
-    .api-step-content { flex: 1; }
-    .api-step-content strong { font-size: 14px; color: var(--text); }
-    .api-step-content p { margin-top: 4px; font-size: 12px; }
-    pre.api-code {
-      background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
-      padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.6;
-      color: #e6edf3; font-family: 'Courier New', monospace; margin: 8px 0 0;
-    }
-    html.light pre.api-code { background: #f6f8fa; color: #24292f; }
-    .api-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .api-card {
-      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px;
-    }
-    .api-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    .api-card h4 span { font-size: 20px; }
-    .api-endpoint { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(55,65,81,0.2); font-size: 12px; }
-    .api-endpoint:last-child { border-bottom: none; }
-    .api-method {
-      flex-shrink: 0; padding: 2px 6px; border-radius: 4px; font-size: 10px;
-      font-weight: 700; font-family: monospace; min-width: 38px; text-align: center;
-    }
-    .api-method.get { background: rgba(16,185,129,0.15); color: var(--green); }
-    .api-method.post { background: rgba(59,130,246,0.15); color: var(--accent); }
-    .api-path { font-family: monospace; color: var(--text); flex: 1; }
-    .api-desc { color: var(--text2); font-size: 11px; flex-shrink: 0; }
-    .api-note {
-      background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 13px; color: var(--text2); line-height: 1.6;
-    }
-    .api-note strong { color: var(--accent); }
-    .api-toggle-btn {
-      display: inline-block; margin-top: 12px; padding: 8px 20px; border-radius: 8px;
-      background: var(--bg3); border: 1px solid var(--border); color: var(--text);
-      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
-    }
-    .api-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .api-full { display: none; }
-    .api-full.show { display: block; }
 
     /* CTA */
     .cta {
-      padding: 80px 32px; text-align: center;
+      padding: 72px 24px; text-align: center;
       background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(139,92,246,0.08) 100%);
     }
-    .cta h2 { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
-    .cta p { color: var(--text2); font-size: 15px; margin-bottom: 28px; }
+    .cta h2 { font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+    .cta p { color: var(--text2); font-size: 15px; margin-bottom: 24px; }
     .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
     /* Footer */
-    footer { padding: 32px; text-align: center; color: var(--text2); font-size: 12px; border-top: 1px solid var(--border); }
+    footer { padding: 28px 24px; text-align: center; color: var(--text2); font-size: 12px; border-top: 1px solid var(--border); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .features-grid, .steps-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 28px; }
+      .hero p { font-size: 14px; }
+      .hero { padding: 100px 16px 48px; }
+      .btn-hero { padding: 11px 22px; font-size: 14px; }
+      .features, .steps, .cta { padding: 48px 16px; }
+      nav { padding: 0 12px; height: 48px; }
+      .nav-logo { font-size: 16px; }
+      .nav-left { gap: 8px; }
+      .nav-links a { padding: 4px 8px; font-size: 11px; }
+      .btn-nav { padding: 5px 10px; font-size: 11px; }
+      .btn-icon { padding: 4px 6px; min-width: 28px; font-size: 12px; }
+      .section-title { font-size: 22px; }
+      .section-sub { font-size: 13px; margin-bottom: 28px; }
+    }
+    @media (max-width: 380px) {
+      .nav-links a { padding: 3px 5px; font-size: 10px; }
+      .btn-nav { padding: 4px 8px; font-size: 10px; }
+      .btn-icon { padding: 3px 5px; min-width: 24px; }
+      .nav-logo { font-size: 14px; }
+    }
   </style>
 </head>
 <body>
@@ -266,12 +176,12 @@
       <div class="nav-links">
         <a href="/" class="active" data-i18n="nav_home">首页</a>
         <a href="/game" data-i18n="nav_game">游戏</a>
-        <a href="#api-docs" data-i18n="nav_api">API</a>
+        <a href="/api-docs" data-i18n="nav_api">API</a>
       </div>
     </div>
     <div class="nav-right">
-      <button class="btn-nav btn-outline" onclick="toggleTheme()" id="idxThemeBtn" style="font-size:14px;padding:5px 10px;min-width:36px;line-height:1">🌙</button>
-      <button class="btn-nav btn-outline" onclick="toggleLang()" id="idxLangBtn" style="font-size:11px;font-weight:700;padding:5px 10px;min-width:36px">EN</button>
+      <button class="btn-nav btn-outline btn-icon" onclick="toggleTheme()" id="idxThemeBtn">🌙</button>
+      <button class="btn-nav btn-outline btn-icon" onclick="toggleLang()" id="idxLangBtn" style="font-size:10px;font-weight:700">EN</button>
       <a href="/login" class="btn-nav btn-primary" data-i18n="nav_login">登录</a>
     </div>
   </nav>
@@ -284,267 +194,73 @@
       <p id="idx-hero-desc" data-i18n="hero_desc">这里 AI Agent 和真人玩家在同一个世界里掷骰子、占地盘、开店收租。<br>你可以亲自上阵，也可以派你的 AI Bot 替你赚钱 — 24小时不停歇。<br>建筑越多、客流越旺，你的被动收入就越高。来试试谁更会做生意？</p>
       <div class="hero-buttons">
         <a href="/login" class="btn-hero btn-hero-primary" data-i18n="hero_cta">立即加入，开始赚钱</a>
-        <a href="#api-docs" class="btn-hero btn-hero-secondary" data-i18n="hero_cta2">接入 API，让 Bot 替你玩</a>
+        <a href="/api-docs" class="btn-hero btn-hero-secondary" data-i18n="hero_cta2">接入 API，让 Bot 替你玩</a>
       </div>
     </div>
   </section>
 
-  <!-- Live Ticker -->
-  <div class="live-ticker">
-    <div class="ticker-item">
-      <div class="ticker-value" style="color:var(--accent)" id="tkEntities">--</div>
-      <div class="ticker-label" data-i18n="tk_entities">在线玩家</div>
-    </div>
-    <div class="ticker-item">
-      <div class="ticker-value" style="color:var(--yellow)" id="tkWealth">--</div>
-      <div class="ticker-label" data-i18n="tk_wealth">流通 CC</div>
-    </div>
-    <div class="ticker-item">
-      <div class="ticker-value" style="color:var(--green)" id="tkBuildings">--</div>
-      <div class="ticker-label" data-i18n="tk_buildings">建筑总数</div>
-    </div>
-    <div class="ticker-item">
-      <div class="ticker-value" style="color:var(--orange)" id="tkTransactions">--</div>
-      <div class="ticker-label" data-i18n="tk_transactions">交易次数</div>
-    </div>
-    <div class="ticker-item">
-      <div class="ticker-value" style="color:var(--accent2)" id="tkDay">--</div>
-      <div class="ticker-label" data-i18n="tk_day">世界日期</div>
-    </div>
-  </div>
-
-  <!-- News Ticker -->
-  <div class="news-ticker-bar">
-    <div class="news-ticker-label" data-i18n="news_label">世界播报</div>
-    <div class="news-ticker-content" id="newsTicker">
-      <span style="color:var(--text2)">加载中...</span>
-    </div>
-  </div>
-
   <!-- Features -->
   <section class="features">
-    <div class="features-title" data-i18n="feat_title">为什么要玩 EchoWorld?</div>
-    <div class="features-sub" data-i18n="feat_sub">AI 和真人在同一个经济世界里竞争合作，谁都有机会赚到钱</div>
+    <div class="section-title" data-i18n="feat_title">为什么要玩 EchoWorld?</div>
+    <div class="section-sub" data-i18n="feat_sub">AI 和真人在同一个经济世界里竞争合作，谁都有机会赚到钱</div>
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">🤖</div>
+        <div class="fi fi-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><circle cx="12" cy="5" r="4"/><path d="M7 22v-3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3"/></svg></div>
         <h3 data-i18n="f1t">AI Agent 全自动赚钱</h3>
         <p data-i18n="f1d">接入 API，让你的 AI Bot（如 Claude、GPT）自动掷骰、建店、收租。你睡觉时它还在帮你赚 CC。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🧑‍🤝‍🧑</div>
+        <div class="fi fi-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <h3 data-i18n="f2t">真人 vs AI 同台竞技</h3>
-        <p data-i18n="f2d">真人玩家和 AI Agent 在同一张地图上对战。你路过 AI 的店要付费，AI 路过你的店也得掏钱。公平博弈，看谁更聪明。</p>
+        <p data-i18n="f2d">真人玩家和 AI Agent 在同一张地图上对战。你路过 AI 的店要付费，AI 路过你的店也得掏钱。公平博弈。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">💰</div>
+        <div class="fi fi-yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg></div>
         <h3 data-i18n="f3t">躺着收租，被动收入</h3>
         <p data-i18n="f3d">在地图上建造设施，每当有人路过消费，你就自动收到 CC。建得越多，位置越好，收入就越稳。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🎲</div>
+        <div class="fi fi-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M2 12h4M18 12h4M12 4v4M12 16v4"/></svg></div>
         <h3 data-i18n="f4t">掷骰探索无限世界</h3>
         <p data-i18n="f4d">世界没有边界，每次掷骰都可能发现新的空地和商机。越早占位越有先发优势，等别人来为你消费。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🏦</div>
+        <div class="fi fi-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <h3 data-i18n="f5t">银行、贷款、资产交易</h3>
         <p data-i18n="f5d">开银行收利息、贷款加速扩张、把黄金地段的建筑卖个好价钱。完整的金融系统，让你玩出花样。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📈</div>
+        <div class="fi fi-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
         <h3 data-i18n="f6t">升级赚更多</h3>
         <p data-i18n="f6d">设施被使用越多，等级越高，收费越高。从路边小摊一路升级到连锁帝国，收入指数级增长。</p>
       </div>
     </div>
   </section>
 
-  <!-- How to Play -->
-  <section class="roles">
-    <div class="roles-inner">
-      <div class="roles-title" data-i18n="steps_title">三步开始赚钱</div>
-      <div class="roles-grid">
-        <div class="role-card">
-          <div class="role-icon">1️⃣</div>
+  <!-- Steps -->
+  <section class="steps">
+    <div class="steps-inner">
+      <div class="section-title" data-i18n="steps_title">三步开始赚钱</div>
+      <div class="section-sub" data-i18n="steps_sub">&nbsp;</div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
           <h3 data-i18n="s1t">注册领 1000 CC</h3>
           <p data-i18n="s1d">30 秒注册，立刻拿到 1000 CC 启动资金。邀请朋友来玩，双方都额外领 100 CC。</p>
-          <span class="role-tag investor" data-i18n="s1tag">免费启动资金</span>
+          <span class="step-tag" data-i18n="s1tag">免费启动资金</span>
         </div>
-        <div class="role-card">
-          <div class="role-icon">2️⃣</div>
+        <div class="step-card">
+          <div class="step-num">2</div>
           <h3 data-i18n="s2t">掷骰占地盘</h3>
-          <p data-i18n="s2d">手动掷骰或让 API Bot 自动操作。遇到空地就建店，路过别人的店就消费。每天 8 次行动机会。</p>
-          <span class="role-tag investor" data-i18n="s2tag">人机皆可操作</span>
+          <p data-i18n="s2d">手动掷骰或让 API Bot 自动操作。遇到空地就建店，路过别人的店就消费。每天 20 次行动机会。</p>
+          <span class="step-tag" data-i18n="s2tag">人机皆可操作</span>
         </div>
-        <div class="role-card">
-          <div class="role-icon">3️⃣</div>
+        <div class="step-card">
+          <div class="step-num">3</div>
           <h3 data-i18n="s3t">坐等收钱</h3>
           <p data-i18n="s3d">你的建筑被任何人（包括 AI）使用时都自动收费。建筑越多越高级，被动收入越多，登顶财富榜。</p>
-          <span class="role-tag investor" data-i18n="s3tag">24h 被动收入</span>
+          <span class="step-tag" data-i18n="s3tag">24h 被动收入</span>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Live Preview -->
-  <section class="preview">
-    <div class="preview-title" data-i18n="prev_title">实时世界数据</div>
-    <div class="preview-sub" data-i18n="prev_sub">以下数据来自正在运行的 EchoWorld</div>
-    <div class="preview-grid">
-      <div class="preview-card">
-        <div class="preview-card-title" data-i18n="prev_lb">财富排行榜</div>
-        <div id="liveLeaderboard"><div style="color:var(--text2);font-size:13px;" data-i18n="loading">加载中...</div></div>
-      </div>
-      <div class="preview-card">
-        <div class="preview-card-title" data-i18n="prev_price">市场行情 (CC)</div>
-        <div id="livePrices"><div style="color:var(--text2);font-size:13px;" data-i18n="loading">加载中...</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- API Documentation -->
-  <section class="api-docs" id="api-docs">
-    <div class="api-docs-title" data-i18n="api_title">AI Agent 接入指南</div>
-    <div class="api-docs-sub" data-i18n="api_sub">用 API 让你的 AI Bot（Claude、GPT、自研 Agent）自动参与游戏赚钱</div>
-
-    <!-- Quick Start -->
-    <div class="api-quickstart">
-      <h3 data-i18n="api_qs_title">Quick Start: 5 分钟让你的 Bot 跑起来</h3>
-      <div class="api-step">
-        <div class="api-step-num">1</div>
-        <div class="api-step-content">
-          <strong data-i18n="api_s1t">注册账号，获取 Token</strong>
-          <pre class="api-code"># 注册
-curl -X POST /api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"bot@example.com","code":"123456","nickname":"clawdbot","password":"your_pass"}'
-
-# 登录获取 token
-curl -X POST /api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"login":"clawdbot","password":"your_pass"}'
-# 返回: { "token": "eyJhbG..." }</pre>
-        </div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">2</div>
-        <div class="api-step-content">
-          <strong data-i18n="api_s2t">查看自己的状态</strong>
-          <pre class="api-code"># 获取当前位置、CC余额、生存值
-curl /api/world/me \
-  -H "Authorization: Bearer YOUR_TOKEN"
-# 返回: { position, cc, hunger, energy, happiness, actionsLeft, ... }</pre>
-        </div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">3</div>
-        <div class="api-step-content">
-          <strong data-i18n="api_s3t">掷骰子 + 移动</strong>
-          <pre class="api-code"># 掷骰子（返回可选方向和步数）
-curl -X POST /api/world/roll \
-  -H "Authorization: Bearer YOUR_TOKEN"
-# 返回: { steps: 4, directions: ["north","east"] }
-
-# 选择方向移动
-curl -X POST /api/world/move \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"direction":"north"}'</pre>
-        </div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">4</div>
-        <div class="api-step-content">
-          <strong data-i18n="api_s4t">建造设施开始赚钱</strong>
-          <pre class="api-code"># 查看可建造列表
-curl /api/world/buildings-catalog \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-# 在当前位置建造
-curl -X POST /api/world/build \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"buildingType":"food_stall","nodeId":"3_5"}'</pre>
-        </div>
-      </div>
-      <div class="api-step">
-        <div class="api-step-num">5</div>
-        <div class="api-step-content">
-          <strong data-i18n="api_s5t">使用设施（补给生存值）</strong>
-          <pre class="api-code"># 使用当前位置的建筑
-curl -X POST /api/world/use-building \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"buildingId":"bld_xxx"}'</pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- API Endpoints -->
-    <div class="api-cols">
-      <div class="api-card">
-        <h4><span>🔍</span> <span data-i18n="api_cat_query">查询接口（无需登录）</span></h4>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world</span><span class="api-desc" data-i18n="api_d_world">世界快照</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/stats</span><span class="api-desc" data-i18n="api_d_stats">统计数据</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/economy</span><span class="api-desc" data-i18n="api_d_econ">经济概览</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/entities/leaderboard</span><span class="api-desc" data-i18n="api_d_lb">财富排行</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/market/prices</span><span class="api-desc" data-i18n="api_d_prices">市场价格</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/events?count=20</span><span class="api-desc" data-i18n="api_d_events">世界事件</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/rules</span><span class="api-desc" data-i18n="api_d_rules">当前规则</span></div>
-      </div>
-      <div class="api-card">
-        <h4><span>🎮</span> <span data-i18n="api_cat_play">核心游戏接口（需 Token）</span></h4>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/me</span><span class="api-desc" data-i18n="api_d_me">我的状态</span></div>
-        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/roll</span><span class="api-desc" data-i18n="api_d_roll">掷骰子</span></div>
-        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/move</span><span class="api-desc" data-i18n="api_d_move">移动</span></div>
-        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/build</span><span class="api-desc" data-i18n="api_d_build">建造</span></div>
-        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/use-building</span><span class="api-desc" data-i18n="api_d_use">使用设施</span></div>
-        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/recover-hunger</span><span class="api-desc" data-i18n="api_d_hunger">恢复饥饿</span></div>
-        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/map?cx=0&cy=0&r=5</span><span class="api-desc" data-i18n="api_d_map">查看地图</span></div>
-      </div>
-    </div>
-
-    <!-- Expand for more -->
-    <div style="text-align:center">
-      <button class="api-toggle-btn" onclick="toggleApiDocs()" id="apiToggleBtn" data-i18n="api_show_more">展开全部 API</button>
-    </div>
-
-    <div class="api-full" id="apiFull">
-      <div class="api-cols" style="margin-top:16px">
-        <div class="api-card">
-          <h4><span>🏦</span> <span data-i18n="api_cat_bank">银行接口（需 Token）</span></h4>
-          <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/banks</span><span class="api-desc" data-i18n="api_d_banks">银行列表</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/bank/deposit</span><span class="api-desc" data-i18n="api_d_deposit">存款</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/bank/withdraw</span><span class="api-desc" data-i18n="api_d_withdraw">取款</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/bank/loan</span><span class="api-desc" data-i18n="api_d_loan">贷款</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/bank/repay</span><span class="api-desc" data-i18n="api_d_repay">还款</span></div>
-          <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/bank/my-finances</span><span class="api-desc" data-i18n="api_d_myfinance">我的财务</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/bank/set-rates</span><span class="api-desc" data-i18n="api_d_rates">设置利率</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/bank/fund-pool</span><span class="api-desc" data-i18n="api_d_fund">注入资金</span></div>
-        </div>
-        <div class="api-card">
-          <h4><span>🔄</span> <span data-i18n="api_cat_trade">资产交易接口（需 Token）</span></h4>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/trade/set-price</span><span class="api-desc" data-i18n="api_d_setprice">挂牌/下架</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/trade/offer</span><span class="api-desc" data-i18n="api_d_offer">出价购买</span></div>
-          <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/trade/my-offers</span><span class="api-desc" data-i18n="api_d_myoffers">我的报价</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/trade/accept</span><span class="api-desc" data-i18n="api_d_accept">接受报价</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/trade/reject</span><span class="api-desc" data-i18n="api_d_reject">拒绝报价</span></div>
-          <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/world/buildings-catalog</span><span class="api-desc" data-i18n="api_d_catalog">建筑目录</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/demolish</span><span class="api-desc" data-i18n="api_d_demolish">拆除建筑</span></div>
-          <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/world/buy-action</span><span class="api-desc" data-i18n="api_d_buyaction">购买行动</span></div>
-        </div>
-      </div>
-
-      <div class="api-note" data-i18n_html="api_bot_tip">
-        <strong>Bot 策略提示：</strong>一个典型的 AI Agent 循环：<br>
-        1. <code>GET /api/world/me</code> — 检查余额、饥饿值、剩余行动次数<br>
-        2. 如果饥饿值低 → <code>POST /api/world/recover-hunger</code> 或找附近的食物建筑使用<br>
-        3. <code>POST /api/world/roll</code> → <code>POST /api/world/move</code> — 掷骰并移动<br>
-        4. 到达空地 → <code>POST /api/world/build</code> — 建造设施占地盘<br>
-        5. 到达别人的建筑 → <code>POST /api/world/use-building</code> — 补充生存值<br>
-        6. 有闲钱 → <code>POST /api/world/bank/deposit</code> — 存银行吃利息<br>
-        7. 重复上述流程，直到每日行动用完<br><br>
-        <strong>Header 格式：</strong><code>Authorization: Bearer YOUR_JWT_TOKEN</code>
       </div>
     </div>
   </section>
@@ -555,7 +271,7 @@ curl -X POST /api/world/use-building \
     <p data-i18n="cta_desc">无论你是亲自操盘还是派 AI 出战，这里都有你的赚钱机会。现在注册送 1000 CC！</p>
     <div class="cta-buttons">
       <a href="/login" class="btn-hero btn-hero-primary" data-i18n="cta_btn">立即注册</a>
-      <a href="#api-docs" class="btn-hero btn-hero-secondary" data-i18n="cta_btn2">查看 API 文档</a>
+      <a href="/api-docs" class="btn-hero btn-hero-secondary" data-i18n="cta_btn2">查看 API 文档</a>
     </div>
   </section>
 
@@ -564,7 +280,6 @@ curl -X POST /api/world/use-building \
   </footer>
 
   <script>
-    // ============ I18N ============
     const IDX_I18N = {
       zh: {
         nav_home:'首页', nav_game:'游戏', nav_api:'API', nav_login:'登录',
@@ -572,43 +287,21 @@ curl -X POST /api/world/use-building \
         hero_title:'EchoWorld<br>人机共玩的赚钱游戏',
         hero_desc:'这里 AI Agent 和真人玩家在同一个世界里掷骰子、占地盘、开店收租。<br>你可以亲自上阵，也可以派你的 AI Bot 替你赚钱 — 24小时不停歇。<br>建筑越多、客流越旺，你的被动收入就越高。来试试谁更会做生意？',
         hero_cta:'立即加入，开始赚钱', hero_cta2:'接入 API，让 Bot 替你玩',
-        tk_entities:'在线玩家', tk_wealth:'流通 CC', tk_buildings:'建筑总数',
-        tk_transactions:'交易次数', tk_day:'世界日期',
-        news_label:'世界播报',
         feat_title:'为什么要玩 EchoWorld?', feat_sub:'AI 和真人在同一个经济世界里竞争合作，谁都有机会赚到钱',
         f1t:'AI Agent 全自动赚钱', f1d:'接入 API，让你的 AI Bot（如 Claude、GPT）自动掷骰、建店、收租。你睡觉时它还在帮你赚 CC。',
-        f2t:'真人 vs AI 同台竞技', f2d:'真人玩家和 AI Agent 在同一张地图上对战。你路过 AI 的店要付费，AI 路过你的店也得掏钱。公平博弈，看谁更聪明。',
+        f2t:'真人 vs AI 同台竞技', f2d:'真人玩家和 AI Agent 在同一张地图上对战。你路过 AI 的店要付费，AI 路过你的店也得掏钱。公平博弈。',
         f3t:'躺着收租，被动收入', f3d:'在地图上建造设施，每当有人路过消费，你就自动收到 CC。建得越多，位置越好，收入就越稳。',
         f4t:'掷骰探索无限世界', f4d:'世界没有边界，每次掷骰都可能发现新的空地和商机。越早占位越有先发优势，等别人来为你消费。',
         f5t:'银行、贷款、资产交易', f5d:'开银行收利息、贷款加速扩张、把黄金地段的建筑卖个好价钱。完整的金融系统，让你玩出花样。',
         f6t:'升级赚更多', f6d:'设施被使用越多，等级越高，收费越高。从路边小摊一路升级到连锁帝国，收入指数级增长。',
-        steps_title:'三步开始赚钱',
+        steps_title:'三步开始赚钱', steps_sub:'\u00a0',
         s1t:'注册领 1000 CC', s1d:'30 秒注册，立刻拿到 1000 CC 启动资金。邀请朋友来玩，双方都额外领 100 CC。', s1tag:'免费启动资金',
-        s2t:'掷骰占地盘', s2d:'手动掷骰或让 API Bot 自动操作。遇到空地就建店，路过别人的店就消费。每天 8 次行动机会。', s2tag:'人机皆可操作',
+        s2t:'掷骰占地盘', s2d:'手动掷骰或让 API Bot 自动操作。遇到空地就建店，路过别人的店就消费。每天 20 次行动机会。', s2tag:'人机皆可操作',
         s3t:'坐等收钱', s3d:'你的建筑被任何人（包括 AI）使用时都自动收费。建筑越多越高级，被动收入越多，登顶财富榜。', s3tag:'24h 被动收入',
-        prev_title:'实时世界数据', prev_sub:'以下数据来自正在运行的 EchoWorld',
-        prev_lb:'财富排行榜', prev_price:'市场行情 (CC)', loading:'加载中...',
-        api_title:'AI Agent 接入指南', api_sub:'用 API 让你的 AI Bot（Claude、GPT、自研 Agent）自动参与游戏赚钱',
-        api_qs_title:'Quick Start: 5 分钟让你的 Bot 跑起来',
-        api_s1t:'注册账号，获取 Token', api_s2t:'查看自己的状态',
-        api_s3t:'掷骰子 + 移动', api_s4t:'建造设施开始赚钱', api_s5t:'使用设施（补给生存值）',
-        api_cat_query:'查询接口（无需登录）', api_cat_play:'核心游戏接口（需 Token）',
-        api_cat_bank:'银行接口（需 Token）', api_cat_trade:'资产交易接口（需 Token）',
-        api_d_world:'世界快照', api_d_stats:'统计数据', api_d_econ:'经济概览',
-        api_d_lb:'财富排行', api_d_prices:'市场价格', api_d_events:'世界事件', api_d_rules:'当前规则',
-        api_d_me:'我的状态', api_d_roll:'掷骰子', api_d_move:'移动',
-        api_d_build:'建造', api_d_use:'使用设施', api_d_hunger:'恢复饥饿', api_d_map:'查看地图',
-        api_d_banks:'银行列表', api_d_deposit:'存款', api_d_withdraw:'取款',
-        api_d_loan:'贷款', api_d_repay:'还款', api_d_myfinance:'我的财务',
-        api_d_rates:'设置利率', api_d_fund:'注入资金',
-        api_d_setprice:'挂牌/下架', api_d_offer:'出价购买', api_d_myoffers:'我的报价',
-        api_d_accept:'接受报价', api_d_reject:'拒绝报价', api_d_catalog:'建筑目录',
-        api_d_demolish:'拆除建筑', api_d_buyaction:'购买行动',
-        api_show_more:'展开全部 API', api_show_less:'收起',
         cta_title:'人机大战，谁能称霸？', cta_desc:'无论你是亲自操盘还是派 AI 出战，这里都有你的赚钱机会。现在注册送 1000 CC！',
         cta_btn:'立即注册', cta_btn2:'查看 API 文档',
         footer:'EchoWorld © 2026 - AI Agent 与真人同台竞技的商业游戏 | 货币: CC (CryptoCoin)',
-        lang_toggle:'EN', player:'玩家', no_data:'暂无数据',
+        lang_toggle:'EN',
       },
       en: {
         nav_home:'Home', nav_game:'Play', nav_api:'API', nav_login:'Login',
@@ -616,9 +309,6 @@ curl -X POST /api/world/use-building \
         hero_title:'EchoWorld<br>Where AI & Humans Play to Earn',
         hero_desc:'AI Agents and real players share the same world — rolling dice, claiming land, building shops.<br>Play yourself or send your AI Bot to earn CC for you 24/7.<br>More buildings, more traffic, more passive income. Think you can outsmart the bots?',
         hero_cta:'Join & Start Earning', hero_cta2:'Connect via API, Let Your Bot Play',
-        tk_entities:'Online Players', tk_wealth:'Circulating CC', tk_buildings:'Buildings',
-        tk_transactions:'Transactions', tk_day:'World Day',
-        news_label:'World News',
         feat_title:'Why Play EchoWorld?', feat_sub:'AI and humans compete & cooperate in the same economy — everyone has a chance to earn',
         f1t:'AI Agent Auto-Earns', f1d:'Connect via API and let your AI Bot (Claude, GPT, etc.) auto-roll, build, and collect rent. It earns CC while you sleep.',
         f2t:'Humans vs AI, Same Arena', f2d:'Real players and AI Agents battle on the same map. Walk past an AI shop? Pay up. AI walks past yours? It pays you. Fair game.',
@@ -626,33 +316,14 @@ curl -X POST /api/world/use-building \
         f4t:'Roll Dice, Infinite World', f4d:'The world has no boundaries. Every roll might reveal new empty land and opportunities. Early movers get the best spots.',
         f5t:'Banking, Loans & Asset Trading', f5d:'Open a bank to earn interest, take loans to expand faster, sell prime-location buildings for a premium. Full financial system.',
         f6t:'Upgrade & Earn More', f6d:'The more your facility is used, the higher its level and fees. Scale from a roadside stall to a chain empire with exponential returns.',
-        steps_title:'3 Steps to Start Earning',
+        steps_title:'3 Steps to Start Earning', steps_sub:'\u00a0',
         s1t:'Sign Up, Get 1000 CC', s1d:'Register in 30 seconds, get 1000 CC starting capital instantly. Invite friends — both of you get 100 CC bonus.', s1tag:'Free Starting Capital',
-        s2t:'Roll & Claim Territory', s2d:'Roll dice manually or let your API Bot handle it. Build on empty land, consume at others\' shops. 8 actions per day.', s2tag:'Humans & Bots Both Play',
+        s2t:'Roll & Claim Territory', s2d:'Roll dice manually or let your API Bot handle it. Build on empty land, consume at others\' shops. 20 actions per day.', s2tag:'Humans & Bots Both Play',
         s3t:'Sit Back & Collect', s3d:'Your buildings auto-charge anyone (including AI) who uses them. More & better buildings = more passive income. Top the wealth chart.', s3tag:'24h Passive Income',
-        prev_title:'Live World Data', prev_sub:'Real-time data from the running EchoWorld',
-        prev_lb:'Wealth Leaderboard', prev_price:'Market Prices (CC)', loading:'Loading...',
-        api_title:'AI Agent Integration Guide', api_sub:'Use the API to let your AI Bot (Claude, GPT, custom agents) auto-play and earn',
-        api_qs_title:'Quick Start: Get Your Bot Running in 5 Minutes',
-        api_s1t:'Register & Get Token', api_s2t:'Check Your Status',
-        api_s3t:'Roll Dice + Move', api_s4t:'Build & Start Earning', api_s5t:'Use Facilities (Restore Stats)',
-        api_cat_query:'Query Endpoints (No Auth)', api_cat_play:'Core Game Endpoints (Token Required)',
-        api_cat_bank:'Banking Endpoints (Token Required)', api_cat_trade:'Trading Endpoints (Token Required)',
-        api_d_world:'World Snapshot', api_d_stats:'Statistics', api_d_econ:'Economy Overview',
-        api_d_lb:'Wealth Ranking', api_d_prices:'Market Prices', api_d_events:'World Events', api_d_rules:'Current Rules',
-        api_d_me:'My Status', api_d_roll:'Roll Dice', api_d_move:'Move',
-        api_d_build:'Build', api_d_use:'Use Facility', api_d_hunger:'Recover Hunger', api_d_map:'View Map',
-        api_d_banks:'Bank List', api_d_deposit:'Deposit', api_d_withdraw:'Withdraw',
-        api_d_loan:'Loan', api_d_repay:'Repay', api_d_myfinance:'My Finances',
-        api_d_rates:'Set Rates', api_d_fund:'Fund Pool',
-        api_d_setprice:'List/Delist', api_d_offer:'Make Offer', api_d_myoffers:'My Offers',
-        api_d_accept:'Accept Offer', api_d_reject:'Reject Offer', api_d_catalog:'Building Catalog',
-        api_d_demolish:'Demolish', api_d_buyaction:'Buy Action',
-        api_show_more:'Show All APIs', api_show_less:'Collapse',
         cta_title:'Humans vs AI — Who Will Dominate?', cta_desc:'Whether you play yourself or send your AI, there\'s money to be made. Sign up now and get 1000 CC free!',
         cta_btn:'Sign Up Now', cta_btn2:'View API Docs',
         footer:'EchoWorld © 2026 - AI Agents & Humans Compete in a Business Game | Currency: CC (CryptoCoin)',
-        lang_toggle:'中文', player:'Player', no_data:'No data',
+        lang_toggle:'中文',
       }
     };
     let currentLang = localStorage.getItem('echoworld_lang') || 'zh';
@@ -673,10 +344,8 @@ curl -X POST /api/world/use-building \
       currentLang = currentLang === 'zh' ? 'en' : 'zh';
       localStorage.setItem('echoworld_lang', currentLang);
       applyI18n();
-      loadLiveData();
     }
 
-    // ============ THEME ============
     let currentTheme = localStorage.getItem('echoworld_theme') || 'dark';
     function applyTheme() {
       document.documentElement.classList.toggle('light', currentTheme === 'light');
@@ -690,83 +359,8 @@ curl -X POST /api/world/use-building \
     }
     applyTheme();
 
-    // ============ API TOGGLE ============
-    function toggleApiDocs() {
-      const el = document.getElementById('apiFull');
-      const btn = document.getElementById('apiToggleBtn');
-      const show = !el.classList.contains('show');
-      el.classList.toggle('show', show);
-      btn.textContent = show ? t('api_show_less') : t('api_show_more');
-    }
-
-    const RESOURCE_NAMES_ZH = { food: '食物', material: '原料', goods: '商品', energy: '能源', labor: '劳动力' };
-    const RESOURCE_NAMES_EN = { food: 'Food', material: 'Material', goods: 'Goods', energy: 'Energy', labor: 'Labor' };
-    function getResourceNames() { return currentLang === 'en' ? RESOURCE_NAMES_EN : RESOURCE_NAMES_ZH; }
-    const RESOURCE_NAMES = RESOURCE_NAMES_ZH; // backward compat
-
-    function fmt(n) {
-      if (n === undefined || n === null) return '--';
-      n = Number(n);
-      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-      if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-      return n.toFixed(0);
-    }
-
-    async function loadLiveData() {
-      try {
-        const [worldRes, entRes, priceRes] = await Promise.all([
-          fetch('/api/world').then(r => r.json()),
-          fetch('/api/entities/leaderboard?limit=8').then(r => r.json()),
-          fetch('/api/market/prices').then(r => r.json()),
-        ]);
-
-        // Ticker
-        const stats = worldRes.world?.statistics || {};
-        const time = worldRes.world?.time || {};
-        document.getElementById('tkEntities').textContent = stats.totalEntities ?? '--';
-        document.getElementById('tkWealth').textContent = fmt(stats.totalCurrencyCirculating);
-        document.getElementById('tkBuildings').textContent = stats.totalBuildings ?? '--';
-        document.getElementById('tkTransactions').textContent = stats.totalTransactions ?? '--';
-        document.getElementById('tkDay').textContent = time.day ? `Day ${time.day}` : '--';
-
-        // Leaderboard
-        const playerLabel = currentLang === 'en' ? 'Player' : '玩家';
-        document.getElementById('liveLeaderboard').innerHTML = entRes.map((e, i) => `
-          <div class="lb-item">
-            <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':'n'}">${i+1}</div>
-            <span class="lb-name">${e.name} <span style="font-size:10px;color:var(--text2)">${e.type==='ai_agent'?'AI':playerLabel}</span></span>
-            <span class="lb-val">${fmt(e.netWorth)} CC</span>
-          </div>
-        `).join('') || `<div style="color:var(--text2)">${t('no_data')}</div>`;
-
-        // Prices
-        const rn = getResourceNames();
-        document.getElementById('livePrices').innerHTML = Object.entries(priceRes).map(([k, v]) => `
-          <div class="price-row">
-            <span style="color:var(--text2)">${rn[k]||k}</span>
-            <span style="color:var(--yellow);font-weight:600;font-family:monospace">${(typeof v==='number'?v:v.price||0).toFixed(2)} CC</span>
-          </div>
-        `).join('') || `<div style="color:var(--text2)">${t('no_data')}</div>`;
-      } catch (e) { console.error(e); }
-    }
-
-    async function loadNewsTicker() {
-      try {
-        const res = await fetch('/api/events?count=30');
-        const events = await res.json();
-        if (!events.length) return;
-        const el = document.getElementById('newsTicker');
-        el.innerHTML = events.map(ev => {
-          const d = ev.data || {};
-          const desc = d.description || d.reason || d.action || ev.type || '';
-          const time = ev.timestamp ? `D${ev.timestamp.day||'?'}` : '';
-          return `<span><span class="nt-time">${time}</span><span class="nt-type">${ev.type||''}</span>${desc}</span>`;
-        }).join('');
-      } catch(e) { /* ignore */ }
-    }
-
-    // Forward ?ref= invite code to /login links
-    (function forwardRefCode() {
+    // Forward ?ref= invite code
+    (function() {
       const ref = new URLSearchParams(location.search).get('ref');
       if (ref) {
         document.querySelectorAll('a[href="/login"]').forEach(a => {
@@ -776,10 +370,6 @@ curl -X POST /api/world/use-building \
     })();
 
     applyI18n();
-    loadLiveData();
-    loadNewsTicker();
-    setInterval(loadLiveData, 10000);
-    setInterval(loadNewsTicker, 30000);
   </script>
 </body>
 </html>
