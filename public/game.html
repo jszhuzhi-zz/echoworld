@@ -812,8 +812,11 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  // Place building at exact lot coordinate
-  group.position.set(node.x, 0, node.y);
+  // Place building at parent intersection (where the player stands)
+  const _SP = 14;
+  const _ix = Math.round(node.x / _SP) * _SP;
+  const _iy = Math.round(node.y / _SP) * _SP;
+  group.position.set(_ix, 0, _iy);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -1128,29 +1131,17 @@ function renderMap(nodes) {
       const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
-      // Building base tile at exact lot coordinate
+      // Building base tile at parent intersection (aligned with player position)
       const ml = tpl?.maslowLevel || 1;
       const lotColor = MASLOW_COLORS[ml] || 0x888888;
-      const lotGeo = new THREE.BoxGeometry(1.4, 0.06, 1.4);
-      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.45, emissive: lotColor, emissiveIntensity: 0.25 });
-      const lotBase = new THREE.Mesh(lotGeo, lotMat);
-      lotBase.position.set(node.x, 0.03, node.y);
-      mapMeshGroup.add(lotBase);
-      // Connecting strip from building to parent intersection
       const _SP = 14;
       const _ix = Math.round(node.x / _SP) * _SP;
       const _iy = Math.round(node.y / _SP) * _SP;
-      const _ox = node.x - _ix, _oy = node.y - _iy;
-      if (_ox !== 0 || _oy !== 0) {
-        const midX = (node.x + _ix) / 2, midZ = (node.y + _iy) / 2;
-        const dist = Math.sqrt(_ox * _ox + _oy * _oy);
-        const stripGeo = new THREE.BoxGeometry(0.5, 0.04, dist + 0.5);
-        const stripMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.3, emissive: lotColor, emissiveIntensity: 0.15 });
-        const strip = new THREE.Mesh(stripGeo, stripMat);
-        strip.position.set(midX, 0.02, midZ);
-        strip.rotation.y = Math.atan2(_ox, _oy);
-        mapMeshGroup.add(strip);
-      }
+      const lotGeo = new THREE.BoxGeometry(1.6, 0.06, 1.6);
+      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.45, emissive: lotColor, emissiveIntensity: 0.25 });
+      const lotBase = new THREE.Mesh(lotGeo, lotMat);
+      lotBase.position.set(_ix, 0.03, _iy);
+      mapMeshGroup.add(lotBase);
     } else if (node.type === 'lot') {
       // Empty lot: flat tile at exact coordinate position
       const geo = new THREE.BoxGeometry(1.2, 0.05, 1.2);
