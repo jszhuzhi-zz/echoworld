@@ -1263,7 +1263,10 @@ function renderPlayers(players) {
     const geo = new THREE.SphereGeometry(radius, 16, 16);
     const mat = new THREE.MeshStandardMaterial({ color: pColor, emissive: pColor, emissiveIntensity: isMe ? 0.6 : 0.2, roughness: 0.3 });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(node.x, isMe ? 0.55 : 0.4, node.y);
+    // Offset player above building to avoid overlap
+    const hasBuilding = !!node.building;
+    const py = hasBuilding ? (isMe ? 1.6 : 1.4) : (isMe ? 0.55 : 0.4);
+    mesh.position.set(node.x, py, node.y);
     mesh.castShadow = true;
     if (isMe) myPlayerMesh = mesh;
     playerMeshGroup.add(mesh);
@@ -1280,7 +1283,8 @@ function renderPlayers(players) {
     const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
     const sprite = new THREE.Sprite(spriteMat);
     sprite.scale.set(2, 0.5, 1);
-    sprite.position.set(node.x, isMe ? 1.2 : 1.0, node.y);
+    const labelY = hasBuilding ? (isMe ? 2.3 : 2.0) : (isMe ? 1.2 : 1.0);
+    sprite.position.set(node.x, labelY, node.y);
     if (isMe) myPlayerLabel = sprite;
     playerMeshGroup.add(sprite);
   }
