@@ -373,6 +373,8 @@ export class InfiniteWorld {
   rollDice(entityId: string): { roll: number; directions: DirectionOption[] } | null {
     const state = this.players.get(entityId);
     if (!state?.alive || state.actionsToday >= state.maxActions) return null;
+    // 体力耗尽无法行动（但不死亡，等待恢复）
+    if (state.energy <= 0) return null;
 
     // 确保玩家周围区域已生成 (骰子最大6步 × 步距2 = 12格)
     const curNode = this.nodes.get(state.nodeId);
@@ -589,12 +591,16 @@ export class InfiniteWorld {
     }
     if (finalNode.building) events.push('BUILDING');
 
-    // 生死检查
-    if (state.hunger <= 0 || state.energy <= 0) {
+    // 生死检查: 饥饿=0 或 幸福感=0 → 死亡; 体力=0 → 不死但无法行动
+    if (state.hunger <= 0 || state.happiness <= 0) {
       state.alive = false;
       events.push('DEATH');
+    } else if (state.energy <= 0) {
+      events.push('ENERGY_EXHAUSTED'); // 体力耗尽，无法继续行动（不死亡）
     } else if (state.hunger <= 20) {
       events.push('HUNGER_WARNING');
+    } else if (state.happiness <= 15) {
+      events.push('HAPPINESS_WARNING');
     } else if (state.energy <= 15) {
       events.push('ENERGY_WARNING');
     }
@@ -1024,8 +1030,8 @@ export class InfiniteWorld {
         state.hunger = Math.max(0, state.hunger - 10);
         // 每日幸福感自然下降 5 点
         state.happiness = Math.max(0, state.happiness - 5);
-        // 检查是否因饥饿归零而死亡
-        if (state.hunger <= 0) {
+        // 饥饿=0 或 幸福感=0 → 死亡 (体力=0 不死，只是无法行动)
+        if (state.hunger <= 0 || state.happiness <= 0) {
           state.alive = false;
         }
       }

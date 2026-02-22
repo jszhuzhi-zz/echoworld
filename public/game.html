@@ -838,8 +838,8 @@ const I18N = {
     days:'生存天数',recharged:'累计充值',my_assets:'我的资产',
     no_assets:'暂无资产，建造设施获得被动收入',
     confirm_demolish:'确认拆除',refund_hint:'返还',
-    death_imminent:'⚠️ 即将死亡！饥饿或体力归零将永久死亡，不可复活！',
-    death_risk:'⚠️ 警告：饥饿或体力过低，继续行动可能导致永久死亡！',
+    death_imminent:'⚠️ 即将死亡！饥饿或幸福感归零将永久死亡！',
+    death_risk:'⚠️ 警告：饥饿或幸福感过低，请尽快消费恢复！体力归零只是无法行动。',
     life_rec:'生命恢复',rec_hunger:'🍔 恢复饥饿 +20',rec_cost:'花费 80 CC',
     rec_hint:'体力基于真实时间恢复（每小时+5），饥饿仅可通过消费建筑或花费CC恢复',
     buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',copy_link:'📎 复制邀请链接',link_copied:'邀请链接已复制',
@@ -896,8 +896,8 @@ const I18N = {
     days:'Days Survived',recharged:'Recharged',my_assets:'ASSETS',
     no_assets:'No assets yet. Build for passive income.',
     confirm_demolish:'Confirm demolish',refund_hint:'Refund',
-    death_imminent:'⚠️ Death imminent! Zero hunger or energy = permanent death, no revival!',
-    death_risk:'⚠️ Warning: Low hunger/energy. Moving may cause permanent death!',
+    death_imminent:'⚠️ Death imminent! Zero hunger or happiness = permanent death!',
+    death_risk:'⚠️ Warning: Low hunger/happiness. Consume to recover! Zero energy only blocks movement.',
     life_rec:'RECOVERY',rec_hunger:'🍔 Hunger +20',rec_cost:'Cost 80 CC',
     rec_hint:'Energy recovers daily. Hunger only via buildings or CC.',
     buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',copy_link:'📎 Copy Invite Link',link_copied:'Invite link copied',
@@ -1919,7 +1919,7 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '结局' : 'Consequence',
           consequence: true,
-          text: zh ? '饥饿值降至 0 → 角色永久死亡，所有财富转入世界国库，不可复活。' : 'Hunger reaches 0 → permanent death. All wealth goes to world treasury. No revival.',
+          text: zh ? '饥饿值或幸福感降至 0 → 角色永久死亡，所有财富转入世界国库，不可复活。' : 'Hunger or Happiness reaches 0 → permanent death. All wealth goes to world treasury.',
           color: '#ef4444',
         },
       ],
@@ -1950,7 +1950,7 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '提示' : 'Tip',
           consequence: true,
-          text: zh ? '每次移动消耗5体力，体力归零将死亡！体力基于真实时间恢复，在住所或酒店消费可快速恢复。' : 'Each move costs 5 energy. Zero energy = death! Energy recovers in real time. Rest at shelters or hotels for quick recovery.',
+          text: zh ? '每次移动消耗5体力，体力归零不会死亡但无法行动，等待真实时间恢复或在建筑消费恢复。' : 'Each move costs 5 energy. Zero energy = cannot move (not death). Wait for real-time recovery or consume at buildings.',
           color: '#3b82f6',
         },
       ],
@@ -2043,13 +2043,13 @@ function updateStats(stats) {
   document.getElementById('hp-hunger-val').textContent = h;
   document.getElementById('hp-energy-val').textContent = e;
   document.getElementById('hp-happy-val').textContent = hp;
-  // Death warning when hunger or energy critically low
+  // Death warning when hunger or happiness critically low (energy=0 only blocks movement, not death)
   const warnEl = document.getElementById('death-warning');
-  if (stats?.alive !== false && (h <= 20 || e <= 15)) {
-    const critical = h <= 5 || e <= 5;
+  if (stats?.alive !== false && (h <= 20 || hp <= 15)) {
+    const critical = h <= 5 || hp <= 5;
     warnEl.textContent = critical
-      ? (t('death_imminent') || '⚠️ 即将死亡！饥饿或体力归零将永久死亡，不可复活！')
-      : (t('death_risk') || '⚠️ 警告：饥饿或体力过低，继续行动可能导致永久死亡！');
+      ? (t('death_imminent') || '⚠️ 即将死亡！饥饿或幸福感归零将永久死亡！')
+      : (t('death_risk') || '⚠️ 警告：饥饿或幸福感过低，请尽快消费恢复！');
     warnEl.className = 'death-warning ' + (critical ? 'critical' : 'warn');
     warnEl.style.display = 'block';
   } else {

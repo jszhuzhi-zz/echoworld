@@ -831,10 +831,20 @@ export function createServer(world: World, port = 3000): express.Application {
 
   /** 掷骰子 (返回方向选项) */
   app.post('/api/world/roll', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
     const user = userStore.findById(req.user!.userId);
-    if (!user?.entityId) return res.status(400).json({ error: st(getLang(req), 'no_entity') });
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    // 体力耗尽时给出具体提示
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (state && state.alive && state.energy <= 0) {
+      return res.status(400).json({
+        error: lang === 'zh'
+          ? '⚡ 体力耗尽，无法行动！请等待体力恢复（每真实小时+5）或消费建筑补充。'
+          : '⚡ No energy! Wait for recovery (+5/hour) or consume at buildings.',
+      });
+    }
     const result = infiniteWorld.rollDice(user.entityId);
-    if (!result) return res.status(400).json({ error: st(getLang(req), 'no_move') });
+    if (!result) return res.status(400).json({ error: st(lang, 'no_move') });
     res.json(result);
   });
 
