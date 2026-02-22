@@ -47,6 +47,16 @@ export class EventBus {
       .slice(-count);
   }
 
+  /** 按实体ID获取事件 */
+  getEventsByEntity(entityId: string, count = 100): WorldEvent[] {
+    return this.eventLog
+      .filter(e => {
+        const d = e.data;
+        return d.entityId === entityId || d.from === entityId || d.to === entityId || d.borrowerId === entityId;
+      })
+      .slice(-count);
+  }
+
   /** 清空事件日志 */
   clearLog(): void {
     this.eventLog = [];

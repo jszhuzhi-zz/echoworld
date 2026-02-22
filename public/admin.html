@@ -138,6 +138,41 @@
     .scroll-box::-webkit-scrollbar { width: 4px; }
     .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
+    /* KPI Cards */
+    .kpi-card {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; text-align: center;
+    }
+    .kpi-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .kpi-value { font-size: 20px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--accent); }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.yellow { color: var(--yellow); }
+    .kpi-value.red { color: var(--red); }
+
+    /* Bar chart rows */
+    .bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(55,65,81,0.2); }
+    .bar-row:last-child { border-bottom: none; }
+    .bar-label { min-width: 100px; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; height: 14px; background: var(--bg); border-radius: 4px; overflow: hidden; position: relative; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; min-width: 2px; }
+    .bar-fill.blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+    .bar-fill.purple { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+    .bar-fill.green { background: linear-gradient(90deg, #10b981, #34d399); }
+    .bar-fill.orange { background: linear-gradient(90deg, #f97316, #fb923c); }
+    .bar-val { min-width: 70px; text-align: right; font-size: 12px; font-family: monospace; color: var(--text2); }
+
+    /* Action log */
+    .action-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px;
+      font-weight: 600; white-space: nowrap;
+    }
+    .action-tag.move { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .action-tag.roll { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    .action-tag.build { background: rgba(16,185,129,0.15); color: #34d399; }
+    .action-tag.use { background: rgba(249,115,22,0.15); color: #fb923c; }
+    .action-tag.tx { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .action-tag.other { background: rgba(156,163,175,0.15); color: #9ca3af; }
+
     .entity-bar { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(55,65,81,0.3); }
     .entity-bar .name { font-weight: 500; font-size: 13px; min-width: 100px; }
     .entity-bar .money { color: var(--yellow); font-size: 13px; font-family: monospace; min-width: 80px; text-align: right; }
@@ -271,6 +306,87 @@
           </div>
           <button class="btn btn-yellow" onclick="treasuryTransfer()">转账</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- ==================== World Economy BI Dashboard ==================== -->
+    <div class="card" style="margin-top:8px;">
+      <div class="card-title" style="font-size:17px;">World Economy BI Dashboard</div>
+
+      <!-- KPI Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;" id="biKPIs">
+        <div class="kpi-card"><div class="kpi-label">Total Wealth</div><div class="kpi-value" id="kpi-wealth">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Treasury</div><div class="kpi-value" id="kpi-treasury">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Daily GDP</div><div class="kpi-value" id="kpi-gdp">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Gini Coeff</div><div class="kpi-value" id="kpi-gini">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Alive / Total</div><div class="kpi-value" id="kpi-entities">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Transactions</div><div class="kpi-value" id="kpi-tx">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Active Loans</div><div class="kpi-value" id="kpi-loans">-</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Buildings</div><div class="kpi-value" id="kpi-buildings">-</div></div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Market Prices -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Market Prices</div>
+          <table>
+            <thead><tr><th>Resource</th><th>Price (CC)</th><th>Daily Volume</th></tr></thead>
+            <tbody id="biPricesTable"><tr><td colspan="3" style="color:var(--text2)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- Bank Stats -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Banking System</div>
+          <table>
+            <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+            <tbody id="biBankTable"><tr><td colspan="2" style="color:var(--text2)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:12px;">
+        <!-- Wealth Distribution (Top 10) -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Wealth Distribution (Top 10)</div>
+          <div id="biWealthBars" class="scroll-box" style="max-height:300px;"></div>
+        </div>
+
+        <!-- Building Stats -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Buildings by Type</div>
+          <div id="biBuildingBars" class="scroll-box" style="max-height:300px;"></div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="card" style="margin-top:12px;margin-bottom:0;">
+        <div class="card-title">Recent Transactions <span class="badge" id="biTxCount">0</span></div>
+        <div class="scroll-box" style="max-height:250px;">
+          <table>
+            <thead><tr><th>Time</th><th>From</th><th>To</th><th>Resource</th><th>Qty</th><th>Total (CC)</th></tr></thead>
+            <tbody id="biTxTable"><tr><td colspan="6" style="color:var(--text2)">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Player Action Log ==================== -->
+    <div class="card" style="margin-top:8px;">
+      <div class="card-title">Player Action Log</div>
+      <div class="input-row" style="margin-top:0;margin-bottom:12px;">
+        <div class="input-group">
+          <label>Select Player</label>
+          <select id="actionLogEntity" style="min-width:200px" onchange="loadEntityActions()"></select>
+        </div>
+        <button class="btn btn-blue btn-sm" onclick="loadEntityActions()">Refresh</button>
+      </div>
+      <div class="scroll-box" style="max-height:500px;">
+        <table>
+          <thead><tr><th style="width:100px">Time</th><th style="width:110px">Action</th><th>Details</th></tr></thead>
+          <tbody id="actionLogTable"><tr><td colspan="3" style="color:var(--text2)">Select a player to view actions</td></tr></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -572,16 +688,200 @@
       } catch (e) { showToast('操作失败', 'error'); }
     }
 
+    // ========== BI Dashboard ==========
+    const RESOURCE_ICONS = { food: 'Food', material: 'Material', goods: 'Goods', energy: 'Energy', labor: 'Labor' };
+    const BAR_COLORS = ['blue', 'purple', 'green', 'orange', 'blue', 'purple'];
+
+    async function loadBI() {
+      try {
+        const res = await fetch(API + '/api/admin/bi', { headers: authHeaders() });
+        if (!res.ok) return;
+        const bi = await res.json();
+
+        // KPIs
+        setKPI('kpi-wealth', fmtCC(bi.entities.totalWealth), 'yellow');
+        setKPI('kpi-treasury', fmtCC(bi.tax?.treasury ?? 0), 'green');
+        setKPI('kpi-gdp', fmtCC(bi.stats?.dailyGDP ?? 0));
+        setKPI('kpi-gini', (bi.stats?.giniCoefficient ?? 0).toFixed(3), bi.stats?.giniCoefficient > 0.5 ? 'red' : 'green');
+        setKPI('kpi-entities', `${bi.entities.alive} / ${bi.entities.total}`);
+        setKPI('kpi-tx', (bi.stats?.totalTransactions ?? 0).toLocaleString());
+        setKPI('kpi-loans', (bi.bank?.activeLoans ?? 0).toString());
+        setKPI('kpi-buildings', bi.buildings.total.toString());
+
+        // Market Prices
+        const prices = bi.market.prices || {};
+        const volume = bi.market.dailyVolume || {};
+        document.getElementById('biPricesTable').innerHTML = Object.entries(prices)
+          .map(([r, p]) => `<tr><td>${RESOURCE_ICONS[r] || r}</td><td style="font-family:monospace;color:var(--yellow)">${Number(p).toFixed(1)}</td><td style="font-family:monospace">${(volume[r] || 0).toLocaleString()}</td></tr>`)
+          .join('') || '<tr><td colspan="3" style="color:var(--text2)">No data</td></tr>';
+
+        // Bank Stats
+        const bank = bi.bank || {};
+        const bankRows = [
+          ['Money Supply', fmtCC(bank.totalMoneySupply ?? 0)],
+          ['Total Loans', fmtCC(bank.totalLoans ?? 0)],
+          ['Total Deposits', fmtCC(bank.totalDeposits ?? 0)],
+          ['Loan Rate', ((bank.loanInterestRate ?? 0) * 100).toFixed(1) + '%'],
+          ['Deposit Rate', ((bank.depositInterestRate ?? 0) * 100).toFixed(1) + '%'],
+        ];
+        document.getElementById('biBankTable').innerHTML = bankRows
+          .map(([k, v]) => `<tr><td>${k}</td><td style="font-family:monospace;font-weight:600">${v}</td></tr>`)
+          .join('');
+
+        // Wealth Distribution
+        const top10 = bi.entities.top10 || [];
+        const maxNW = Math.max(...top10.map(e => e.netWorth), 1);
+        document.getElementById('biWealthBars').innerHTML = top10.map((e, i) => `
+          <div class="bar-row">
+            <span class="bar-label">${i + 1}. ${e.name}</span>
+            <div class="bar-track"><div class="bar-fill ${BAR_COLORS[i % BAR_COLORS.length]}" style="width:${(e.netWorth / maxNW * 100).toFixed(1)}%"></div></div>
+            <span class="bar-val">${fmtCC(e.netWorth)}</span>
+          </div>
+        `).join('') || '<div style="color:var(--text2);font-size:13px">No entities</div>';
+
+        // Buildings by Type
+        const bTypes = bi.buildings.byType || {};
+        const maxB = Math.max(...Object.values(bTypes).map(Number), 1);
+        document.getElementById('biBuildingBars').innerHTML = Object.entries(bTypes)
+          .sort((a, b) => Number(b[1]) - Number(a[1]))
+          .map(([t, c], i) => `
+            <div class="bar-row">
+              <span class="bar-label">${t}</span>
+              <div class="bar-track"><div class="bar-fill ${BAR_COLORS[i % BAR_COLORS.length]}" style="width:${(Number(c) / maxB * 100).toFixed(1)}%"></div></div>
+              <span class="bar-val">${c}</span>
+            </div>
+          `).join('') || '<div style="color:var(--text2);font-size:13px">No buildings</div>';
+
+        // Recent Transactions
+        const txs = bi.market.recentTransactions || [];
+        document.getElementById('biTxCount').textContent = txs.length;
+        document.getElementById('biTxTable').innerHTML = txs.slice(-20).reverse().map(tx => {
+          const fromName = findEntityName(tx.from);
+          const toName = findEntityName(tx.to);
+          return `<tr>
+            <td style="font-size:11px;color:var(--text2)">D${tx.timestamp?.day || '?'} H${tx.timestamp?.hour || '?'}</td>
+            <td>${fromName}</td><td>${toName}</td>
+            <td>${RESOURCE_ICONS[tx.resourceType] || tx.resourceType}</td>
+            <td style="font-family:monospace">${tx.amount}</td>
+            <td style="font-family:monospace;color:var(--yellow)">${Number(tx.totalCost).toFixed(0)}</td>
+          </tr>`;
+        }).join('') || '<tr><td colspan="6" style="color:var(--text2)">No transactions</td></tr>';
+
+        // Update action log entity selector
+        updateActionLogSelector(bi.entities.top10);
+      } catch (e) { console.error('BI load error:', e); }
+    }
+
+    function setKPI(id, value, colorClass) {
+      const el = document.getElementById(id);
+      el.textContent = value;
+      el.className = 'kpi-value' + (colorClass ? ' ' + colorClass : '');
+    }
+
+    function fmtCC(v) {
+      v = Number(v);
+      if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+      if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+      return v.toFixed(0);
+    }
+
+    function findEntityName(id) {
+      if (!id) return '?';
+      if (id === 'market') return 'Market';
+      const e = allEntities.find(e => e.id === id);
+      return e ? e.name : id.slice(0, 8);
+    }
+
+    function updateActionLogSelector(entities) {
+      const sel = document.getElementById('actionLogEntity');
+      if (sel.options.length > 1) return; // already populated
+      sel.innerHTML = '<option value="">-- select --</option>';
+      // Use allEntities (already loaded by loadEntities)
+      for (const e of allEntities) {
+        sel.innerHTML += `<option value="${e.id}">${e.name} (${e.money?.toFixed(0) ?? 0} CC)</option>`;
+      }
+    }
+
+    // ========== Player Action Log ==========
+    const ACTION_LABELS = {
+      roll_dice: ['Roll Dice', 'roll'],
+      move: ['Move', 'move'],
+      use_building: ['Use Building', 'use'],
+      build: ['Build', 'build'],
+      entity_action: ['AI Action', 'other'],
+      transaction: ['Transaction', 'tx'],
+      entity_created: ['Created', 'other'],
+      entity_bankrupt: ['Bankrupt', 'other'],
+      building_built: ['Built', 'build'],
+    };
+
+    async function loadEntityActions() {
+      const entityId = document.getElementById('actionLogEntity').value;
+      const tbody = document.getElementById('actionLogTable');
+      if (!entityId) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text2)">Select a player to view actions</td></tr>';
+        return;
+      }
+      try {
+        const res = await fetch(API + `/api/admin/entity-actions/${entityId}?count=200`, { headers: authHeaders() });
+        if (!res.ok) throw new Error('Failed');
+        const events = await res.json();
+
+        if (events.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text2)">No actions recorded yet</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = events.reverse().map(ev => {
+          const t = ev.timestamp || {};
+          const timeStr = `D${t.day ?? '?'} H${t.hour ?? '?'}`;
+          const actionKey = ev.data?.action || ev.type || 'other';
+          const [label, cls] = ACTION_LABELS[actionKey] || [actionKey, 'other'];
+          const details = formatActionDetails(actionKey, ev.data || {});
+          return `<tr>
+            <td style="font-size:11px;color:var(--text2);white-space:nowrap">${timeStr}</td>
+            <td><span class="action-tag ${cls}">${label}</span></td>
+            <td style="font-size:12px">${details}</td>
+          </tr>`;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:var(--red)">Load failed</td></tr>';
+      }
+    }
+
+    function formatActionDetails(action, data) {
+      const p = data.params || {};
+      switch (action) {
+        case 'roll_dice':
+          return `Rolled <strong>${p.roll}</strong>, ${p.directions} direction(s)`;
+        case 'move':
+          const msgs = (p.messages || []).join('; ');
+          const evts = (p.events || []).join(', ');
+          return `To node ${p.toNode ?? '?'}` + (evts ? ` [${evts}]` : '') + (msgs ? ` — ${msgs}` : '');
+        case 'use_building':
+          const effs = Object.entries(p.effects || {}).map(([k, v]) => `${k}+${v}`).join(' ');
+          return `<strong>${p.building}</strong> fee:${p.fee ?? 0}CC ${effs}`;
+        case 'build':
+          return `Built <strong>${p.building}</strong> at (${p.x},${p.y}) cost:${p.cost}CC`;
+        case 'transaction':
+          return `${data.resourceType} x${data.amount} = ${data.totalCost}CC`;
+        default:
+          return JSON.stringify(data).slice(0, 200);
+      }
+    }
+
     // ========== Init ==========
     function refreshAll() {
       loadWorldStatus();
       loadRules();
       loadUsers();
       loadEntities();
+      loadBI();
     }
     refreshAll();
     setInterval(loadWorldStatus, 5000);
     setInterval(loadEntities, 10000);
+    setInterval(loadBI, 15000);
   </script>
 </body>
 </html>

@@ -470,6 +470,61 @@ export function createServer(world: World, port = 3000): express.Application {
     }
   });
 
+  /** 获取某实体的行动日志 (管理员) */
+  app.get('/api/admin/entity-actions/:entityId', authMiddleware, requireRole('admin'), (req, res) => {
+    const count = parseInt(req.query.count as string) || 100;
+    const events = world.state.eventBus.getEventsByEntity(req.params.entityId, count);
+    res.json(events);
+  });
+
+  /** 世界经济 BI 综合数据 (管理员) */
+  app.get('/api/admin/bi', authMiddleware, requireRole('admin'), (_req, res) => {
+    const allEntities = world.entities.getAllEntities().map(e => e.getSummary());
+    const stats = world.state.getStatistics();
+    const marketStats = world.market.getStats();
+    const bankStats = world.bank.getStats();
+    const taxStats = world.tax.getStats();
+    const time = world.state.getTime();
+    const prices = world.market.getAllPrices();
+    const recentTx = world.market.getRecentTransactions(50);
+
+    // Wealth distribution
+    const sorted = allEntities.map(e => e.currency).sort((a, b) => a - b);
+    const totalWealth = sorted.reduce((s, v) => s + v, 0);
+
+    // Entity breakdown
+    const alive = allEntities.filter(e => e.status !== 'bankrupt');
+    const bankrupt = allEntities.filter(e => e.status === 'bankrupt');
+    const topEntities = [...allEntities].sort((a, b) => b.netWorth - a.netWorth).slice(0, 10);
+
+    // Building stats from infinite world
+    let totalBuildings = 0;
+    let buildingsByType: Record<string, number> = {};
+    for (const [, node] of infiniteWorld.nodes) {
+      if (node.building) {
+        totalBuildings++;
+        const t = node.building.templateType;
+        buildingsByType[t] = (buildingsByType[t] || 0) + 1;
+      }
+    }
+
+    res.json({
+      time, stats,
+      market: { ...marketStats, prices, recentTransactions: recentTx },
+      bank: bankStats,
+      tax: taxStats,
+      entities: {
+        total: allEntities.length,
+        alive: alive.length,
+        bankrupt: bankrupt.length,
+        totalWealth,
+        averageWealth: allEntities.length ? totalWealth / allEntities.length : 0,
+        top10: topEntities,
+      },
+      buildings: { total: totalBuildings, byType: buildingsByType },
+    });
+  });
+
   // ==================== 公共 API (所有角色) ====================
 
   /** 世界时间 (公开) — 返回真实时间 */
@@ -861,6 +916,7 @@ export function createServer(world: World, port = 3000): express.Application {
     }
     const result = infiniteWorld.rollDice(user.entityId);
     if (!result) return res.status(400).json({ error: st(lang, 'no_move') });
+    world.state.eventBus.emit({ type: WorldEventType.ENTITY_ACTION, data: { entityId: user.entityId, entityName: user.nickname, action: 'roll_dice', params: { roll: result.roll, directions: result.directions.length } }, timestamp: world.state.getTime() });
     res.json(result);
   });
 
@@ -957,6 +1013,7 @@ export function createServer(world: World, port = 3000): express.Application {
       }
     }
 
+    world.state.eventBus.emit({ type: WorldEventType.ENTITY_ACTION, data: { entityId: user.entityId, entityName: user.nickname, action: 'move', params: { toNode: moveResult.finalNode?.id, events: moveResult.events, messages } }, timestamp: world.state.getTime() });
     res.json({
       path: moveResult.path,
       finalNode: moveResult.finalNode,
@@ -1003,6 +1060,7 @@ export function createServer(world: World, port = 3000): express.Application {
       messages.push(st(lang, 'upgraded', result.building.name, result.building.level));
     }
 
+    world.state.eventBus.emit({ type: WorldEventType.ENTITY_ACTION, data: { entityId: user.entityId, entityName: user.nickname, action: 'use_building', params: { building: result.building.name, fee: result.fee, effects: result.effects } }, timestamp: world.state.getTime() });
     res.json({
       messages,
       fee: result.fee,
@@ -1043,6 +1101,7 @@ export function createServer(world: World, port = 3000): express.Application {
     entity.pay(template.cost);
 
     const node = infiniteWorld.nodes.get(nodeId)!;
+    world.state.eventBus.emit({ type: WorldEventType.ENTITY_ACTION, data: { entityId: user.entityId, entityName: user.nickname, action: 'build', params: { building: result.building.name, cost: template.cost, nodeId, x: node.x, y: node.y } }, timestamp: world.state.getTime() });
     res.json({
       message: st(lang, 'built', result.building.name, node.x, node.y, template.cost),
       building: result.building,
