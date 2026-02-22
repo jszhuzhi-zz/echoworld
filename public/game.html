@@ -1706,8 +1706,11 @@ function showConsumePrompt(pb) {
     const b = pb.building;
     const zh = currentLang === 'zh';
 
+    const isOwnBld = b.ownerId === currentUser?.entityId;
     document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} Lv.${b.level}`;
-    document.getElementById('cp-owner').textContent = `${b.ownerName}${t('facility')}`;
+    document.getElementById('cp-owner').textContent = isOwnBld
+      ? (zh ? '🏠 你自己的设施' : '🏠 Your own facility')
+      : `${b.ownerName}${t('facility')}`;
     document.getElementById('cp-effects').innerHTML = `<span style="font-size:14px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
     document.getElementById('cp-fee').textContent = pb.fee;
 
@@ -2174,27 +2177,26 @@ async function fetchMe() {
     if (curNode?.building) {
       const tpl = buildingCatalog.find(t => t.type === curNode.building.templateType);
       const isBank = tpl?.isBank ?? false;
-      if (curNode.building.ownerId === currentUser.entityId) {
-        // Own building → sell + demolish
+      const isOwn = curNode.building.ownerId === currentUser.entityId;
+      // 所有建筑都显示消费按钮（自己的也能消费）
+      showBuildingOverlay(curNode);
+      const lvMult = 1 + (curNode.building.level - 1) * 0.3;
+      const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+      if (isBank) {
+        document.getElementById('btn-bank').style.display = 'inline-flex';
+      } else {
+        document.getElementById('btn-consume').style.display = 'inline-flex';
+        document.getElementById('btn-consume').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg><span style="font-size:10px;margin-left:2px">${isOwn ? '🏠' : ''}${fee}</span>`;
+      }
+      if (isOwn) {
+        // Own building → also show sell + demolish
         document.getElementById('btn-sell').style.display = 'inline-flex';
         document.getElementById('btn-demolish').style.display = 'inline-flex';
-        if (isBank) document.getElementById('btn-bank').style.display = 'inline-flex';
-        hasCtx = true;
       } else {
-        // Other's building → consume + trade
-        showBuildingOverlay(curNode);
-        const lvMult = 1 + (curNode.building.level - 1) * 0.3;
-        const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
-        if (isBank) {
-          // Bank building → show bank button instead of consume
-          document.getElementById('btn-bank').style.display = 'inline-flex';
-        } else {
-          document.getElementById('btn-consume').style.display = 'inline-flex';
-          document.getElementById('btn-consume').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg><span style="font-size:10px;margin-left:2px">${fee}</span>`;
-        }
+        // Other's building → trade offer
         document.getElementById('btn-trade').style.display = 'inline-flex';
-        hasCtx = true;
       }
+      hasCtx = true;
     } else if (curNode && !curNode.building && ['road', 'intersection'].includes(curNode.type)) {
       // Empty buildable → build
       document.getElementById('btn-build').style.display = 'inline-flex';
@@ -2412,13 +2414,22 @@ window.useBuilding = function() {
   const statLabels = { hunger: t('stat_hunger') || '饱食度', energy: t('stat_energy') || '体力', happiness: t('stat_happy') || '幸福感' };
 
   document.getElementById('cm-title').textContent = `${tpl.icon} ${bldgName(tpl)} (Lv.${b.level})`;
-  document.getElementById('cm-owner').textContent = `${t('owner')}: ${b.ownerName}`;
+  const isOwn = b.ownerId === currentUser?.entityId;
+  document.getElementById('cm-owner').textContent = isOwn
+    ? (currentLang === 'zh' ? '🏠 这是你自己的设施' : '🏠 This is your own facility')
+    : `${t('owner')}: ${b.ownerName}`;
   document.getElementById('cm-desc').textContent = bldgDesc(tpl);
   document.getElementById('cm-effects').innerHTML = `<span style="padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--green);font-size:14px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
-  document.getElementById('cm-fee').textContent = `${t('use_fee') || '费用'}: ${fee} CC`;
+  if (isOwn) {
+    document.getElementById('cm-fee').textContent = currentLang === 'zh' ? `自家消费：${fee} CC（自付自收）` : `Own use: ${fee} CC (self-pay)`;
+  } else {
+    document.getElementById('cm-fee').textContent = `${t('use_fee') || '费用'}: ${fee} CC`;
+  }
   const tax = 0; // 当前消费税率 0%
   const ownerIncome = fee - Math.floor(fee * tax);
-  document.getElementById('cm-owner-income').textContent = `${b.ownerName} ${t('receive_income') || '获得收益'}: ${ownerIncome} CC${tax > 0 ? ` (${t('tax') || '税'} ${(tax*100).toFixed(0)}%)` : ''}`;
+  document.getElementById('cm-owner-income').textContent = isOwn
+    ? (currentLang === 'zh' ? '💡 享受效果，费用返还给自己' : '💡 Get effects, fee returns to you')
+    : `${b.ownerName} ${t('receive_income') || '获得收益'}: ${ownerIncome} CC${tax > 0 ? ` (${t('tax') || '税'} ${(tax*100).toFixed(0)}%)` : ''}`;
   document.getElementById('cm-confirm').textContent = `${t('consume_btn') || '消费'} ${fee} CC`;
   document.getElementById('consume-modal').style.display = 'flex';
 };

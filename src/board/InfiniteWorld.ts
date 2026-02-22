@@ -488,7 +488,7 @@ export class InfiniteWorld {
       const checkNode = (nid: number) => {
         if (passedBuildings.some(pb => pb.nodeId === nid)) return;
         const cn = this.nodes.get(nid);
-        if (cn?.building && cn.building.ownerId !== entityId) {
+        if (cn?.building) {
           const tpl = MASLOW_BUILDINGS.find(b => b.type === cn.building!.templateType);
           if (!tpl) return;
           const fee = Math.floor(tpl.baseFee * (1 + (cn.building!.level - 1) * 0.3));
@@ -665,9 +665,7 @@ export class InfiniteWorld {
     const template = MASLOW_BUILDINGS.find(b => b.type === building.templateType);
     if (!template) return null;
 
-    // 不能使用自己的设施
-    if (building.ownerId === entityId) return null;
-
+    // 自己的建筑也可以消费（费用自付自收，但享受效果）
     const state = this.players.get(entityId);
     if (!state) return null;
 
