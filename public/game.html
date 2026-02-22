@@ -40,7 +40,7 @@
     .ms b{font-weight:700;min-width:14px;text-align:right}
     .pos-info{display:inline-block;font-size:11px;color:var(--text2);background:rgba(0,0,0,0.4);padding:3px 12px;border-radius:10px;white-space:nowrap}
     .top-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
-    .money-badge-bottom{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:6px 18px;border-radius:12px;font-weight:800;font-size:16px;white-space:nowrap;text-align:center;min-width:120px;box-shadow:0 2px 12px rgba(245,158,11,0.35);transition:transform .2s}
+    .money-badge-bottom{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:6px 14px;border-radius:12px;font-weight:800;font-size:14px;white-space:nowrap;text-align:center;min-width:100px;box-shadow:0 2px 12px rgba(245,158,11,0.35);transition:transform .2s}
     .money-badge-bottom:hover{transform:scale(1.05)}
     .settings-item:hover{background:rgba(255,255,255,0.08)!important}
     .action-badge{background:rgba(59,130,246,0.2);color:var(--accent);padding:3px 8px;border-radius:8px;font-size:10px;border:1px solid rgba(59,130,246,0.3);white-space:nowrap}
@@ -67,16 +67,19 @@
 
     /* === Bottom Action Bar === */
     #action-bar{position:fixed;z-index:15;bottom:16px;left:16px;right:16px;
-      display:flex;justify-content:space-between;align-items:center;
-      background:var(--bar-bg);border:1px solid var(--border);border-radius:18px;padding:8px 14px;
+      display:flex;align-items:center;
+      background:var(--bar-bg);border:1px solid var(--border);border-radius:22px;padding:8px 14px;
       backdrop-filter:blur(10px)}
-    .action-group{display:flex;gap:8px;align-items:center}
-    .btn-dice{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);background:rgba(59,130,246,0.15);
-      color:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-      transition:all .3s;flex-shrink:0}
+    .action-side{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+    .action-side.left{justify-content:flex-start}
+    .action-side.right{justify-content:flex-end}
+    .action-center{flex:0 0 auto;display:flex;align-items:center;gap:8px;margin:0 8px}
+    .btn-dice{width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);background:rgba(59,130,246,0.15);
+      color:#fff;font-size:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:all .3s;flex-shrink:0;box-shadow:0 4px 20px rgba(59,130,246,0.3)}
     .btn-dice:hover{background:rgba(59,130,246,0.3);transform:scale(1.08)}
     .btn-dice:disabled{opacity:.4;cursor:not-allowed;transform:none}
-    .btn-dice .dice-num{font-size:30px;font-weight:900}
+    .btn-dice .dice-num{font-size:36px;font-weight:900}
     .dir-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
       color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
     .dir-btn:hover{transform:translateY(-2px)}
@@ -86,6 +89,7 @@
     .dir-btn.dir-ccw:hover{background:rgba(251,146,60,0.35)}
     .dir-btn.dir-forward{border-color:var(--green);background:rgba(16,185,129,0.15);color:#6ee7b7}
     .dir-btn.dir-forward:hover{background:rgba(16,185,129,0.35)}
+    .ctx-placeholder{width:40px;height:36px;display:inline-block}
     .dice-info{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:8px;font-weight:700;white-space:nowrap}
 
     /* === Right Panel === */
@@ -207,13 +211,16 @@
       #top-bar{padding:6px 10px}
       .logo-full{display:none}
       .logo-m{display:inline-block!important}
-      #action-bar{padding:6px 10px;bottom:10px;left:10px;right:10px}
-      .btn-dice{width:52px;height:52px;font-size:20px}
+      #action-bar{padding:6px 8px;bottom:8px;left:8px;right:8px;border-radius:18px}
+      .btn-dice{width:60px;height:60px;font-size:22px;border-width:2px}
+      .btn-dice .dice-num{font-size:28px}
       .dir-btn{padding:6px 10px;font-size:14px}
+      .action-center{margin:0 4px}
+      .ctx-placeholder{width:32px;height:30px}
       #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
       .modal-content{width:calc(100vw - 16px);padding:12px}
       .inbox-text{display:none}
-      .money-badge-bottom{font-size:13px;padding:5px 12px;min-width:90px}
+      .money-badge-bottom{font-size:11px;padding:4px 8px;min-width:60px;border-radius:8px}
     }
     @media(min-width:769px) and (max-width:1024px){
       #right-panel{width:170px}
@@ -259,17 +266,18 @@
 <!-- Bottom Action Bar -->
 <div id="action-bar">
   <!-- Left: wealth -->
-  <div class="action-group">
+  <div class="action-side left">
     <div class="money-badge-bottom" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">💰 0 CC</div>
   </div>
   <!-- Center: dice + directions -->
-  <div class="action-group">
+  <div class="action-center">
     <button class="dir-btn dir-cw" id="btn-left" style="display:none">↻</button>
     <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
     <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺</button>
   </div>
-  <!-- Right: context actions -->
-  <div class="action-group">
+  <!-- Right: context actions (placeholder keeps dice centered) -->
+  <div class="action-side right" id="ctx-actions">
+    <span class="ctx-placeholder" id="ctx-placeholder"></span>
     <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰</button>
     <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨</button>
     <button class="dir-btn" id="btn-sell" style="display:none;border-color:var(--green);background:rgba(16,185,129,0.15)" onclick="openTradeListModal()">🏷️</button>
@@ -1642,31 +1650,34 @@ async function fetchMe() {
     }
 
     // Current tile context actions
-    document.getElementById('btn-consume').style.display = 'none';
-    document.getElementById('btn-build').style.display = 'none';
-    document.getElementById('btn-sell').style.display = 'none';
-    document.getElementById('btn-trade').style.display = 'none';
-    document.getElementById('btn-demolish').style.display = 'none';
+    const ctxBtns = ['btn-consume','btn-build','btn-sell','btn-trade','btn-demolish'];
+    ctxBtns.forEach(id => document.getElementById(id).style.display = 'none');
+    let hasCtx = false;
     const curNode = meData.node;
     if (curNode?.building) {
       if (curNode.building.ownerId === currentUser.entityId) {
         // Own building → sell + demolish
-        document.getElementById('btn-sell').style.display = 'block';
-        document.getElementById('btn-demolish').style.display = 'block';
+        document.getElementById('btn-sell').style.display = 'inline-flex';
+        document.getElementById('btn-demolish').style.display = 'inline-flex';
+        hasCtx = true;
       } else {
         // Other's building → consume + trade
         showBuildingOverlay(curNode);
         const tpl = buildingCatalog.find(t => t.type === curNode.building.templateType);
         const lvMult = 1 + (curNode.building.level - 1) * 0.3;
         const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
-        document.getElementById('btn-consume').style.display = 'block';
+        document.getElementById('btn-consume').style.display = 'inline-flex';
         document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
-        document.getElementById('btn-trade').style.display = 'block';
+        document.getElementById('btn-trade').style.display = 'inline-flex';
+        hasCtx = true;
       }
     } else if (curNode && !curNode.building && ['road', 'intersection'].includes(curNode.type)) {
       // Empty buildable → build
-      document.getElementById('btn-build').style.display = 'block';
+      document.getElementById('btn-build').style.display = 'inline-flex';
+      hasCtx = true;
     }
+    // Show placeholder when no context buttons to keep dice centered
+    document.getElementById('ctx-placeholder').style.display = hasCtx ? 'none' : 'inline-block';
 
     return meData;
   } catch (e) {
