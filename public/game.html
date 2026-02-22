@@ -310,6 +310,7 @@
     <div style="font-size:10px;color:var(--text2);line-height:1.8">
       <div id="my-referral-code" style="font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;cursor:pointer" onclick="copyReferralCode()" title="点击复制">-</div>
       <div><span data-i18n="ref_share">分享邀请码，好友注册后你获得</span> <span style="color:var(--yellow)">100 CC</span></div>
+      <div style="margin-top:4px"><button class="btn-sm btn-nav" onclick="copyInviteLink()" style="font-size:9px" data-i18n="copy_link">📎 复制邀请链接</button></div>
     </div>
   </div>
   <div class="panel-card">
@@ -430,6 +431,7 @@
       <div style="font-size:10px;color:var(--text2);margin-bottom:4px" data-i18n="ref_code">我的邀请码</div>
       <div class="ref-code" id="wp-referral" onclick="copyReferralCode()">-</div>
       <div class="ref-desc" data-i18n="ref_desc">分享邀请码，好友注册后你获得 100 CC</div>
+      <button class="btn-sm btn-nav" onclick="copyInviteLink()" style="margin-top:8px;font-size:11px;padding:6px 14px" data-i18n="copy_link">📎 复制邀请链接</button>
     </div>
   </div>
 </div>
@@ -553,7 +555,7 @@ const I18N = {
     no_assets:'暂无资产，建造设施获得被动收入',
     life_rec:'生命恢复',rec_hunger:'🍔 恢复饥饿 +20',rec_cost:'花费 80 CC',
     rec_hint:'体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复',
-    buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',
+    buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',copy_link:'📎 复制邀请链接',link_copied:'邀请链接已复制',
     rech_title:'充值 CC 币',first_bonus:'🎉 首充额外赠送 50%！',rech_desc:'购买CC币可提前获得财富，投资资产后可财富增值',
     death_title:'角色永久死亡',
     death_msg:'生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。',
@@ -602,7 +604,7 @@ const I18N = {
     no_assets:'No assets yet. Build for passive income.',
     life_rec:'RECOVERY',rec_hunger:'🍔 Hunger +20',rec_cost:'Cost 80 CC',
     rec_hint:'Energy recovers daily. Hunger only via buildings or CC.',
-    buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',
+    buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',copy_link:'📎 Copy Invite Link',link_copied:'Invite link copied',
     rech_title:'Buy CC',first_bonus:'🎉 First purchase +50%!',rech_desc:'Buy CC to invest and grow wealth',
     death_title:'Permanent Death',
     death_msg:'Health depleted. Wealth transferred to treasury.<br>Cannot revive.<br><br>Thank you for your EchoWorld journey.',
@@ -1842,13 +1844,19 @@ window.closeBuildModal = function() {
 
 async function doBuild(templateType) {
   try {
-    // Find nearest empty lot from current position
+    // Build on current node if it's an empty lot, otherwise nearest lot
     const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
     const meData = await meRes.json();
-    const lots = meData.nearbyLots;
-    if (!lots || lots.length === 0) { addLog(t('no_lots'), 'warn'); return; }
 
-    const nodeId = lots[0].id;
+    let nodeId;
+    const curNode = meData.node;
+    if (curNode && curNode.type === 'lot' && !curNode.building) {
+      nodeId = curNode.id;
+    } else {
+      const lots = meData.nearbyLots;
+      if (!lots || lots.length === 0) { addLog(t('no_lots'), 'warn'); return; }
+      nodeId = lots[0].id;
+    }
     const customName = document.getElementById('build-custom-name').value.trim() || undefined;
 
     const res = await fetch(API + '/api/world/build', {
@@ -1970,6 +1978,17 @@ window.copyReferralCode = function() {
     addLog(`${t('ref_copied')}: ${code}`, 'good');
   }).catch(() => {
     addLog(`${t('ref_code')}: ${code}`, 'good');
+  });
+};
+
+window.copyInviteLink = function() {
+  const code = currentUser?.referralCode;
+  if (!code) return;
+  const link = `${location.origin}/?ref=${code}`;
+  navigator.clipboard.writeText(link).then(() => {
+    addLog(`${t('link_copied')}`, 'good');
+  }).catch(() => {
+    addLog(link, 'good');
   });
 };
 

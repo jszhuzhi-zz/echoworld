@@ -391,6 +391,15 @@
       }
     }
 
+    // Parse ?ref= invite link and auto-fill referral code
+    (function handleInviteLink() {
+      const ref = new URLSearchParams(location.search).get('ref');
+      if (ref) {
+        document.getElementById('regReferralCode').value = ref.toUpperCase();
+        switchTab('register');
+      }
+    })();
+
     // Init i18n
     applyI18n();
   </script>

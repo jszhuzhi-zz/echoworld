@@ -696,11 +696,15 @@ export class InfiniteWorld {
     }
   }
 
-  /** 获取附近有建筑的地块 (用于建造选址) */
+  /** 获取附近空地 (按距离排序，最近的在前) */
   getNearbyLots(cx: number, cy: number, radius = 6): MapNode[] {
-    return this.getVisibleNodes(cx, cy, radius).filter(
-      n => n.type === 'lot' && !n.building
-    );
+    return this.getVisibleNodes(cx, cy, radius)
+      .filter(n => n.type === 'lot' && !n.building)
+      .sort((a, b) => {
+        const da = (a.x - cx) ** 2 + (a.y - cy) ** 2;
+        const db = (b.x - cx) ** 2 + (b.y - cy) ** 2;
+        return da - db;
+      });
   }
 
   // ============ 资产交易 ============
