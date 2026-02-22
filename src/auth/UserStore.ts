@@ -74,11 +74,16 @@ class UserStore {
       this.users.set(admin.id, admin);
       this.save();
     } else {
-      // 确保已有 admin 账号绑定了 email 和 nickname（兼容旧数据）
+      // 确保已有 admin 账号绑定了 email、nickname 和正确密码（兼容旧数据）
       const admin = this.findByUsername('admin')!;
       let needsSave = false;
       if (!admin.email) { admin.email = 'jszhuzhi@gmail.com'; needsSave = true; }
       if (!admin.nickname) { admin.nickname = 'Admin'; needsSave = true; }
+      // 确保密码为 admin888（旧数据可能使用了不同密码）
+      if (!bcrypt.compareSync('admin888', admin.passwordHash)) {
+        admin.passwordHash = bcrypt.hashSync('admin888', 10);
+        needsSave = true;
+      }
       if (needsSave) this.save();
     }
     // Create default test investor if none exists
