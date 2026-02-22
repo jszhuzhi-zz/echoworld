@@ -126,21 +126,21 @@ export function createServer(world: World, port = 3000): express.Application {
   let _lastHour = -1;
   let _lastDay = -1;
 
-  // 监听 tick 事件: 每小时恢复体力, 每日重置行动 & 饥饿衰减
+  // 监听 tick 事件: 每日重置行动 & 饥饿衰减
   world.state.eventBus.on(WorldEventType.TICK, (event) => {
     const time = (event.data as any).time;
     if (!time) return;
-    // 每小时恢复体力 +5
-    if (time.hour !== _lastHour) {
-      _lastHour = time.hour;
-      infiniteWorld.hourlyRecovery();
-    }
-    // 每日开始: 重置行动, 饥饿衰减 -10
+    // 每日开始: 重置行动, 饥饿衰减 -10, 幸福感 -5
     if (time.day !== _lastDay) {
       _lastDay = time.day;
       infiniteWorld.resetDailyActions();
     }
   });
+
+  // 体力恢复基于真实时间: 每真实小时恢复 +5 体力
+  setInterval(() => {
+    infiniteWorld.hourlyRecovery();
+  }, 60 * 60 * 1000);
 
   // === 管理员国库实体 ===
   const adminUser = userStore.findByUsername('admin');

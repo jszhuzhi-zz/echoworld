@@ -542,6 +542,8 @@ export class InfiniteWorld {
 
     // 每日初始行动值内不消耗体力和饥饿值
     // 超出部分由 buyExtraAction 统一扣除
+    // 每次移动消耗 5 点体力
+    state.energy = Math.max(0, state.energy - 5);
     // 幸福感每10步减少1点
     if (state.turnsPlayed % 10 === 0) {
       state.happiness = Math.max(0, state.happiness - 1);

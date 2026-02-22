@@ -806,7 +806,7 @@ const I18N = {
     death_imminent:'⚠️ 即将死亡！饥饿或体力归零将永久死亡，不可复活！',
     death_risk:'⚠️ 警告：饥饿或体力过低，继续行动可能导致永久死亡！',
     life_rec:'生命恢复',rec_hunger:'🍔 恢复饥饿 +20',rec_cost:'花费 80 CC',
-    rec_hint:'体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复',
+    rec_hint:'体力基于真实时间恢复（每小时+5），饥饿仅可通过消费建筑或花费CC恢复',
     buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',copy_link:'📎 复制邀请链接',link_copied:'邀请链接已复制',
     rech_title:'充值 CC 币',first_bonus:'🎉 首充额外赠送 50%！',rech_desc:'购买CC币可提前获得财富，投资资产后可财富增值',
     death_title:'角色永久死亡',
@@ -1862,14 +1862,14 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '消耗规则' : 'Consumption Rules',
           rules: [
-            { text: zh ? '每日初始20次行动内不消耗体力' : 'No energy cost for first 20 daily actions', color: '#fbbf24' },
+            { text: zh ? '每次移动消耗 -5 点体力' : '-5 energy per move', color: '#f87171' },
             { text: zh ? '兑换额外行动时消耗 -10 点（10体力+5饥饿→10次行动）' : '-10 per extra action exchange (10 energy + 5 hunger → 10 actions)', color: '#f87171' },
           ],
         },
         {
           title: zh ? '恢复方式' : 'Recovery Methods',
           rules: [
-            { text: zh ? '⏰ 每小时自动恢复 +5 点（≈每10秒1小时游戏时间）' : '⏰ Auto-recover +5 per hour (~10s real time = 1 game hour)', color: '#22d3ee' },
+            { text: zh ? '⏰ 每真实小时自动恢复 +5 点' : '⏰ Auto-recover +5 per real hour', color: '#22d3ee' },
             { text: zh ? '💧 水站消费：+5 点' : '💧 Water Station: +5', color: '#22d3ee' },
             { text: zh ? '🛖 简易棚消费：体力补满至 100' : '🛖 Shelter: fills energy to 100', color: '#4ade80' },
             { text: zh ? '🏨 精品酒店消费：体力补满至 100 + 幸福感+20' : '🏨 Hotel: fills energy to 100 + happiness +20', color: '#4ade80' },
@@ -1878,7 +1878,7 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '提示' : 'Tip',
           consequence: true,
-          text: zh ? '体力不足时无法兑换额外行动。合理安排休息，在住所或酒店消费可快速恢复满体力。' : 'Cannot exchange extra actions when energy is low. Rest at shelters or hotels to quickly refill.',
+          text: zh ? '每次移动消耗5体力，体力归零将死亡！体力基于真实时间恢复，在住所或酒店消费可快速恢复。' : 'Each move costs 5 energy. Zero energy = death! Energy recovers in real time. Rest at shelters or hotels for quick recovery.',
           color: '#3b82f6',
         },
       ],
