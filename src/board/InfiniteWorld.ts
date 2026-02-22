@@ -532,10 +532,10 @@ export class InfiniteWorld {
     state.nodeId = current;
     this.updateBounds();
 
-    // 生存指标衰减
-    state.hunger = Math.max(0, state.hunger - 5);
-    state.energy = Math.max(0, state.energy - 3);
-    state.happiness = Math.max(0, state.happiness - 2);
+    // 每日初始行动值内不消耗体力和饥饿值
+    // 超出部分由 buyExtraAction 统一扣除
+    // 幸福感轻微自然衰减
+    state.happiness = Math.max(0, state.happiness - 1);
 
     const events: string[] = [];
     const finalNode = this.nodes.get(current)!;
@@ -630,15 +630,52 @@ export class InfiniteWorld {
     const levelMult = 1 + (building.level - 1) * 0.3;
     const fee = Math.floor(template.baseFee * levelMult);
 
-    // 效果 (等级加成)
+    // 效果 (等级加成 + 特殊建筑随机/补满逻辑)
     const effectMult = 1 + (building.level - 1) * 0.2;
     const effects: Record<string, number> = {};
-    for (const [stat, val] of Object.entries(template.effects)) {
-      const boost = Math.floor((val as number) * effectMult);
-      effects[stat] = boost;
-      if (stat === 'hunger') state.hunger = Math.min(100, state.hunger + boost);
-      else if (stat === 'energy') state.energy = Math.min(100, state.energy + boost);
-      else if (stat === 'happiness') state.happiness = Math.min(100, state.happiness + boost);
+
+    // 特殊建筑类型处理
+    const bType = template.type;
+    if (bType === 'food_stand' || bType === 'water_station') {
+      // 小食摊: 饥饿 +30~50 随机
+      const hungerBoost = Math.floor((30 + Math.random() * 20) * effectMult);
+      effects.hunger = hungerBoost;
+      state.hunger = Math.min(100, state.hunger + hungerBoost);
+      // water_station 也补少量体力
+      if (bType === 'water_station') {
+        const energyBoost = Math.floor(5 * effectMult);
+        effects.energy = energyBoost;
+        state.energy = Math.min(100, state.energy + energyBoost);
+      }
+    } else if (bType === 'restaurant') {
+      // 高级餐厅: 饥饿 +50~100 随机
+      const hungerBoost = Math.floor((50 + Math.random() * 50) * effectMult);
+      effects.hunger = hungerBoost;
+      state.hunger = Math.min(100, state.hunger + hungerBoost);
+      // 幸福感照常
+      const happyBoost = Math.floor(15 * effectMult);
+      effects.happiness = happyBoost;
+      state.happiness = Math.min(100, state.happiness + happyBoost);
+    } else if (bType === 'hotel' || bType === 'shelter') {
+      // 酒店/住宅: 体力补满至100
+      const energyGain = 100 - state.energy;
+      effects.energy = energyGain;
+      state.energy = 100;
+      // 酒店额外加幸福感
+      if (bType === 'hotel') {
+        const happyBoost = Math.floor(20 * effectMult);
+        effects.happiness = happyBoost;
+        state.happiness = Math.min(100, state.happiness + happyBoost);
+      }
+    } else {
+      // 其他建筑: 使用模板定义的效果
+      for (const [stat, val] of Object.entries(template.effects)) {
+        const boost = Math.floor((val as number) * effectMult);
+        effects[stat] = boost;
+        if (stat === 'hunger') state.hunger = Math.min(100, state.hunger + boost);
+        else if (stat === 'energy') state.energy = Math.min(100, state.energy + boost);
+        else if (stat === 'happiness') state.happiness = Math.min(100, state.happiness + boost);
+      }
     }
 
     // 使用计数 & 自动升级
@@ -687,19 +724,19 @@ export class InfiniteWorld {
     if (state) state.referralCount++;
   }
 
-  /** 消耗健康值换取额外行动次数 (每次花费10饥饿+10体力，获得1次行动) */
+  /** 消耗健康值换取额外行动次数 (花费10体力+5饥饿，获得10次行动) */
   buyExtraAction(entityId: string): { success: boolean; message: string; stats?: any } {
     const state = this.players.get(entityId);
     if (!state?.alive) return { success: false, message: '角色已死亡' };
-    if (state.hunger < 15 || state.energy < 15) {
-      return { success: false, message: '健康值不足（需要饥饿≥15且体力≥15）' };
+    if (state.energy < 10 || state.hunger < 5) {
+      return { success: false, message: '健康值不足（需要体力≥10且饥饿≥5）' };
     }
-    state.hunger -= 10;
     state.energy -= 10;
-    state.maxActions++;
+    state.hunger -= 5;
+    state.maxActions += 10;
     return {
       success: true,
-      message: `消耗 10饥饿+10体力，行动次数+1 (${state.actionsToday}/${state.maxActions})`,
+      message: `消耗 10体力+5饥饿，行动次数+10 (${state.actionsToday}/${state.maxActions})`,
       stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
     };
   }
@@ -751,9 +788,23 @@ export class InfiniteWorld {
   resetDailyActions(): void {
     for (const state of this.players.values()) {
       state.actionsToday = 0;
-      // 每日自动恢复体力 (饥饿不自动恢复，需消费建筑或花费CC)
+      state.maxActions = 20; // 重置为每日初始行动值
       if (state.alive) {
-        state.energy = Math.min(100, state.energy + 20);
+        // 每日饥饿值自然下降 10 点
+        state.hunger = Math.max(0, state.hunger - 10);
+        // 检查是否因饥饿归零而死亡
+        if (state.hunger <= 0) {
+          state.alive = false;
+        }
+      }
+    }
+  }
+
+  /** 每小时恢复体力 (+5, 上限100) */
+  hourlyRecovery(): void {
+    for (const state of this.players.values()) {
+      if (state.alive) {
+        state.energy = Math.min(100, state.energy + 5);
       }
     }
   }

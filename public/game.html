@@ -624,9 +624,9 @@
     <div class="stamina-title" data-i18n="stam_title">消耗体力兑换行动</div>
     <div class="stamina-desc" data-i18n="stam_desc">消耗生命值来获得额外行动次数</div>
     <div class="stamina-cost">
-      <span class="sc-item">🍔 -10</span>
       <span class="sc-item">⚡ -10</span>
-      <span class="sc-item sc-gain" data-i18n="stam_gain">行动 +1</span>
+      <span class="sc-item">🍔 -5</span>
+      <span class="sc-item sc-gain" data-i18n="stam_gain">行动 +10</span>
     </div>
     <div id="stamina-warning" style="font-size:11px;color:var(--red);margin-bottom:10px;display:none"></div>
     <div class="stamina-btns">
@@ -722,7 +722,7 @@ const I18N = {
     death_title:'角色永久死亡',
     death_msg:'生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。',
     confirm_ret:'确认并返回',
-    stam_title:'消耗体力兑换行动',stam_desc:'消耗生命值来获得额外行动次数',
+    stam_title:'消耗体力兑换行动',stam_desc:'消耗10体力+5饥饿，获得10次额外行动',
     confirm_ex:'确认兑换',cancel:'取消',
     ml1:'L1 生理需求',ml2:'L2 安全需求',ml3:'L3 社交需求',ml4:'L4 尊重需求',ml5:'L5 自我实现',
     connecting:'正在连接 EchoWorld...',welcome:'欢迎回来',
@@ -736,8 +736,8 @@ const I18N = {
     owner:'所有者',no_build_zone:'不可建设',demolish_fail:'拆除失败',
     me:'我',fee_label:'费用',use_label:'使用',times:'次',
     facility:'的设施',status:'当前状态',after:'兑换后',
-    lang:'EN',need_req:'需要饥饿≥15且体力≥15',
-    use_fee:'使用费',stam_gain:'行动 +1',total_income:'累计收入',
+    lang:'EN',need_req:'需要体力≥10且饥饿≥5',
+    use_fee:'使用费',stam_gain:'行动 +10',total_income:'累计收入',
     buy_asset:'购买资产',make_offer:'出价购买',send_offer:'提交出价',
     trade_inbox:'交易收件箱',tax_hint:'含 %s CC 税费 (10%)',
     offer_sent:'出价已发送',offer_accepted:'交易完成！',offer_rejected:'已拒绝',
@@ -780,7 +780,7 @@ const I18N = {
     death_title:'Permanent Death',
     death_msg:'Health depleted. Wealth transferred to treasury.<br>Cannot revive.<br><br>Thank you for your EchoWorld journey.',
     confirm_ret:'Confirm & Return',
-    stam_title:'Exchange Stamina',stam_desc:'Spend health for extra actions',
+    stam_title:'Exchange Stamina',stam_desc:'Spend 10 Energy + 5 Hunger for 10 extra actions',
     confirm_ex:'Confirm',cancel:'Cancel',
     ml1:'L1 Physiological',ml2:'L2 Safety',ml3:'L3 Social',ml4:'L4 Esteem',ml5:'L5 Self-Actualization',
     connecting:'Connecting to EchoWorld...',welcome:'Welcome back',
@@ -794,8 +794,8 @@ const I18N = {
     owner:'Owner',no_build_zone:'No Build Zone',demolish_fail:'Demolish failed',
     me:'Me',fee_label:'Fee',use_label:'Used',times:'x',
     facility:"'s facility",status:'Status',after:'After',
-    lang:'中文',need_req:'Need Hunger≥15 & Energy≥15',
-    use_fee:'Fee',stam_gain:'Action +1',total_income:'Total income',
+    lang:'中文',need_req:'Need Energy≥10 & Hunger≥5',
+    use_fee:'Fee',stam_gain:'Action +10',total_income:'Total income',
     buy_asset:'Buy Asset',make_offer:'Make Offer',send_offer:'Submit Offer',
     trade_inbox:'Trade Inbox',tax_hint:'Incl. %s CC tax (10%)',
     offer_sent:'Offer sent',offer_accepted:'Trade complete!',offer_rejected:'Rejected',
@@ -2516,11 +2516,12 @@ window.buyExtraAction = function() {
   const h = myState?.hunger ?? 0;
   const e = myState?.energy ?? 0;
   const warn = document.getElementById('stamina-warning');
-  if (h < 15 || e < 15) {
-    warn.textContent = `${t('status')}: 🍔${h} ⚡${e} — ${t('need_req')}`;
+  if (e < 10 || h < 5) {
+    warn.textContent = `${t('status')}: ⚡${e} 🍔${h} — ${t('need_req')}`;
     warn.style.display = 'block';
+    warn.style.color = 'var(--red)';
   } else {
-    warn.textContent = `${t('status')}: 🍔${h} ⚡${e} → ${t('after')}: 🍔${h-10} ⚡${e-10}`;
+    warn.textContent = `${t('status')}: ⚡${e} 🍔${h} → ${t('after')}: ⚡${e-10} 🍔${h-5}`;
     warn.style.display = 'block';
     warn.style.color = 'var(--text2)';
   }

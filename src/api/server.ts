@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { World } from '../core/World';
-import { BuildingType, ResourceType, EntityType } from '../core/types';
+import { BuildingType, ResourceType, EntityType, WorldEventType } from '../core/types';
 import { userStore } from '../auth/UserStore';
 import { authMiddleware, requireRole, optionalAuth } from '../auth/middleware';
 import { InfiniteWorld, MASLOW_BUILDINGS } from '../board/InfiniteWorld';
@@ -121,6 +121,26 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // 无限世界地图
   const infiniteWorld = new InfiniteWorld();
+
+  // === 无限世界 - 定时恢复 ===
+  let _lastHour = -1;
+  let _lastDay = -1;
+
+  // 监听 tick 事件: 每小时恢复体力, 每日重置行动 & 饥饿衰减
+  world.state.eventBus.on(WorldEventType.TICK, (event) => {
+    const time = (event.data as any).time;
+    if (!time) return;
+    // 每小时恢复体力 +5
+    if (time.hour !== _lastHour) {
+      _lastHour = time.hour;
+      infiniteWorld.hourlyRecovery();
+    }
+    // 每日开始: 重置行动, 饥饿衰减 -10
+    if (time.day !== _lastDay) {
+      _lastDay = time.day;
+      infiniteWorld.resetDailyActions();
+    }
+  });
 
   // === 管理员国库实体 ===
   const adminUser = userStore.findByUsername('admin');
@@ -912,19 +932,17 @@ export function createServer(world: World, port = 3000): express.Application {
     const lang = getLang(req);
     const result = infiniteWorld.buyExtraAction(user.entityId);
     if (!result.success) {
-      // Translate InfiniteWorld Chinese error messages
       let errMsg = result.message;
       if (lang === 'en') {
         if (errMsg.includes('已死亡')) errMsg = 'Character is dead';
-        else if (errMsg.includes('不足')) errMsg = 'Insufficient health (need Hunger≥15 & Energy≥15)';
+        else if (errMsg.includes('不足')) errMsg = 'Insufficient health (need Energy≥10 & Hunger≥5)';
       }
       return res.status(400).json({ error: errMsg });
     }
     const state = infiniteWorld.getPlayer(user.entityId);
-    // Translate success message
     let msg = result.message;
     if (lang === 'en') {
-      msg = `Spent 10 Hunger + 10 Energy, Action +1 (${state?.actionsToday ?? 0}/${state?.maxActions ?? 8})`;
+      msg = `Spent 10 Energy + 5 Hunger, Action +10 (${state?.actionsToday ?? 0}/${state?.maxActions ?? 20})`;
     }
     res.json({ message: msg, stats: result.stats, state });
   });
