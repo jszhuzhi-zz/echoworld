@@ -2258,7 +2258,22 @@ window.openBuildModal = function() {
     for (const b of items) {
       const opt = document.createElement('div');
       opt.className = 'build-option';
-      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${bldgName(b)}</div><div class="desc">${bldgDesc(b)}${b.baseFee > 0 ? ` | ${t('use_fee')}: ${b.baseFee} CC` : ''}</div></div><span class="bo-cost">${b.cost} CC</span>`;
+      // 构造消费效果描述
+      const statIcons = { hunger: '🍔', energy: '⚡', happiness: '😊' };
+      let effectStr = '';
+      if (b.type === 'food_stand' || b.type === 'water_station') {
+        effectStr = '🍔+30~50';
+        if (b.type === 'water_station') effectStr += ' ⚡+5';
+      } else if (b.type === 'restaurant') {
+        effectStr = '🍔+50~100 😊+15';
+      } else if (b.type === 'hotel' || b.type === 'shelter') {
+        effectStr = '⚡→100';
+        if (b.type === 'hotel') effectStr += ' 😊+20';
+      } else {
+        effectStr = Object.entries(b.effects).map(([k,v]) => `${statIcons[k]||k}+${v}`).join(' ');
+      }
+      const feeStr = b.baseFee > 0 ? `${b.baseFee} CC` : '-';
+      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${bldgName(b)}</div><div class="desc">${bldgDesc(b)}</div><div style="font-size:9px;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap"><span style="color:var(--yellow)">💰${currentLang==='zh'?'消费':'Fee'}: ${feeStr}</span><span style="color:var(--green)">${effectStr}</span></div></div><span class="bo-cost" style="text-align:right"><div>${b.cost} CC</div><div style="font-size:8px;color:var(--text2)">${currentLang==='zh'?'投资':'Invest'}</div></span>`;
       opt.onclick = () => doBuild(b.type);
       group.appendChild(opt);
     }
