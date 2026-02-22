@@ -1,10 +1,40 @@
 import express from 'express';
 import path from 'path';
+import crypto from 'crypto';
 import { World } from '../core/World';
 import { BuildingType, ResourceType, EntityType, WorldEventType } from '../core/types';
 import { userStore } from '../auth/UserStore';
 import { authMiddleware, requireRole, optionalAuth } from '../auth/middleware';
 import { InfiniteWorld, MASLOW_BUILDINGS } from '../board/InfiniteWorld';
+
+// ==================== BufPay 支付配置 ====================
+const BUFPAY_AID = process.env.BUFPAY_AID || '107839';
+const BUFPAY_SECRET = process.env.BUFPAY_SECRET || '507b9213f7584198921d15557d05c964';
+const BUFPAY_API = `https://bufpay.com/api/pay/${BUFPAY_AID}`;
+// 公网回调地址 (部署时需设置为真实域名)
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+// CC 与 CNY 的兑换比例: 100 CC = 1 CNY
+const CC_PER_CNY = 100;
+
+// 充值订单记录 (内存存储，重启丢失 - 生产环境应持久化)
+interface RechargeOrder {
+  orderId: string;
+  userId: string;
+  entityId: string;
+  ccAmount: number;     // CC 数量
+  cnyPrice: string;     // CNY 价格 (字符串，如 "10.00")
+  payType: string;      // wechat | alipay
+  status: 'pending' | 'paid' | 'failed';
+  createdAt: number;
+  paidAt?: number;
+  bufpayAoid?: string;  // BufPay 订单号
+}
+const rechargeOrders = new Map<string, RechargeOrder>();
+let orderIdCounter = 0;
+
+function bufpaySign(...parts: string[]): string {
+  return crypto.createHash('md5').update(parts.join('')).digest('hex').toLowerCase();
+}
 
 /** Server-side i18n helper */
 const S_I18N: Record<string, Record<string, string>> = {
@@ -1016,7 +1046,8 @@ export function createServer(world: World, port = 3000): express.Application {
   });
 
   /** 充值购买CC币 */
-  app.post('/api/world/recharge', authMiddleware, requireRole('investor'), (req, res) => {
+  /** 充值 - 创建 BufPay 支付订单 */
+  app.post('/api/world/recharge', authMiddleware, requireRole('investor'), async (req, res) => {
     const lang = getLang(req);
     const user = userStore.findById(req.user!.userId);
     if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
@@ -1026,33 +1057,164 @@ export function createServer(world: World, port = 3000): express.Application {
     const state = infiniteWorld.getPlayer(user.entityId);
     if (state && !state.alive) return res.status(400).json({ error: st(lang, 'dead') });
 
-    const { amount } = req.body;
-    if (!amount || amount < 1 || amount > 100000) {
+    const { amount, payType } = req.body;
+    if (!amount || amount < 100 || amount > 100000) {
       return res.status(400).json({ error: st(lang, 'rech_range') });
     }
+    if (!payType || !['wechat', 'alipay'].includes(payType)) {
+      return res.status(400).json({ error: lang === 'zh' ? '请选择支付方式' : 'Select payment method' });
+    }
 
-    const isFirstRecharge = !(user.hasRecharged ?? false);
-    const bonus = isFirstRecharge ? Math.floor(amount * 0.5) : 0;
-    const totalCC = amount + bonus;
+    // CC 换算为 CNY
+    const cnyPrice = (amount / CC_PER_CNY).toFixed(2);
+    const orderId = `ECW${Date.now()}_${++orderIdCounter}`;
+    const notifyUrl = `${BASE_URL}/api/world/recharge/notify`;
+    const returnUrl = `${BASE_URL}/game.html`;
+    const productName = `EchoWorld ${amount} CC`;
 
-    entity.receive(totalCC);
+    // 生成签名: md5(name + pay_type + price + order_id + order_uid + notify_url + return_url + secret)
+    const sign = bufpaySign(
+      productName, payType, cnyPrice, orderId, user.id,
+      notifyUrl, returnUrl, BUFPAY_SECRET
+    );
 
-    userStore.updateUser(user.id, {
-      hasRecharged: true,
-      totalRecharged: (user.totalRecharged ?? 0) + amount,
-    });
+    // 保存订单
+    const order: RechargeOrder = {
+      orderId,
+      userId: user.id,
+      entityId: user.entityId,
+      ccAmount: amount,
+      cnyPrice,
+      payType,
+      status: 'pending',
+      createdAt: Date.now(),
+    };
+    rechargeOrders.set(orderId, order);
 
-    const messages = [st(lang, 'recharge_amt', amount)];
-    if (bonus > 0) messages.push(st(lang, 'first_bonus', bonus));
-    messages.push(st(lang, 'received', totalCC));
+    // 调用 BufPay 创建订单
+    try {
+      const params = new URLSearchParams({
+        name: productName,
+        pay_type: payType,
+        price: cnyPrice,
+        order_id: orderId,
+        order_uid: user.id,
+        notify_url: notifyUrl,
+        return_url: returnUrl,
+        sign,
+      });
+
+      const fetchModule = await import('node-fetch');
+      const fetch = fetchModule.default;
+      const bufRes = await fetch(`${BUFPAY_API}?format=json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+      const bufData = await bufRes.json() as any;
+
+      if (bufData.code && bufData.code !== 0) {
+        order.status = 'failed';
+        return res.status(500).json({
+          error: lang === 'zh' ? `支付创建失败: ${bufData.msg || '未知错误'}` : `Payment failed: ${bufData.msg || 'Unknown error'}`,
+        });
+      }
+
+      res.json({
+        orderId,
+        ccAmount: amount,
+        cnyPrice,
+        payType,
+        payUrl: bufData.pay_url || bufData.qr || bufData.url || null,
+        aoid: bufData.aoid || null,
+        raw: bufData,
+        message: lang === 'zh'
+          ? `订单已创建: ${amount} CC = ¥${cnyPrice}，请完成支付`
+          : `Order created: ${amount} CC = ¥${cnyPrice}, please complete payment`,
+      });
+    } catch (e: any) {
+      order.status = 'failed';
+      console.error('[BufPay] 创建订单失败:', e.message);
+      res.status(500).json({
+        error: lang === 'zh' ? '支付服务暂不可用，请稍后再试' : 'Payment service unavailable, try later',
+      });
+    }
+  });
+
+  /** BufPay 回调通知 - 无需认证 (BufPay 服务器直接调用) */
+  app.post('/api/world/recharge/notify', express.urlencoded({ extended: false }), (req, res) => {
+    const { aoid, order_id, order_uid, price, pay_price, sign } = req.body;
+    console.log(`[BufPay] 收到回调: order_id=${order_id}, price=${price}, pay_price=${pay_price}`);
+
+    // 验证签名: md5(aoid + order_id + order_uid + price + pay_price + secret)
+    const expectedSign = bufpaySign(aoid, order_id, order_uid, price, pay_price, BUFPAY_SECRET);
+    if (expectedSign !== sign) {
+      console.error('[BufPay] 签名验证失败!', { expected: expectedSign, got: sign });
+      return res.status(405).send('sign error');
+    }
+
+    // 查找订单
+    const order = rechargeOrders.get(order_id);
+    if (!order) {
+      console.error('[BufPay] 订单不存在:', order_id);
+      return res.send('ok'); // 仍返回 ok 避免重试
+    }
+
+    // 防止重复处理
+    if (order.status === 'paid') {
+      return res.send('ok');
+    }
+
+    // 验证金额 (允许 pay_price >= price)
+    if (parseFloat(pay_price) < parseFloat(order.cnyPrice) - 0.01) {
+      console.error('[BufPay] 金额不符:', { expected: order.cnyPrice, got: pay_price });
+      return res.send('ok');
+    }
+
+    // 发放 CC
+    order.status = 'paid';
+    order.paidAt = Date.now();
+    order.bufpayAoid = aoid;
+
+    const user = userStore.findById(order.userId);
+    const entity = user?.entityId ? world.entities.getEntity(user.entityId) : null;
+
+    if (entity && user) {
+      const isFirstRecharge = !(user.hasRecharged ?? false);
+      const bonus = isFirstRecharge ? Math.floor(order.ccAmount * 0.5) : 0;
+      const totalCC = order.ccAmount + bonus;
+
+      entity.receive(totalCC);
+      userStore.updateUser(user.id, {
+        hasRecharged: true,
+        totalRecharged: (user.totalRecharged ?? 0) + order.ccAmount,
+      });
+
+      console.log(`[BufPay] 充值成功: user=${user.nickname}, CC=${totalCC}${bonus > 0 ? ` (含首充奖励${bonus})` : ''}`);
+    } else {
+      console.error('[BufPay] 用户/角色不存在，无法发放CC:', order.userId);
+    }
+
+    res.send('ok');
+  });
+
+  /** 查询充值订单状态 */
+  app.get('/api/world/recharge/status/:orderId', authMiddleware, (req, res) => {
+    const order = rechargeOrders.get(req.params.orderId);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    // 只允许本人查询
+    if (order.userId !== req.user!.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    const user = userStore.findById(order.userId);
+    const entity = user?.entityId ? world.entities.getEntity(user.entityId) : null;
 
     res.json({
-      messages,
-      amount,
-      bonus,
-      totalCC,
-      isFirstRecharge,
-      entity: entity.getSummary(),
+      orderId: order.orderId,
+      status: order.status,
+      ccAmount: order.ccAmount,
+      cnyPrice: order.cnyPrice,
+      payType: order.payType,
+      entity: entity?.getSummary() || null,
     });
   });
 

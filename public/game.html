@@ -698,15 +698,40 @@
     <button class="btn-close-modal" onclick="closeRechargeModal()" style="float:right">&times;</button>
     <div class="recharge-title" data-i18n="rech_title">充值 CC 币</div>
     <div id="recharge-bonus" class="recharge-bonus" data-i18n="first_bonus">🎉 首充额外赠送 50%！</div>
-    <div class="recharge-grid">
-      <div class="recharge-opt" onclick="doRecharge(100)"><div class="amount">100</div><div class="label">CC</div></div>
-      <div class="recharge-opt" onclick="doRecharge(500)"><div class="amount">500</div><div class="label">CC</div></div>
-      <div class="recharge-opt" onclick="doRecharge(1000)"><div class="amount">1000</div><div class="label">CC</div></div>
-      <div class="recharge-opt" onclick="doRecharge(3000)"><div class="amount">3000</div><div class="label">CC</div></div>
-      <div class="recharge-opt" onclick="doRecharge(5000)"><div class="amount">5000</div><div class="label">CC</div></div>
-      <div class="recharge-opt" onclick="doRecharge(10000)"><div class="amount">10000</div><div class="label">CC</div></div>
+    <!-- Step 1: 选择金额 -->
+    <div id="rech-step1">
+      <div class="recharge-grid">
+        <div class="recharge-opt" onclick="selectRechargeAmount(100)"><div class="amount">100</div><div class="label">¥1</div></div>
+        <div class="recharge-opt" onclick="selectRechargeAmount(500)"><div class="amount">500</div><div class="label">¥5</div></div>
+        <div class="recharge-opt" onclick="selectRechargeAmount(1000)"><div class="amount">1000</div><div class="label">¥10</div></div>
+        <div class="recharge-opt" onclick="selectRechargeAmount(3000)"><div class="amount">3000</div><div class="label">¥30</div></div>
+        <div class="recharge-opt" onclick="selectRechargeAmount(5000)"><div class="amount">5000</div><div class="label">¥50</div></div>
+        <div class="recharge-opt" onclick="selectRechargeAmount(10000)"><div class="amount">10000</div><div class="label">¥100</div></div>
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin-top:8px">100 CC = ¥1 | 首充额外赠送50%</div>
     </div>
-    <div style="font-size:10px;color:var(--text2);margin-top:8px" data-i18n="rech_desc">购买CC币可提前获得财富，投资资产后可财富增值</div>
+    <!-- Step 2: 选择支付方式 -->
+    <div id="rech-step2" style="display:none">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px" id="rech-amount-label"></div>
+      <div style="display:flex;gap:10px;justify-content:center;margin:12px 0">
+        <button onclick="doRecharge('wechat')" style="flex:1;padding:14px;border-radius:10px;border:1px solid #07c160;background:rgba(7,193,96,0.1);color:#07c160;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span style="font-size:20px">💬</span> 微信支付
+        </button>
+        <button onclick="doRecharge('alipay')" style="flex:1;padding:14px;border-radius:10px;border:1px solid #1677ff;background:rgba(22,119,255,0.1);color:#1677ff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span style="font-size:20px">💰</span> 支付宝
+        </button>
+      </div>
+      <button onclick="backToStep1()" style="padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer">返回选择金额</button>
+    </div>
+    <!-- Step 3: 支付中/等待 -->
+    <div id="rech-step3" style="display:none;text-align:center">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px" id="rech-paying-label"></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px" id="rech-paying-hint">请在打开的页面完成支付...</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+        <button onclick="checkRechargeStatus()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer" id="rech-check-btn">查询支付结果</button>
+        <button onclick="cancelRecharge()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer">取消</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2867,41 +2892,127 @@ window.closeWealthPage = function() {
   document.getElementById('wealth-modal').classList.remove('show');
 };
 
-/** 打开充值面板 */
+/** 充值 - BufPay 支付流程 */
+let _rechargeCCAmount = 0;
+let _rechargeOrderId = null;
+let _rechargePolling = null;
+
 window.openRechargeModal = function() {
   const modal = document.getElementById('recharge-modal');
   const bonusEl = document.getElementById('recharge-bonus');
-  // 检查是否首充
   if (currentUser?.hasRecharged) {
     bonusEl.style.display = 'none';
   } else {
     bonusEl.style.display = 'inline-block';
   }
+  // 重置到 step1
+  document.getElementById('rech-step1').style.display = '';
+  document.getElementById('rech-step2').style.display = 'none';
+  document.getElementById('rech-step3').style.display = 'none';
+  _rechargeCCAmount = 0;
+  _rechargeOrderId = null;
+  if (_rechargePolling) { clearInterval(_rechargePolling); _rechargePolling = null; }
   modal.classList.add('show');
 };
 
 window.closeRechargeModal = function() {
+  if (_rechargePolling) { clearInterval(_rechargePolling); _rechargePolling = null; }
   document.getElementById('recharge-modal').classList.remove('show');
 };
 
-/** 执行充值 */
-window.doRecharge = async function(amount) {
+window.selectRechargeAmount = function(ccAmount) {
+  _rechargeCCAmount = ccAmount;
+  const cny = (ccAmount / 100).toFixed(2);
+  const zh = currentLang === 'zh';
+  document.getElementById('rech-amount-label').textContent = zh
+    ? `购买 ${ccAmount} CC = ¥${cny}`
+    : `Buy ${ccAmount} CC = ¥${cny}`;
+  document.getElementById('rech-step1').style.display = 'none';
+  document.getElementById('rech-step2').style.display = '';
+};
+
+window.backToStep1 = function() {
+  document.getElementById('rech-step1').style.display = '';
+  document.getElementById('rech-step2').style.display = 'none';
+};
+
+/** 执行充值 - 创建 BufPay 订单 */
+window.doRecharge = async function(payType) {
+  const zh = currentLang === 'zh';
+  const amount = _rechargeCCAmount;
+  if (!amount) return;
+
   try {
     const res = await fetch(API + '/api/world/recharge', {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ amount, payType }),
     });
-    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
-    const data = await res.json();
-    for (const msg of data.messages) addLog(msg, 'good');
-    updateMoney(data.entity);
-    if (data.isFirstRecharge) {
-      currentUser.hasRecharged = true;
+    if (!res.ok) {
+      const err = await res.json();
+      addLog(err.error || (zh ? '创建订单失败' : 'Order creation failed'), 'warn');
+      return;
     }
-    closeRechargeModal();
+    const data = await res.json();
+    _rechargeOrderId = data.orderId;
+
+    // 显示 step3 - 等待支付
+    document.getElementById('rech-step2').style.display = 'none';
+    document.getElementById('rech-step3').style.display = '';
+    const cny = (amount / 100).toFixed(2);
+    const payLabel = payType === 'wechat' ? (zh ? '💬 微信支付' : '💬 WeChat') : (zh ? '💰 支付宝' : '💰 Alipay');
+    document.getElementById('rech-paying-label').textContent = `${payLabel}: ${amount} CC = ¥${cny}`;
+    document.getElementById('rech-paying-hint').textContent = zh
+      ? '请在打开的页面完成支付...'
+      : 'Please complete payment in the opened page...';
+    document.getElementById('rech-check-btn').textContent = zh ? '查询支付结果' : 'Check Payment';
+
+    addLog(data.message, 'good');
+
+    // 打开支付页面
+    if (data.payUrl) {
+      window.open(data.payUrl, '_blank');
+    }
+
+    // 自动轮询订单状态 (每3秒)
+    if (_rechargePolling) clearInterval(_rechargePolling);
+    _rechargePolling = setInterval(async () => {
+      await checkRechargeStatus();
+    }, 3000);
+
   } catch (e) {
-    addLog(t('rech_fail'), 'danger');
+    addLog(zh ? '支付服务暂不可用' : 'Payment service unavailable', 'danger');
   }
+};
+
+window.checkRechargeStatus = async function() {
+  if (!_rechargeOrderId) return;
+  const zh = currentLang === 'zh';
+  try {
+    const res = await fetch(API + `/api/world/recharge/status/${_rechargeOrderId}`, { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.status === 'paid') {
+      // 支付成功！
+      if (_rechargePolling) { clearInterval(_rechargePolling); _rechargePolling = null; }
+      const bonus = !(currentUser?.hasRecharged) ? Math.floor(data.ccAmount * 0.5) : 0;
+      const total = data.ccAmount + bonus;
+      addLog(zh ? `充值成功！${data.ccAmount} CC 到账` : `Payment success! ${data.ccAmount} CC received`, 'good');
+      if (bonus > 0) {
+        addLog(zh ? `🎉 首充赠送 ${bonus} CC！` : `🎉 First recharge bonus: ${bonus} CC!`, 'good');
+        currentUser.hasRecharged = true;
+      }
+      if (data.entity) updateMoney(data.entity);
+      closeRechargeModal();
+      await fetchMe();
+    }
+  } catch (e) { /* ignore */ }
+};
+
+window.cancelRecharge = function() {
+  if (_rechargePolling) { clearInterval(_rechargePolling); _rechargePolling = null; }
+  _rechargeOrderId = null;
+  document.getElementById('rech-step3').style.display = 'none';
+  document.getElementById('rech-step1').style.display = '';
 };
 
 /** 复制邀请码 */
