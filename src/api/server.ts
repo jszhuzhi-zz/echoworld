@@ -1617,7 +1617,7 @@ export function createServer(world: World, port = 3000): express.Application {
     app.listen(port, '0.0.0.0', () => {
       console.log(`\n[EchoWorld] 服务器运行在 http://0.0.0.0:${port}`);
       console.log(`[EchoWorld] 前端面板: http://localhost:${port}/`);
-      console.log(`[EchoWorld] 默认管理员: admin / admin888`);
+      console.log(`[EchoWorld] 默认管理员: 47939500@qq.com / admin888`);
     });
   }
 

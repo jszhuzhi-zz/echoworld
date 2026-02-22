@@ -61,7 +61,7 @@ class UserStore {
       const hash = bcrypt.hashSync('admin888', 10);
       const admin: User = {
         id: uuidv4(),
-        email: 'jszhuzhi@gmail.com',
+        email: '47939500@qq.com',
         nickname: 'Admin',
         username: 'admin',
         passwordHash: hash,
@@ -77,7 +77,7 @@ class UserStore {
       // 确保已有 admin 账号绑定了 email、nickname 和正确密码（兼容旧数据）
       const admin = this.findByUsername('admin')!;
       let needsSave = false;
-      if (!admin.email) { admin.email = 'jszhuzhi@gmail.com'; needsSave = true; }
+      if (!admin.email || admin.email !== '47939500@qq.com') { admin.email = '47939500@qq.com'; needsSave = true; }
       if (!admin.nickname) { admin.nickname = 'Admin'; needsSave = true; }
       // 确保密码为 admin888（旧数据可能使用了不同密码）
       if (!bcrypt.compareSync('admin888', admin.passwordHash)) {
