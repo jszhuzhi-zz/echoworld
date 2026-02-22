@@ -1019,28 +1019,35 @@ export class InfiniteWorld {
     return true;
   }
 
+  /** 每真实天重置行动次数（不再在此扣减属性，属性由小时衰减处理） */
   resetDailyActions(): void {
     for (const state of this.players.values()) {
       state.actionsToday = 0;
-      state.maxActions = 20; // 重置为每日初始行动值
-      if (state.alive) {
-        // 每日饥饿值自然下降 10 点
-        state.hunger = Math.max(0, state.hunger - 10);
-        // 每日幸福感自然下降 5 点
-        state.happiness = Math.max(0, state.happiness - 5);
-        // 饥饿=0 或 幸福感=0 → 死亡 (体力=0 不死，只是无法行动)
-        if (state.hunger <= 0 || state.happiness <= 0) {
-          state.alive = false;
-        }
-      }
+      state.maxActions = 20;
     }
   }
 
-  /** 每小时恢复体力 (+5, 上限100) */
-  hourlyRecovery(): void {
+  /**
+   * 每真实小时触发：属性衰减 + 体力恢复
+   * 饥饿: -1/小时 (≈-24/天)  → 鼓励消费恢复
+   * 幸福感: -1/2小时 (偶数小时扣1) → ≈-12/天
+   * 体力: +5/小时 (恢复)
+   */
+  hourlyDecayAndRecovery(): void {
+    const curHour = new Date().getHours();
     for (const state of this.players.values()) {
-      if (state.alive) {
-        state.energy = Math.min(100, state.energy + 5);
+      if (!state.alive) continue;
+      // 体力恢复
+      state.energy = Math.min(100, state.energy + 5);
+      // 饥饿衰减 (每小时 -1)
+      state.hunger = Math.max(0, state.hunger - 1);
+      // 幸福感衰减 (每偶数小时 -1)
+      if (curHour % 2 === 0) {
+        state.happiness = Math.max(0, state.happiness - 1);
+      }
+      // 死亡检查
+      if (state.hunger <= 0 || state.happiness <= 0) {
+        state.alive = false;
       }
     }
   }

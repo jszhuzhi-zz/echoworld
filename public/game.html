@@ -367,6 +367,7 @@
     <div class="dice-info" id="dice-info">🎲 -</div>
   </div>
   <div class="top-right">
+    <div id="real-clock" style="font-size:11px;color:var(--accent);font-weight:700;font-family:monospace;white-space:nowrap" title="Real-world time">🕐 --:--</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
     <button class="btn-sm btn-nav" id="btn-trade-inbox" onclick="openTradeInbox()" style="position:relative;display:none;padding:5px 10px;display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> <span class="inbox-text" data-i18n="inbox_badge">收件箱</span><span id="trade-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;min-width:14px;height:14px;border-radius:7px;text-align:center;line-height:14px;font-weight:700"></span></button>
     <div class="settings-wrap" style="position:relative">
@@ -599,7 +600,7 @@
       <div style="display:flex;gap:8px">
         <button onclick="recoverHunger()" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:rgba(239,68,68,0.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'" data-i18n-html="1"><span data-i18n="rec_hunger">🍔 恢复饥饿 +20</span><br><span style="font-size:10px;opacity:0.7" data-i18n="rec_cost">花费 80 CC</span></button>
       </div>
-      <div style="font-size:9px;color:var(--text2);margin-top:6px;line-height:1.5" data-i18n="rec_hint">体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复</div>
+      <div style="font-size:9px;color:var(--text2);margin-top:6px;line-height:1.5" data-i18n="rec_hint">体力每真实小时+5恢复，饥饿每小时-1消耗</div>
     </div>
     <button class="btn-recharge" onclick="closeWealthPage();openRechargeModal()" data-i18n="buy_cc">充值购买 CC 币</button>
     <div class="wealth-referral">
@@ -841,7 +842,7 @@ const I18N = {
     death_imminent:'⚠️ 即将死亡！饥饿或幸福感归零将永久死亡！',
     death_risk:'⚠️ 警告：饥饿或幸福感过低，请尽快消费恢复！体力归零只是无法行动。',
     life_rec:'生命恢复',rec_hunger:'🍔 恢复饥饿 +20',rec_cost:'花费 80 CC',
-    rec_hint:'体力基于真实时间恢复（每小时+5），饥饿仅可通过消费建筑或花费CC恢复',
+    rec_hint:'体力每真实小时+5恢复，饥饿每小时-1自然消耗，通过消费建筑或花CC恢复',
     buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',copy_link:'📎 复制邀请链接',link_copied:'邀请链接已复制',
     rech_title:'充值 CC 币',first_bonus:'🎉 首充额外赠送 50%！',rech_desc:'购买CC币可提前获得财富，投资资产后可财富增值',
     death_title:'角色永久死亡',
@@ -899,7 +900,7 @@ const I18N = {
     death_imminent:'⚠️ Death imminent! Zero hunger or happiness = permanent death!',
     death_risk:'⚠️ Warning: Low hunger/happiness. Consume to recover! Zero energy only blocks movement.',
     life_rec:'RECOVERY',rec_hunger:'🍔 Hunger +20',rec_cost:'Cost 80 CC',
-    rec_hint:'Energy recovers daily. Hunger only via buildings or CC.',
+    rec_hint:'Energy +5/real hour. Hunger -1/hour. Restore via buildings or CC.',
     buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',copy_link:'📎 Copy Invite Link',link_copied:'Invite link copied',
     rech_title:'Buy CC',first_bonus:'🎉 First purchase +50%!',rech_desc:'Buy CC to invest and grow wealth',
     death_title:'Permanent Death',
@@ -1905,8 +1906,7 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '消耗规则' : 'Consumption Rules',
           rules: [
-            { text: zh ? '每天自然消耗 -10 点' : '-10 per day (natural decay)', color: '#f87171' },
-            { text: zh ? '每日初始20次行动内不消耗饥饿值' : 'No hunger cost for first 20 daily actions', color: '#fbbf24' },
+            { text: zh ? '🕐 每真实小时自然消耗 -1 点（≈每天-24）' : '🕐 -1 per real hour (~24/day)', color: '#f87171' },
             { text: zh ? '兑换额外行动时消耗 -5 点（10体力+5饥饿→10次行动）' : '-5 per extra action exchange (10 energy + 5 hunger → 10 actions)', color: '#f87171' },
           ],
         },
@@ -1968,7 +1968,7 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '消耗规则' : 'Consumption Rules',
           rules: [
-            { text: zh ? '每天自然消耗 -5 点' : '-5 per day (natural decay)', color: '#f87171' },
+            { text: zh ? '🕐 每2真实小时自然消耗 -1 点（≈每天-12）' : '🕐 -1 per 2 real hours (~12/day)', color: '#f87171' },
             { text: zh ? '每移动10步额外消耗 -1 点' : '-1 per 10 moves', color: '#fbbf24' },
           ],
         },
@@ -3505,6 +3505,18 @@ async function init() {
   setInterval(fetchWorldBroadcast, 15000);
   setInterval(fetchNewsTicker, 30000);
 }
+
+// ============ REAL-TIME CLOCK ============
+function updateRealClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const el = document.getElementById('real-clock');
+  if (el) el.textContent = `🕐 ${hh}:${mm}:${ss}`;
+}
+setInterval(updateRealClock, 1000);
+updateRealClock();
 
 animate();
 init();

@@ -152,31 +152,39 @@ export function createServer(world: World, port = 3000): express.Application {
   // 无限世界地图
   const infiniteWorld = new InfiniteWorld();
 
-  // === 无限世界 - 定时恢复 ===
-  let _lastHour = -1;
+  // === 无限世界 - 基于真实时间的定时衰减与恢复 ===
   let _lastDay = -1;
+  let _lastHour = -1;
 
-  // 监听 tick 事件: 每日重置行动 & 饥饿衰减
+  // 监听 tick 事件 (每分钟触发): 检测真实小时/天变化
   world.state.eventBus.on(WorldEventType.TICK, (event) => {
     const time = (event.data as any).time;
     if (!time) return;
-    // 每日开始: 重置行动, 饥饿衰减 -10, 幸福感 -5, 银行利息结算
+
+    // 每真实小时: 体力恢复 +5, 饥饿 -1, 幸福感 -0.5(取整)
+    if (time.hour !== _lastHour) {
+      const isInit = _lastHour === -1;
+      _lastHour = time.hour;
+      if (!isInit) {
+        infiniteWorld.hourlyDecayAndRecovery();
+      }
+    }
+
+    // 每真实天: 重置每日行动次数, 银行利息结算
     if (time.day !== _lastDay) {
+      const isInit = _lastDay === -1;
       _lastDay = time.day;
-      infiniteWorld.resetDailyActions();
-      // 银行利息结算: 存款生息、贷款计息、业主赚利差
-      const ownerIncome = infiniteWorld.settleBankInterest();
-      for (const [ownerId, income] of ownerIncome) {
-        const entity = world.entities.getEntity(ownerId);
-        if (entity && income > 0) entity.receive(income);
+      if (!isInit) {
+        infiniteWorld.resetDailyActions();
+        // 银行利息结算: 存款生息、贷款计息、业主赚利差
+        const ownerIncome = infiniteWorld.settleBankInterest();
+        for (const [ownerId, income] of ownerIncome) {
+          const entity = world.entities.getEntity(ownerId);
+          if (entity && income > 0) entity.receive(income);
+        }
       }
     }
   });
-
-  // 体力恢复基于真实时间: 每真实小时恢复 +5 体力
-  setInterval(() => {
-    infiniteWorld.hourlyRecovery();
-  }, 60 * 60 * 1000);
 
   // === 管理员国库实体 ===
   const adminUser = userStore.findByUsername('admin');
@@ -460,12 +468,16 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // ==================== 公共 API (所有角色) ====================
 
-  /** 世界时间 (公开) */
+  /** 世界时间 (公开) — 返回真实时间 */
   app.get('/api/world/time', (_req, res) => {
+    const now = new Date();
     res.json({
       time: world.state.getTime(),
       formatted: world.state.clock.formatTime(),
       running: world.state.clock.isRunning(),
+      realTime: now.toISOString(),
+      realHour: now.getHours(),
+      realMinute: now.getMinutes(),
     });
   });
 
