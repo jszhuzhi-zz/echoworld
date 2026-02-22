@@ -68,15 +68,15 @@
     /* === Bottom Action Bar === */
     #action-bar{position:fixed;z-index:15;bottom:16px;left:16px;right:16px;
       display:flex;justify-content:space-between;align-items:center;
-      background:var(--bar-bg);border:1px solid var(--border);border-radius:18px;padding:8px 18px;
+      background:var(--bar-bg);border:1px solid var(--border);border-radius:18px;padding:8px 14px;
       backdrop-filter:blur(10px)}
     .action-group{display:flex;gap:8px;align-items:center}
-    .btn-dice{width:52px;height:52px;border-radius:14px;border:2px solid var(--accent);background:rgba(59,130,246,0.15);
-      color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    .btn-dice{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);background:rgba(59,130,246,0.15);
+      color:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;
       transition:all .3s;flex-shrink:0}
     .btn-dice:hover{background:rgba(59,130,246,0.3);transform:scale(1.08)}
     .btn-dice:disabled{opacity:.4;cursor:not-allowed;transform:none}
-    .btn-dice .dice-num{font-size:26px;font-weight:900}
+    .btn-dice .dice-num{font-size:30px;font-weight:900}
     .dir-btn{padding:8px 14px;border-radius:10px;border:2px solid var(--green);background:rgba(16,185,129,0.15);
       color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
     .dir-btn:hover{transform:translateY(-2px)}
@@ -208,8 +208,8 @@
       .logo-full{display:none}
       .logo-m{display:inline-block!important}
       #action-bar{padding:6px 10px;bottom:10px;left:10px;right:10px}
-      .btn-dice{width:44px;height:44px;font-size:18px}
-      .dir-btn{padding:8px 14px;font-size:16px}
+      .btn-dice{width:52px;height:52px;font-size:20px}
+      .dir-btn{padding:6px 10px;font-size:14px}
       #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
       .modal-content{width:calc(100vw - 16px);padding:12px}
       .inbox-text{display:none}
@@ -258,17 +258,24 @@
 
 <!-- Bottom Action Bar -->
 <div id="action-bar">
+  <!-- Left: wealth -->
   <div class="action-group">
-    <button class="dir-btn dir-cw" id="btn-left" style="display:none">↻ 顺时针</button>
-    <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
-    <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺ 逆时针</button>
+    <div class="money-badge-bottom" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">💰 0 CC</div>
   </div>
-  <div class="money-badge-bottom" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">💰 0 CC</div>
+  <!-- Center: dice + directions -->
   <div class="action-group">
-    <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()" data-i18n="build">🔨</button>
+    <button class="dir-btn dir-cw" id="btn-left" style="display:none">↻</button>
+    <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
+    <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺</button>
+  </div>
+  <!-- Right: context actions -->
+  <div class="action-group">
     <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰</button>
+    <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()">🔨</button>
+    <button class="dir-btn" id="btn-sell" style="display:none;border-color:var(--green);background:rgba(16,185,129,0.15)" onclick="openTradeListModal()">🏷️</button>
+    <button class="dir-btn" id="btn-trade" style="display:none;border-color:#38bdf8;background:rgba(56,189,248,0.15)" onclick="openTradeOfferModal()">🤝</button>
     <button class="dir-btn" id="btn-demolish" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="demolishBuilding()">🗑️</button>
-    <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()" data-i18n="extra_act">❤️ +1</button>
+    <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()" data-i18n="extra_act">❤️+1</button>
   </div>
 </div>
 
@@ -1634,26 +1641,30 @@ async function fetchMe() {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // Current tile actions: consume / build / demolish
+    // Current tile context actions
     document.getElementById('btn-consume').style.display = 'none';
     document.getElementById('btn-build').style.display = 'none';
+    document.getElementById('btn-sell').style.display = 'none';
+    document.getElementById('btn-trade').style.display = 'none';
     document.getElementById('btn-demolish').style.display = 'none';
     const curNode = meData.node;
     if (curNode?.building) {
       if (curNode.building.ownerId === currentUser.entityId) {
-        // Own building - show demolish
+        // Own building → sell + demolish
+        document.getElementById('btn-sell').style.display = 'block';
         document.getElementById('btn-demolish').style.display = 'block';
       } else {
-        // Other's building - show consume
+        // Other's building → consume + trade
         showBuildingOverlay(curNode);
-        document.getElementById('btn-consume').style.display = 'block';
         const tpl = buildingCatalog.find(t => t.type === curNode.building.templateType);
         const lvMult = 1 + (curNode.building.level - 1) * 0.3;
         const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+        document.getElementById('btn-consume').style.display = 'block';
         document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
+        document.getElementById('btn-trade').style.display = 'block';
       }
     } else if (curNode && !curNode.building && ['road', 'intersection'].includes(curNode.type)) {
-      // Empty buildable node - show build
+      // Empty buildable → build
       document.getElementById('btn-build').style.display = 'block';
     }
 
@@ -1852,6 +1863,11 @@ window.useBuilding = async function() {
   } catch (e) {
     addLog(t('consume_fail'), 'danger');
   }
+};
+
+window.openTradeListModal = function() {
+  // Own building: open trade inbox to view/accept buyer offers
+  openTradeInbox();
 };
 
 window.demolishBuilding = async function() {
@@ -2151,7 +2167,13 @@ window.recoverHunger = async function() {
 
 /** Open trade offer modal for the building shown in overlay */
 window.openTradeOfferModal = function() {
-  if (!_overlayNode?.building) return;
+  // Use overlay node if available, otherwise find current node from allNodes
+  if (!_overlayNode?.building) {
+    if (!myState) return;
+    const curNode = allNodes.find(n => n.id === myState.nodeId);
+    if (!curNode?.building) return;
+    _overlayNode = curNode;
+  }
   _tradeTargetNode = _overlayNode;
   const b = _tradeTargetNode.building;
   const tpl = buildingCatalog.find(t => t.type === b.templateType);
