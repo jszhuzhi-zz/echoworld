@@ -1672,7 +1672,7 @@ function showConsumePrompt(pb) {
     document.getElementById('cp-fee').textContent = pb.fee;
     document.getElementById('consume-prompt').style.display = 'block';
 
-    let remaining = 3;
+    let remaining = 5;
     document.getElementById('cp-countdown').textContent = remaining;
     _countdownInterval = setInterval(() => {
       remaining--;
@@ -1683,7 +1683,7 @@ function showConsumePrompt(pb) {
       if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
       document.getElementById('consume-prompt').style.display = 'none';
       if (_consumeResolve) { _consumeResolve(false); _consumeResolve = null; }
-    }, 3000);
+    }, 5000);
   });
 }
 
@@ -1893,7 +1893,8 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '消耗规则' : 'Consumption Rules',
           rules: [
-            { text: zh ? '每次移动消耗 -1 点' : '-1 per move', color: '#f87171' },
+            { text: zh ? '每天自然消耗 -5 点' : '-5 per day (natural decay)', color: '#f87171' },
+            { text: zh ? '每移动10步额外消耗 -1 点' : '-1 per 10 moves', color: '#fbbf24' },
           ],
         },
         {
@@ -2341,10 +2342,7 @@ window.useBuilding = function() {
   document.getElementById('cm-title').textContent = `${tpl.icon} ${bldgName(tpl)} (Lv.${b.level})`;
   document.getElementById('cm-owner').textContent = `${t('owner')}: ${b.ownerName}`;
   document.getElementById('cm-desc').textContent = bldgDesc(tpl);
-  document.getElementById('cm-effects').innerHTML = Object.entries(tpl.effects).map(([k, v]) => {
-    const boost = Math.floor(v * eMult);
-    return `<span style="padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--green)">${statIcons[k] || ''} ${statLabels[k] || k} +${boost}</span>`;
-  }).join('');
+  document.getElementById('cm-effects').innerHTML = `<span style="padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--green);font-size:14px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
   document.getElementById('cm-fee').textContent = `${t('use_fee') || '费用'}: ${fee} CC`;
   const tax = 0; // 当前消费税率 0%
   const ownerIncome = fee - Math.floor(fee * tax);

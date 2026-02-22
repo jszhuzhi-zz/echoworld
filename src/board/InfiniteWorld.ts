@@ -485,11 +485,13 @@ export class InfiniteWorld {
 
     while (remaining > 0) {
       const node = this.nodes.get(current)!;
+      // 确保当前节点周围的区域已生成（保证无边界）
+      this.ensureRegion(node.x, node.y, SPACING * 2);
       const nextOptions = node.connections.filter(
         id => id !== prev && this.nodes.get(id)!.type !== 'lot'
       );
 
-      if (nextOptions.length === 0) break; // 死胡同
+      if (nextOptions.length === 0) break; // 死胡同（理论上不应发生）
 
       if (nextOptions.length > 1) {
         // 岔路口！暂停，等待玩家选择
@@ -540,8 +542,10 @@ export class InfiniteWorld {
 
     // 每日初始行动值内不消耗体力和饥饿值
     // 超出部分由 buyExtraAction 统一扣除
-    // 幸福感轻微自然衰减
-    state.happiness = Math.max(0, state.happiness - 1);
+    // 幸福感每10步减少1点
+    if (state.turnsPlayed % 10 === 0) {
+      state.happiness = Math.max(0, state.happiness - 1);
+    }
 
     const events: string[] = [];
     const finalNode = this.nodes.get(current)!;
@@ -901,6 +905,8 @@ export class InfiniteWorld {
       if (state.alive) {
         // 每日饥饿值自然下降 10 点
         state.hunger = Math.max(0, state.hunger - 10);
+        // 每日幸福感自然下降 5 点
+        state.happiness = Math.max(0, state.happiness - 5);
         // 检查是否因饥饿归零而死亡
         if (state.hunger <= 0) {
           state.alive = false;
