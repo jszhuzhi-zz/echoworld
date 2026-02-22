@@ -26,7 +26,8 @@
     .logo{font-size:15px;font-weight:700;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
     .logo-m{display:none;width:22px;height:22px;text-align:center;line-height:22px;border-radius:6px;font-size:14px}
     .stat-bars{display:flex;gap:10px;align-items:center}
-    .stat-bar{display:flex;align-items:center;gap:4px;font-size:10px}
+    .stat-bar{display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer;transition:opacity .2s}
+    .stat-bar:hover{opacity:1!important}
     .stat-bar .label{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;
       border-radius:6px;font-size:11px;flex-shrink:0}
     .stat-bar .label.lbl-hunger{background:rgba(239,68,68,0.15);color:#f87171}
@@ -40,8 +41,27 @@
     .fill-happy{background:linear-gradient(90deg,#a855f7,#ec4899)}
     /* Mobile compact stats */
     .mobile-stats{display:none;gap:4px;align-items:center}
-    .ms{font-size:9px;display:flex;align-items:center;gap:1px;background:rgba(0,0,0,0.4);padding:2px 5px;border-radius:6px}
+    .ms{font-size:9px;display:flex;align-items:center;gap:1px;background:rgba(0,0,0,0.4);padding:2px 5px;border-radius:6px;cursor:pointer}
+    .ms:hover{opacity:0.8}
     .ms b{font-weight:700;min-width:14px;text-align:right}
+    /* Stat rules popup */
+    #stat-rules-popup{display:none;position:fixed;z-index:150;top:50%;left:50%;transform:translate(-50%,-50%);
+      background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:0;
+      width:min(380px,calc(100vw - 24px));max-height:80vh;overflow-y:auto;
+      backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(0,0,0,0.5);
+      animation:toastIn 0.25s ease-out}
+    #stat-rules-popup.show{display:block}
+    .sr-header{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+    .sr-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .sr-title{font-size:15px;font-weight:800;flex:1}
+    .sr-val{font-size:22px;font-weight:900}
+    .sr-body{padding:12px 16px 16px}
+    .sr-section{margin-bottom:10px}
+    .sr-section-title{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+    .sr-rule{font-size:11px;line-height:1.7;color:var(--text);padding:2px 0;display:flex;align-items:flex-start;gap:6px}
+    .sr-rule .sr-dot{flex-shrink:0;width:5px;height:5px;border-radius:50%;margin-top:6px}
+    .sr-rule .sr-text{flex:1}
+    .sr-consequence{font-size:11px;line-height:1.6;padding:8px 10px;border-radius:8px;margin-top:6px}
     .pos-info{display:inline-block;font-size:11px;color:var(--text2);background:rgba(0,0,0,0.4);padding:3px 12px;border-radius:10px;white-space:nowrap}
     .top-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
     .money-badge-bottom{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:6px 14px;border-radius:12px;font-weight:800;font-size:14px;white-space:nowrap;text-align:center;min-width:100px;box-shadow:0 2px 12px rgba(245,158,11,0.35);transition:transform .2s}
@@ -334,14 +354,14 @@
     <span class="logo logo-full">EchoWorld 3D</span><span class="logo logo-m">E</span>
     <a href="/" class="btn-sm btn-nav" data-i18n="home">首页</a>
     <div class="stat-bars">
-      <div class="stat-bar"><span class="label lbl-hunger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
-      <div class="stat-bar"><span class="label lbl-energy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
-      <div class="stat-bar"><span class="label lbl-happy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
+      <div class="stat-bar" onclick="showStatRules('hunger')"><span class="label lbl-hunger"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></span><div class="bar"><div class="fill fill-hunger" id="bar-hunger" style="width:80%"></div></div><span class="val" id="val-hunger">80</span></div>
+      <div class="stat-bar" onclick="showStatRules('energy')"><span class="label lbl-energy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><div class="bar"><div class="fill fill-energy" id="bar-energy" style="width:80%"></div></div><span class="val" id="val-energy">80</span></div>
+      <div class="stat-bar" onclick="showStatRules('happiness')"><span class="label lbl-happy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span><div class="bar"><div class="fill fill-happy" id="bar-happy" style="width:80%"></div></div><span class="val" id="val-happy">80</span></div>
     </div>
     <div class="mobile-stats" id="mobile-stats">
-      <span class="ms" style="color:#f87171"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg><b id="ms-hunger">80</b></span>
-      <span class="ms" style="color:#60a5fa"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><b id="ms-energy">80</b></span>
-      <span class="ms" style="color:#c084fc"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg><b id="ms-happy">80</b></span>
+      <span class="ms" style="color:#f87171" onclick="showStatRules('hunger')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg><b id="ms-hunger">80</b></span>
+      <span class="ms" style="color:#60a5fa" onclick="showStatRules('energy')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><b id="ms-energy">80</b></span>
+      <span class="ms" style="color:#c084fc" onclick="showStatRules('happiness')"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg><b id="ms-happy">80</b></span>
     </div>
     <div class="pos-info" id="pos-info" data-i18n="loading">加载中...</div>
     <div class="dice-info" id="dice-info">🎲 -</div>
@@ -621,6 +641,19 @@
     </div>
   </div>
 </div>
+
+<!-- Stat Rules Popup -->
+<div id="stat-rules-popup">
+  <div class="sr-header" id="sr-header">
+    <div class="sr-icon" id="sr-icon"></div>
+    <div class="sr-title" id="sr-title"></div>
+    <div class="sr-val" id="sr-val"></div>
+    <button class="btn-close-modal" onclick="closeStatRules()" style="margin-left:auto">&times;</button>
+  </div>
+  <div class="sr-body" id="sr-body"></div>
+</div>
+<!-- Stat rules backdrop -->
+<div id="stat-rules-bg" style="display:none;position:fixed;inset:0;z-index:149;background:rgba(0,0,0,0.4)" onclick="closeStatRules()"></div>
 
 <!-- Bank Modal -->
 <div id="bank-modal">
@@ -1770,6 +1803,153 @@ function focusCamera(x, y, animate = true) {
     camera.position.set(x, 28, y + 18);
   }
 }
+
+// ============ STAT RULES POPUP ============
+window.showStatRules = function(stat) {
+  const zh = currentLang === 'zh';
+  const popup = document.getElementById('stat-rules-popup');
+  const bg = document.getElementById('stat-rules-bg');
+  const iconEl = document.getElementById('sr-icon');
+  const titleEl = document.getElementById('sr-title');
+  const valEl = document.getElementById('sr-val');
+  const bodyEl = document.getElementById('sr-body');
+
+  // Current values
+  const curHunger = parseInt(document.getElementById('val-hunger')?.textContent) || 0;
+  const curEnergy = parseInt(document.getElementById('val-energy')?.textContent) || 0;
+  const curHappy = parseInt(document.getElementById('val-happy')?.textContent) || 0;
+
+  const rules = {
+    hunger: {
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg>',
+      iconBg: 'rgba(239,68,68,0.15)',
+      color: '#f87171',
+      title: zh ? '饥饿值' : 'Hunger',
+      val: curHunger,
+      sections: [
+        {
+          title: zh ? '消耗规则' : 'Consumption Rules',
+          rules: [
+            { text: zh ? '每天自然消耗 -10 点' : '-10 per day (natural decay)', color: '#f87171' },
+            { text: zh ? '每日初始20次行动内不消耗饥饿值' : 'No hunger cost for first 20 daily actions', color: '#fbbf24' },
+            { text: zh ? '兑换额外行动时消耗 -5 点（10体力+5饥饿→10次行动）' : '-5 per extra action exchange (10 energy + 5 hunger → 10 actions)', color: '#f87171' },
+          ],
+        },
+        {
+          title: zh ? '恢复方式' : 'Recovery Methods',
+          rules: [
+            { text: zh ? '💧 水站消费：随机 +5~15 点' : '💧 Water Station: random +5~15', color: '#22d3ee' },
+            { text: zh ? '🍜 小食摊消费：随机 +30~50 点' : '🍜 Food Stand: random +30~50', color: '#4ade80' },
+            { text: zh ? '🍽️ 高级餐厅消费：随机 +50~100 点' : '🍽️ Restaurant: random +50~100', color: '#4ade80' },
+            { text: zh ? '💰 财富页花费 80 CC 恢复 +20 点' : '💰 Spend 80 CC on wealth page for +20', color: '#fbbf24' },
+          ],
+        },
+        {
+          title: zh ? '结局' : 'Consequence',
+          consequence: true,
+          text: zh ? '饥饿值降至 0 → 角色永久死亡，所有财富转入世界国库，不可复活。' : 'Hunger reaches 0 → permanent death. All wealth goes to world treasury. No revival.',
+          color: '#ef4444',
+        },
+      ],
+    },
+    energy: {
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+      iconBg: 'rgba(59,130,246,0.15)',
+      color: '#60a5fa',
+      title: zh ? '体力值' : 'Energy',
+      val: curEnergy,
+      sections: [
+        {
+          title: zh ? '消耗规则' : 'Consumption Rules',
+          rules: [
+            { text: zh ? '每日初始20次行动内不消耗体力' : 'No energy cost for first 20 daily actions', color: '#fbbf24' },
+            { text: zh ? '兑换额外行动时消耗 -10 点（10体力+5饥饿→10次行动）' : '-10 per extra action exchange (10 energy + 5 hunger → 10 actions)', color: '#f87171' },
+          ],
+        },
+        {
+          title: zh ? '恢复方式' : 'Recovery Methods',
+          rules: [
+            { text: zh ? '⏰ 每小时自动恢复 +5 点（≈每10秒1小时游戏时间）' : '⏰ Auto-recover +5 per hour (~10s real time = 1 game hour)', color: '#22d3ee' },
+            { text: zh ? '💧 水站消费：+5 点' : '💧 Water Station: +5', color: '#22d3ee' },
+            { text: zh ? '🛖 简易棚消费：体力补满至 100' : '🛖 Shelter: fills energy to 100', color: '#4ade80' },
+            { text: zh ? '🏨 精品酒店消费：体力补满至 100 + 幸福感+20' : '🏨 Hotel: fills energy to 100 + happiness +20', color: '#4ade80' },
+          ],
+        },
+        {
+          title: zh ? '提示' : 'Tip',
+          consequence: true,
+          text: zh ? '体力不足时无法兑换额外行动。合理安排休息，在住所或酒店消费可快速恢复满体力。' : 'Cannot exchange extra actions when energy is low. Rest at shelters or hotels to quickly refill.',
+          color: '#3b82f6',
+        },
+      ],
+    },
+    happiness: {
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+      iconBg: 'rgba(168,85,247,0.15)',
+      color: '#c084fc',
+      title: zh ? '幸福感' : 'Happiness',
+      val: curHappy,
+      sections: [
+        {
+          title: zh ? '消耗规则' : 'Consumption Rules',
+          rules: [
+            { text: zh ? '每次移动消耗 -1 点' : '-1 per move', color: '#f87171' },
+          ],
+        },
+        {
+          title: zh ? '恢复方式' : 'Recovery Methods',
+          rules: [
+            { text: zh ? '🍵 茶馆消费：+20 点' : '🍵 Tea House: +20', color: '#4ade80' },
+            { text: zh ? '🍻 酒吧消费：+15 点' : '🍻 Bar: +15', color: '#4ade80' },
+            { text: zh ? '🏘️ 社区中心消费：+8 点' : '🏘️ Community Center: +8', color: '#22d3ee' },
+            { text: zh ? '🍽️ 高级餐厅消费：+15 点' : '🍽️ Restaurant: +15', color: '#4ade80' },
+            { text: zh ? '🏨 精品酒店消费：+20 点' : '🏨 Hotel: +20', color: '#4ade80' },
+            { text: zh ? '🎨 艺术馆消费：+40 点' : '🎨 Gallery: +40', color: '#a855f7' },
+          ],
+        },
+        {
+          title: zh ? '影响与结局' : 'Effects & Consequence',
+          consequence: true,
+          text: zh ? '幸福感影响角色在世界中的声望。幸福感持续为0不会直接导致死亡，但会影响信用评分和交易机会。保持幸福感可以解锁更高层级的建筑效果加成。' : 'Happiness affects reputation. It won\'t cause death directly, but impacts credit score and trade opportunities. High happiness unlocks better building bonuses.',
+          color: '#a855f7',
+        },
+      ],
+    },
+  };
+
+  const r = rules[stat];
+  if (!r) return;
+
+  iconEl.style.background = r.iconBg;
+  iconEl.innerHTML = r.icon;
+  titleEl.textContent = r.title;
+  titleEl.style.color = r.color;
+  valEl.textContent = r.val;
+  valEl.style.color = r.color;
+
+  let html = '';
+  for (const sec of r.sections) {
+    html += '<div class="sr-section">';
+    html += `<div class="sr-section-title">${sec.title}</div>`;
+    if (sec.consequence) {
+      html += `<div class="sr-consequence" style="background:${sec.color}15;border:1px solid ${sec.color}30;color:${sec.color}">${sec.text}</div>`;
+    } else {
+      for (const rule of sec.rules) {
+        html += `<div class="sr-rule"><span class="sr-dot" style="background:${rule.color}"></span><span class="sr-text">${rule.text}</span></div>`;
+      }
+    }
+    html += '</div>';
+  }
+  bodyEl.innerHTML = html;
+
+  bg.style.display = 'block';
+  popup.classList.add('show');
+};
+
+window.closeStatRules = function() {
+  document.getElementById('stat-rules-popup').classList.remove('show');
+  document.getElementById('stat-rules-bg').style.display = 'none';
+};
 
 // ============ UI UPDATES ============
 function updateStats(stats) {
