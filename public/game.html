@@ -685,12 +685,13 @@ document.addEventListener('click', function(e) {
 
 // ============ THEME (LIGHT/DARK) ============
 let currentTheme = localStorage.getItem('echoworld_theme') || 'dark';
+let _sceneReady = false;
 
 function applyTheme() {
   const isLight = currentTheme === 'light';
   document.documentElement.classList.toggle('light', isLight);
-  // Update Three.js scene
-  if (typeof scene !== 'undefined') {
+  // Update Three.js scene (only after scene is created)
+  if (_sceneReady) {
     const bgColor = isLight ? 0xdfe3e8 : 0x0a0e17;
     scene.background = new THREE.Color(bgColor);
     scene.fog = new THREE.FogExp2(bgColor, isLight ? 0.012 : 0.018);
@@ -711,8 +712,8 @@ window.toggleTheme = function() {
   applyTheme();
 };
 
-// Apply saved theme on load
-applyTheme();
+// Apply CSS theme immediately (scene will be updated later)
+document.documentElement.classList.toggle('light', currentTheme === 'light');
 
 /** Get parent intersection coordinate for a lot node */
 function parentCoord(x, y) {
@@ -737,8 +738,10 @@ function authHeaders() {
 // ============ THREE.js SCENE ============
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0e17);
-scene.fog = new THREE.FogExp2(0x0a0e17, 0.018);
+_sceneReady = true;
+const _sceneBg = currentTheme === 'light' ? 0xdfe3e8 : 0x0a0e17;
+scene.background = new THREE.Color(_sceneBg);
+scene.fog = new THREE.FogExp2(_sceneBg, currentTheme === 'light' ? 0.012 : 0.018);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
 camera.position.set(0, 28, 18);
@@ -850,11 +853,8 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  // Place building at parent intersection (where the player stands)
-  const _SP = 14;
-  const _ix = Math.round(node.x / _SP) * _SP;
-  const _iy = Math.round(node.y / _SP) * _SP;
-  group.position.set(_ix, 0, _iy);
+  // Place building at node coordinate (intersections are at exact grid points)
+  group.position.set(node.x, 0, node.y);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -1169,16 +1169,13 @@ function renderMap(nodes) {
       const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
-      // Building base tile at parent intersection (aligned with player position)
+      // Building base tile at node position
       const ml = tpl?.maslowLevel || 1;
       const lotColor = MASLOW_COLORS[ml] || 0x888888;
-      const _SP = 14;
-      const _ix = Math.round(node.x / _SP) * _SP;
-      const _iy = Math.round(node.y / _SP) * _SP;
       const lotGeo = new THREE.BoxGeometry(1.6, 0.06, 1.6);
       const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.45, emissive: lotColor, emissiveIntensity: 0.25 });
       const lotBase = new THREE.Mesh(lotGeo, lotMat);
-      lotBase.position.set(_ix, 0.03, _iy);
+      lotBase.position.set(node.x, 0.03, node.y);
       mapMeshGroup.add(lotBase);
     } else if (node.type === 'lot') {
       // Empty lot: flat tile at exact coordinate position
@@ -1638,9 +1635,10 @@ async function fetchMe() {
       document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
     }
 
-    // Show build button if near empty lots
-    const hasNearbyLots = meData.nearbyLots && meData.nearbyLots.length > 0;
-    document.getElementById('btn-build').style.display = hasNearbyLots ? 'block' : 'none';
+    // Show build button if current node is empty and buildable
+    const curNode = meData.node;
+    const canBuild = curNode && !curNode.building && ['lot', 'intersection'].includes(curNode.type);
+    document.getElementById('btn-build').style.display = canBuild ? 'block' : 'none';
 
     return meData;
   } catch (e) {
@@ -1794,16 +1792,25 @@ async function chooseDirection(directionNodeId) {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // 到达后显示动作按钮：建造 / 消费
+    // 到达后显示动作按钮：建造 / 消费 / 交易
     closeBuildingOverlay();
     document.getElementById('btn-consume').style.display = 'none';
+    document.getElementById('btn-build').style.display = 'none';
+
     if (data.finalNode.building && data.finalNode.building.ownerId !== currentUser?.entityId) {
+      // Landing on another player's building → show consume + trade
       showBuildingOverlay(data.finalNode);
       document.getElementById('btn-consume').style.display = 'block';
       const tpl = buildingCatalog.find(t => t.type === data.finalNode.building.templateType);
       const lvMult = 1 + (data.finalNode.building.level - 1) * 0.3;
       const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
       document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
+    } else if (!data.finalNode.building) {
+      // Landing on empty node → show build option
+      const buildable = ['lot', 'intersection'];
+      if (buildable.includes(data.finalNode.type)) {
+        document.getElementById('btn-build').style.display = 'block';
+      }
     }
 
     // Refresh map
@@ -1873,19 +1880,14 @@ window.closeBuildModal = function() {
 
 async function doBuild(templateType) {
   try {
-    // Build on current node if it's an empty lot, otherwise nearest lot
+    // Build on current position (player's landing node)
     const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
     const meData = await meRes.json();
-
-    let nodeId;
     const curNode = meData.node;
-    if (curNode && curNode.type === 'lot' && !curNode.building) {
-      nodeId = curNode.id;
-    } else {
-      const lots = meData.nearbyLots;
-      if (!lots || lots.length === 0) { addLog(t('no_lots'), 'warn'); return; }
-      nodeId = lots[0].id;
+    if (!curNode || curNode.building) {
+      addLog(t('no_lots'), 'warn'); return;
     }
+    const nodeId = curNode.id;
     const customName = document.getElementById('build-custom-name').value.trim() || undefined;
 
     const res = await fetch(API + '/api/world/build', {

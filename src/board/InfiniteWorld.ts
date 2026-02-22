@@ -422,28 +422,34 @@ export class InfiniteWorld {
     remaining--;
     const passedBuildings: PassedBuilding[] = [];
 
-    // 检查当前路径节点旁边的lot是否有可消费建筑
-    const collectNearbyBuildings = (nodeId: number) => {
-      const node = this.nodes.get(nodeId)!;
-      for (const cid of node.connections) {
-        const cn = this.nodes.get(cid);
-        if (cn?.type === 'lot' && cn.building && cn.building.ownerId !== entityId) {
-          // 避免重复
-          if (passedBuildings.some(pb => pb.nodeId === cid)) continue;
+    // 检查路径节点及其邻居是否有可消费建筑
+    const collectBuildings = (nodeId: number) => {
+      const checkNode = (nid: number) => {
+        if (passedBuildings.some(pb => pb.nodeId === nid)) return;
+        const cn = this.nodes.get(nid);
+        if (cn?.building && cn.building.ownerId !== entityId) {
           const tpl = MASLOW_BUILDINGS.find(b => b.type === cn.building!.templateType);
-          if (!tpl) continue;
+          if (!tpl) return;
           const fee = Math.floor(tpl.baseFee * (1 + (cn.building!.level - 1) * 0.3));
           passedBuildings.push({
-            nodeId: cid, x: cn.x, y: cn.y,
+            nodeId: nid, x: cn.x, y: cn.y,
             building: cn.building!, template: tpl, fee,
           });
         }
+      };
+      // Check the node itself
+      checkNode(nodeId);
+      // Also check connected lots (legacy support)
+      const node = this.nodes.get(nodeId)!;
+      for (const cid of node.connections) {
+        const cn = this.nodes.get(cid);
+        if (cn?.type === 'lot') checkNode(cid);
       }
     };
 
     // 收集起始节点附近建筑
-    collectNearbyBuildings(state.nodeId);
-    collectNearbyBuildings(current);
+    collectBuildings(state.nodeId);
+    collectBuildings(current);
 
     while (remaining > 0) {
       const node = this.nodes.get(current)!;
@@ -490,7 +496,7 @@ export class InfiniteWorld {
       prev = current;
       current = nextId;
       remaining--;
-      collectNearbyBuildings(current);
+      collectBuildings(current);
     }
 
     // 移动完成 - 结算
@@ -550,7 +556,10 @@ export class InfiniteWorld {
     customName?: string,
   ): { building: WorldBuilding; template: BuildingTemplate } | null {
     const node = this.nodes.get(nodeId);
-    if (!node || node.type !== 'lot' || node.building) return null;
+    if (!node || node.building) return null;
+    // Allow building on lots and intersections (not on road/start/tax/welfare/event)
+    const buildable: NodeType[] = ['lot', 'intersection'];
+    if (!buildable.includes(node.type)) return null;
 
     const template = MASLOW_BUILDINGS.find(b => b.type === templateType);
     if (!template) return null;
@@ -696,10 +705,10 @@ export class InfiniteWorld {
     }
   }
 
-  /** 获取附近空地 (按距离排序，最近的在前) */
-  getNearbyLots(cx: number, cy: number, radius = 6): MapNode[] {
+  /** 获取附近可建空地 (含交叉路口，按距离排序) */
+  getNearbyBuildable(cx: number, cy: number, radius = 6): MapNode[] {
     return this.getVisibleNodes(cx, cy, radius)
-      .filter(n => n.type === 'lot' && !n.building)
+      .filter(n => !n.building && (n.type === 'lot' || n.type === 'intersection'))
       .sort((a, b) => {
         const da = (a.x - cx) ** 2 + (a.y - cy) ** 2;
         const db = (b.x - cx) ** 2 + (b.y - cy) ** 2;
