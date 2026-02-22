@@ -665,7 +665,9 @@
     <div class="bank-risk" id="bank-risk-warning">
       ⚠️ 金融风险提示：贷款按日计息，利率由各银行自行设定。请量力借贷，及时还款，避免债务滚雪球。
     </div>
-    <div id="bank-list" style="margin-top:8px"></div>
+    <div id="my-finances" style="margin-top:8px"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 6px;border-top:1px solid var(--border);padding-top:10px" id="bank-list-title">可用银行</div>
+    <div id="bank-list" style="margin-top:4px"></div>
   </div>
 </div>
 
@@ -2607,16 +2609,57 @@ async function doBuild(templateType) {
 window.openBankModal = async function() {
   const modal = document.getElementById('bank-modal');
   const list = document.getElementById('bank-list');
+  const finDiv = document.getElementById('my-finances');
   const zh = currentLang === 'zh';
   document.getElementById('bank-modal-title').textContent = zh ? '🏦 银行服务' : '🏦 Banking';
   document.getElementById('bank-risk-warning').textContent = zh
-    ? '⚠️ 金融风险提示：贷款按日计息，利率由各银行自行设定。请量力借贷，及时还款，避免债务滚雪球。'
-    : '⚠️ Financial Risk: Loans accrue daily interest. Rates set by each bank. Borrow responsibly.';
+    ? '⚠️ 金融风险提示：贷款按日计息，储蓄所利率低于银行。请量力借贷，及时还款。'
+    : '⚠️ Risk: Daily interest. Savings office rates < Bank rates. Borrow responsibly.';
+  document.getElementById('bank-list-title').textContent = zh ? '可用银行' : 'Available Banks';
   list.innerHTML = '<div style="text-align:center;padding:10px;color:var(--text2);font-size:11px">' + (zh ? '加载中...' : 'Loading...') + '</div>';
+  finDiv.innerHTML = '';
   modal.classList.add('show');
+
+  // 并行加载银行列表和我的财务
   try {
-    const res = await fetch(API + '/api/world/banks', { headers: authHeaders() });
-    const banks = await res.json();
+    const [banksRes, finRes] = await Promise.all([
+      fetch(API + '/api/world/banks', { headers: authHeaders() }),
+      fetch(API + '/api/world/bank/my-finances', { headers: authHeaders() }),
+    ]);
+    const banks = await banksRes.json();
+    const fin = finRes.ok ? await finRes.json() : { deposits: [], loans: [] };
+
+    // 我的财务概览
+    if (fin.deposits.length || fin.loans.length) {
+      let finHtml = `<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">${zh ? '💰 我的财务' : '💰 My Finances'}</div>`;
+      if (fin.deposits.length) {
+        finHtml += `<div style="font-size:10px;color:var(--green);margin-bottom:4px">${zh ? '存款' : 'Deposits'}:</div>`;
+        for (const d of fin.deposits) {
+          const total = Math.floor(d.amount + d.accumulatedInterest);
+          const interest = Math.floor(d.accumulatedInterest);
+          finHtml += `<div class="bank-card" style="padding:6px 8px;margin-bottom:4px">
+            <div class="bank-stat"><span>${zh ? '本金' : 'Principal'}</span><span>${d.amount} CC</span></div>
+            <div class="bank-stat"><span>${zh ? '利息' : 'Interest'}</span><span style="color:var(--green)">+${interest} CC</span></div>
+            <div class="bank-stat"><span>${zh ? '日利率' : 'Rate'}</span><span>${(d.interestRate * 100).toFixed(1)}%</span></div>
+            <div class="bank-stat"><span>${zh ? '可取' : 'Total'}</span><span style="font-weight:700">${total} CC</span></div>
+            <button class="bank-btn bank-btn-deposit" style="margin-top:4px;width:100%" onclick="doBankWithdraw('${d.id}')">${zh ? '取款' : 'Withdraw'} ${total} CC</button>
+          </div>`;
+        }
+      }
+      if (fin.loans.length) {
+        finHtml += `<div style="font-size:10px;color:var(--red);margin:6px 0 4px">${zh ? '贷款' : 'Loans'}:</div>`;
+        for (const l of fin.loans) {
+          finHtml += `<div class="bank-card" style="padding:6px 8px;margin-bottom:4px">
+            <div class="bank-stat"><span>${zh ? '本金' : 'Principal'}</span><span>${l.principal} CC</span></div>
+            <div class="bank-stat"><span>${zh ? '待还' : 'Owed'}</span><span style="color:var(--red);font-weight:700">${Math.floor(l.remainingBalance)} CC</span></div>
+            <div class="bank-stat"><span>${zh ? '日利率' : 'Rate'}</span><span>${(l.interestRate * 100).toFixed(1)}%</span></div>
+          </div>`;
+        }
+      }
+      finDiv.innerHTML = finHtml;
+    }
+
+    // 银行列表
     if (!banks.length) {
       list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px">' + (zh ? '目前世界上没有银行建筑' : 'No banks exist yet') + '</div>';
       return;
@@ -2631,11 +2674,16 @@ window.openBankModal = async function() {
       const limitBase = b.type === 'savings' ? 2000 : 10000;
       const isPaid = currentUser?.hasRecharged ?? false;
       const myLimit = isPaid ? limitBase * 3 : limitBase;
+      const rateHint = b.type === 'savings'
+        ? (zh ? '💡 储蓄所利率较低，适合稳健理财' : '💡 Lower rates, safer choice')
+        : (zh ? '💡 银行利率较高，收益更好，业主获利更多' : '💡 Higher rates, better returns for depositors & owner');
       card.innerHTML = `
         <div class="bank-card-title">${typeIcon} ${b.name} <span style="font-size:9px;color:var(--text2)">(${typeName} Lv.${b.level})</span></div>
+        <div style="font-size:9px;color:var(--accent);margin-bottom:4px">${rateHint}</div>
         <div class="bank-stat"><span>${zh ? '业主' : 'Owner'}</span><span>${b.owner}${isMine ? (zh ? ' (我)' : ' (Me)') : ''}</span></div>
         <div class="bank-stat"><span>${zh ? '存款日利率' : 'Deposit Rate'}</span><span class="bank-rate" style="color:var(--green)">${(b.depositRate * 100).toFixed(1)}%</span></div>
         <div class="bank-stat"><span>${zh ? '贷款日利率' : 'Loan Rate'}</span><span class="bank-rate" style="color:var(--red)">${(b.loanRate * 100).toFixed(1)}%</span></div>
+        <div class="bank-stat"><span>${zh ? '利差(业主收益)' : 'Spread(Owner)'}</span><span style="color:var(--purple)">${((b.loanRate - b.depositRate) * 100).toFixed(1)}%</span></div>
         <div class="bank-stat"><span>${zh ? '可贷资金' : 'Loan Pool'}</span><span>${b.loanPool.toFixed(0)} CC</span></div>
         <div class="bank-stat"><span>${zh ? '贷款额度' : 'Loan Limit'}</span><span>${myLimit} CC ${isPaid ? '(VIP)' : ''}</span></div>
         <div class="bank-actions">
@@ -2696,8 +2744,8 @@ async function doBankRepay(nodeId) {
   const amount = parseFloat(prompt(zh ? '输入还款金额 (CC):' : 'Enter repay amount (CC):'));
   if (!amount || amount <= 0) return;
   try {
-    const res = await fetch(API + '/api/game/repay', {
-      method: 'POST', headers: authHeaders(), body: JSON.stringify({ loanId: 'latest', amount }),
+    const res = await fetch(API + '/api/world/bank/repay', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ nodeId, amount }),
     });
     const data = await res.json();
     if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
@@ -2706,6 +2754,21 @@ async function doBankRepay(nodeId) {
     if (data.entity) updateMoney(data.entity);
     openBankModal();
   } catch (e) { showBuildToast(zh ? '还款失败' : 'Repay failed', 'warn'); }
+}
+
+async function doBankWithdraw(depositId) {
+  const zh = currentLang === 'zh';
+  try {
+    const res = await fetch(API + '/api/world/bank/withdraw', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ depositId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
+    showBuildToast(data.message, 'good');
+    addLog(data.message, 'good');
+    if (data.entity) updateMoney(data.entity);
+    openBankModal(); // refresh
+  } catch (e) { showBuildToast(zh ? '取款失败' : 'Withdraw failed', 'warn'); }
 }
 
 async function setBankRates(nodeId) {

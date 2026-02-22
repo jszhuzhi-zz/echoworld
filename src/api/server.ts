@@ -130,10 +130,16 @@ export function createServer(world: World, port = 3000): express.Application {
   world.state.eventBus.on(WorldEventType.TICK, (event) => {
     const time = (event.data as any).time;
     if (!time) return;
-    // 每日开始: 重置行动, 饥饿衰减 -10, 幸福感 -5
+    // 每日开始: 重置行动, 饥饿衰减 -10, 幸福感 -5, 银行利息结算
     if (time.day !== _lastDay) {
       _lastDay = time.day;
       infiniteWorld.resetDailyActions();
+      // 银行利息结算: 存款生息、贷款计息、业主赚利差
+      const ownerIncome = infiniteWorld.settleBankInterest();
+      for (const [ownerId, income] of ownerIncome) {
+        const entity = world.entities.getEntity(ownerId);
+        if (entity && income > 0) entity.receive(income);
+      }
     }
   });
 
@@ -602,18 +608,25 @@ export function createServer(world: World, port = 3000): express.Application {
   /** 获取所有银行类建筑 */
   app.get('/api/world/banks', (_req, res) => {
     const banks = infiniteWorld.getBankBuildings();
-    res.json(banks.map(b => ({
-      nodeId: b.nodeId,
-      name: b.building.name,
-      type: b.building.templateType,
-      owner: b.building.ownerName,
-      level: b.building.level,
-      depositRate: b.building.customDepositRate ?? 0.05,
-      loanRate: b.building.customLoanRate ?? 0.08,
-      loanPool: b.building.loanPool ?? 0,
-      totalDeposits: b.building.totalDeposits ?? 0,
-      totalLoansOut: b.building.totalLoansOut ?? 0,
-    })));
+    res.json(banks.map(b => {
+      // 储蓄所默认利率低于银行
+      const isSavings = b.template.type === 'savings';
+      const defaultDepRate = isSavings ? 0.03 : 0.05;
+      const defaultLoanRate = isSavings ? 0.05 : 0.08;
+      return {
+        nodeId: b.nodeId,
+        name: b.building.name,
+        type: b.building.templateType,
+        owner: b.building.ownerName,
+        ownerId: b.building.ownerId,
+        level: b.building.level,
+        depositRate: b.building.customDepositRate ?? defaultDepRate,
+        loanRate: b.building.customLoanRate ?? defaultLoanRate,
+        loanPool: b.building.loanPool ?? 0,
+        totalDeposits: b.building.totalDeposits ?? 0,
+        totalLoansOut: b.building.totalLoansOut ?? 0,
+      };
+    }));
   });
 
   /** 银行业主: 设置利率 */
@@ -690,6 +703,59 @@ export function createServer(world: World, port = 3000): express.Application {
       remainingPool: result.remaining,
       entity: entity.getSummary(),
     });
+  });
+
+  /** 用户在银行建筑取款 */
+  app.post('/api/world/bank/withdraw', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+    const { depositId } = req.body;
+    const result = infiniteWorld.bankWithdraw(user.entityId, depositId);
+    if (!result) return res.status(400).json({ error: lang === 'zh' ? '取款失败' : 'Withdraw failed' });
+    entity.receive(result.total);
+    res.json({
+      message: lang === 'zh'
+        ? `取出 ${result.total} CC（本金+利息 ${result.interest} CC）`
+        : `Withdrew ${result.total} CC (interest: ${result.interest} CC)`,
+      total: result.total,
+      interest: result.interest,
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 用户在银行建筑还款 */
+  app.post('/api/world/bank/repay', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+    const { nodeId, amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: lang === 'zh' ? '金额无效' : 'Invalid amount' });
+    if (!entity.pay(amount)) return res.status(400).json({ error: st(lang, 'no_fund', amount) });
+    const result = infiniteWorld.bankRepay(user.entityId, nodeId, amount);
+    if (!result) { entity.receive(amount); return res.status(400).json({ error: lang === 'zh' ? '还款失败（无待还贷款）' : 'No active loans to repay' }); }
+    res.json({
+      message: lang === 'zh'
+        ? `还款 ${result.repaid} CC${result.paid ? '，贷款已还清！' : `，剩余 ${Math.floor(result.remaining)} CC`}`
+        : `Repaid ${result.repaid} CC${result.paid ? ', loan fully paid!' : `, remaining: ${Math.floor(result.remaining)} CC`}`,
+      repaid: result.repaid,
+      remaining: result.remaining,
+      paid: result.paid,
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 用户的银行存款和贷款概览 */
+  app.get('/api/world/bank/my-finances', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: 'no entity' });
+    const deposits = infiniteWorld.getPlayerDeposits(user.entityId);
+    const loans = infiniteWorld.getPlayerLoans(user.entityId);
+    res.json({ deposits, loans });
   });
 
   /** 投资者: 获取自己的状态 */

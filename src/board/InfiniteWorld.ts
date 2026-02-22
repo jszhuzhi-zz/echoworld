@@ -127,6 +127,29 @@ export interface MoveResult {
   passedBuildings: PassedBuilding[]; // 路过的可消费建筑
 }
 
+// ============ 银行存贷记录 ============
+
+export interface PlayerDeposit {
+  id: string;
+  entityId: string;
+  nodeId: number;        // 存款所在银行建筑
+  amount: number;        // 本金
+  interestRate: number;  // 日利率
+  accumulatedInterest: number; // 累计利息
+  createdDay: number;    // 创建时的天数
+}
+
+export interface PlayerLoan {
+  id: string;
+  entityId: string;
+  nodeId: number;        // 贷款所在银行建筑
+  principal: number;     // 本金
+  remainingBalance: number; // 剩余欠款（含利息）
+  interestRate: number;  // 日利率
+  createdDay: number;    // 创建时的天数
+  status: 'active' | 'paid' | 'overdue';
+}
+
 // ============ 资产交易 ============
 
 export interface TradeOffer {
@@ -156,6 +179,10 @@ export class InfiniteWorld {
   private coordIndex: Map<string, number> = new Map();
   players: Map<string, PlayerWorldState> = new Map();
   tradeOffers: Map<string, TradeOffer> = new Map();
+  playerDeposits: PlayerDeposit[] = [];
+  playerLoans: PlayerLoan[] = [];
+  private depositIdCounter = 0;
+  private loanIdCounter = 0;
   private tradeIdCounter = 0;
   private nextId = 0;
   private generatedChunks: Set<string> = new Set();
@@ -752,21 +779,56 @@ export class InfiniteWorld {
     return node.building.loanPool;
   }
 
-  /** 银行类建筑: 用户存款 */
-  bankDeposit(entityId: string, nodeId: number, amount: number): { depositRate: number; amount: number } | null {
+  /** 获取银行类建筑的默认利率 (储蓄所利率低于银行) */
+  private getDefaultBankRates(templateType: string): { depositRate: number; loanRate: number } {
+    if (templateType === 'savings') {
+      return { depositRate: 0.03, loanRate: 0.05 }; // 储蓄所: 存款3%, 贷款5%
+    }
+    return { depositRate: 0.05, loanRate: 0.08 };   // 银行: 存款5%, 贷款8%
+  }
+
+  /** 银行类建筑: 用户存款 (创建存款记录) */
+  bankDeposit(entityId: string, nodeId: number, amount: number): { depositRate: number; amount: number; depositId: string } | null {
     const node = this.nodes.get(nodeId);
     if (!node?.building) return null;
     const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
     if (!template?.isBank) return null;
     if (amount <= 0) return null;
-    const rate = node.building.customDepositRate ?? 0.05;
+    const defaults = this.getDefaultBankRates(template.type);
+    const rate = node.building.customDepositRate ?? defaults.depositRate;
     node.building.totalDeposits = (node.building.totalDeposits ?? 0) + amount;
-    return { depositRate: rate, amount };
+    // 创建存款记录
+    const deposit: PlayerDeposit = {
+      id: `dep_${++this.depositIdCounter}`,
+      entityId,
+      nodeId,
+      amount,
+      interestRate: rate,
+      accumulatedInterest: 0,
+      createdDay: 0, // 由外部设置
+    };
+    this.playerDeposits.push(deposit);
+    return { depositRate: rate, amount, depositId: deposit.id };
   }
 
-  /** 银行类建筑: 用户贷款 */
+  /** 银行类建筑: 用户取款 (取出本金+利息) */
+  bankWithdraw(entityId: string, depositId: string): { total: number; interest: number } | null {
+    const idx = this.playerDeposits.findIndex(d => d.id === depositId && d.entityId === entityId);
+    if (idx === -1) return null;
+    const deposit = this.playerDeposits[idx];
+    const node = this.nodes.get(deposit.nodeId);
+    const total = deposit.amount + deposit.accumulatedInterest;
+    // 从建筑的总存款中扣除
+    if (node?.building) {
+      node.building.totalDeposits = Math.max(0, (node.building.totalDeposits ?? 0) - deposit.amount);
+    }
+    this.playerDeposits.splice(idx, 1);
+    return { total: Math.floor(total), interest: Math.floor(deposit.accumulatedInterest) };
+  }
+
+  /** 银行类建筑: 用户贷款 (创建贷款记录) */
   bankLoan(entityId: string, nodeId: number, amount: number, isPaidUser: boolean): {
-    loanRate: number; amount: number; remaining: number;
+    loanRate: number; amount: number; remaining: number; loanId: string;
   } | null {
     const node = this.nodes.get(nodeId);
     if (!node?.building) return null;
@@ -775,26 +837,63 @@ export class InfiniteWorld {
     if (amount <= 0) return null;
     const pool = node.building.loanPool ?? 0;
     if (pool < amount) return null;  // 资金池不足
+    // 检查该玩家在此银行的未还贷款总额
+    const existingLoans = this.playerLoans
+      .filter(l => l.entityId === entityId && l.nodeId === nodeId && l.status === 'active')
+      .reduce((sum, l) => sum + l.remainingBalance, 0);
     // 贷款额度: 储蓄所 2000 / 银行 10000, 付费用户 x3
     const baseLimit = template.type === 'savings' ? 2000 : 10000;
     const limit = isPaidUser ? baseLimit * 3 : baseLimit;
-    const currentLoans = node.building.totalLoansOut ?? 0;
-    if (currentLoans + amount > limit) return null;
-    const rate = node.building.customLoanRate ?? 0.08;
+    if (existingLoans + amount > limit) return null;
+    const defaults = this.getDefaultBankRates(template.type);
+    const rate = node.building.customLoanRate ?? defaults.loanRate;
     node.building.loanPool = pool - amount;
-    node.building.totalLoansOut = currentLoans + amount;
-    return { loanRate: rate, amount, remaining: node.building.loanPool };
+    node.building.totalLoansOut = (node.building.totalLoansOut ?? 0) + amount;
+    // 创建贷款记录
+    const loan: PlayerLoan = {
+      id: `loan_${++this.loanIdCounter}`,
+      entityId,
+      nodeId,
+      principal: amount,
+      remainingBalance: amount,
+      interestRate: rate,
+      createdDay: 0, // 由外部设置
+      status: 'active',
+    };
+    this.playerLoans.push(loan);
+    return { loanRate: rate, amount, remaining: node.building.loanPool, loanId: loan.id };
   }
 
-  /** 银行类建筑: 还款 */
-  bankRepay(nodeId: number, amount: number): boolean {
+  /** 银行类建筑: 还款 (指定贷款ID或自动选最早的) */
+  bankRepay(entityId: string, nodeId: number, amount: number): { repaid: number; remaining: number; paid: boolean } | null {
+    // 找到该玩家在此银行的活跃贷款 (优先还最早的)
+    const loan = this.playerLoans.find(
+      l => l.entityId === entityId && l.nodeId === nodeId && l.status === 'active'
+    );
+    if (!loan) return null;
+    const repaid = Math.min(amount, loan.remainingBalance);
+    loan.remainingBalance -= repaid;
     const node = this.nodes.get(nodeId);
-    if (!node?.building) return false;
-    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
-    if (!template?.isBank) return false;
-    node.building.loanPool = (node.building.loanPool ?? 0) + amount;
-    node.building.totalLoansOut = Math.max(0, (node.building.totalLoansOut ?? 0) - amount);
-    return true;
+    if (node?.building) {
+      node.building.loanPool = (node.building.loanPool ?? 0) + repaid;
+      node.building.totalLoansOut = Math.max(0, (node.building.totalLoansOut ?? 0) - repaid);
+    }
+    let paid = false;
+    if (loan.remainingBalance <= 0) {
+      loan.status = 'paid';
+      paid = true;
+    }
+    return { repaid, remaining: loan.remainingBalance, paid };
+  }
+
+  /** 获取玩家的所有存款记录 */
+  getPlayerDeposits(entityId: string): PlayerDeposit[] {
+    return this.playerDeposits.filter(d => d.entityId === entityId);
+  }
+
+  /** 获取玩家的所有贷款记录 */
+  getPlayerLoans(entityId: string): PlayerLoan[] {
+    return this.playerLoans.filter(l => l.entityId === entityId && l.status === 'active');
   }
 
   /** 获取银行建筑列表 (所有银行类建筑) */
@@ -810,22 +909,38 @@ export class InfiniteWorld {
     return result;
   }
 
-  /** 每日结算银行利息 (由 TICK 事件驱动) */
-  settleBankInterest(): void {
-    // 由外部 Bank.ts 的 settleInterest 来处理具体的贷款/存款利息
-    // 这里只更新建筑层面的资金池回收利息
-    for (const node of this.nodes.values()) {
-      if (!node.building) continue;
-      const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
-      if (!template?.isBank) continue;
-      const loanRate = node.building.customLoanRate ?? 0.08;
-      const loansOut = node.building.totalLoansOut ?? 0;
-      if (loansOut > 0) {
-        // 贷款产生的利息归入资金池 (作为银行业主收益)
-        const interest = Math.floor(loansOut * loanRate);
-        node.building.loanPool = (node.building.loanPool ?? 0) + interest;
+  /** 每日结算银行利息: 存款生息、贷款计息、业主赚利差
+   *  返回每个业主的利差收入 Map<ownerId, income> */
+  settleBankInterest(): Map<string, number> {
+    const ownerIncome = new Map<string, number>();
+
+    // 1. 存款利息结算 — 存款人获得利息
+    for (const deposit of this.playerDeposits) {
+      const interest = deposit.amount * deposit.interestRate;
+      deposit.accumulatedInterest += interest;
+    }
+
+    // 2. 贷款利息结算 — 借款人欠款增长，利差归业主
+    for (const loan of this.playerLoans) {
+      if (loan.status !== 'active') continue;
+      const interest = Math.floor(loan.remainingBalance * loan.interestRate);
+      loan.remainingBalance += interest;
+      // 利差收入 = 贷款利息 - 对应存款需付利息（简化: 利差 = 贷款利息的50%归业主）
+      const node = this.nodes.get(loan.nodeId);
+      if (node?.building) {
+        const ownerId = node.building.ownerId;
+        const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+        const defaults = this.getDefaultBankRates(template?.type ?? 'savings');
+        const depositRate = node.building.customDepositRate ?? defaults.depositRate;
+        const loanRate = node.building.customLoanRate ?? defaults.loanRate;
+        // 利差 = (贷款利率 - 存款利率) × 贷款余额
+        const spread = Math.floor(loan.remainingBalance * Math.max(0, loanRate - depositRate));
+        const prev = ownerIncome.get(ownerId) ?? 0;
+        ownerIncome.set(ownerId, prev + spread);
       }
     }
+
+    return ownerIncome;
   }
 
   /** 引荐新人 → 推荐人名下所有建筑获得引荐积分 */
