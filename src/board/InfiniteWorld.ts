@@ -75,6 +75,7 @@ export interface WorldBuilding {
   level: number;
   usageCount: number;
   referralCredits: number;
+  listingPrice?: number;   // 挂牌出售价格 (undefined = 不出售)
 }
 
 // ============ 玩家状态 ============
@@ -664,6 +665,15 @@ export class InfiniteWorld {
     const refund = Math.floor(template.cost * 0.3);
     node.building = undefined;
     return { refund, template };
+  }
+
+  /** 设置/取消挂牌出售价格 */
+  setListingPrice(entityId: string, nodeId: number, price: number | null): boolean {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return false;
+    if (node.building.ownerId !== entityId) return false;
+    node.building.listingPrice = price !== null && price > 0 ? price : undefined;
+    return true;
   }
 
   /** 引荐新人 → 推荐人名下所有建筑获得引荐积分 */

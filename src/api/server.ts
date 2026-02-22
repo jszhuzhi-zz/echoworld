@@ -967,6 +967,25 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // ============ 资产交易 API ============
 
+  /** 设置/取消挂牌出售价格 */
+  app.post('/api/world/trade/set-price', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+
+    const { nodeId, price } = req.body;
+    const ok = infiniteWorld.setListingPrice(user.entityId, nodeId, price ?? null);
+    if (!ok) return res.status(400).json({ error: st(lang, 'offer_invalid') || 'Invalid' });
+
+    const node = infiniteWorld.nodes.get(nodeId);
+    const bName = node?.building?.name || '?';
+    if (price && price > 0) {
+      res.json({ message: lang === 'zh' ? `${bName} 已挂牌出售，价格 ${price} CC` : `${bName} listed for ${price} CC` });
+    } else {
+      res.json({ message: lang === 'zh' ? `${bName} 已取消挂牌` : `${bName} delisted` });
+    }
+  });
+
   /** 出价购买建筑 */
   app.post('/api/world/trade/offer', authMiddleware, requireRole('investor'), (req, res) => {
     const lang = getLang(req);

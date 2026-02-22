@@ -86,7 +86,7 @@
     .action-center{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin:0 12px}
     .btn-dice{width:100px;height:100px;border-radius:50%;border:none;
       background:linear-gradient(145deg,rgba(59,130,246,0.3),rgba(139,92,246,0.3));
-      color:#fff;font-size:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      color:#fff;font-size:48px;cursor:pointer;display:flex;align-items:center;justify-content:center;
       transition:all .3s;flex-shrink:0;
       box-shadow:0 6px 28px rgba(59,130,246,0.35),inset 0 0 0 3px rgba(255,255,255,0.15);
       position:relative;overflow:hidden}
@@ -96,7 +96,8 @@
       transform:scale(1.08);box-shadow:0 8px 36px rgba(59,130,246,0.5),inset 0 0 0 3px rgba(255,255,255,0.2)}
     .btn-dice:disabled{opacity:.35;cursor:not-allowed;transform:none;
       box-shadow:0 2px 10px rgba(59,130,246,0.15),inset 0 0 0 3px rgba(255,255,255,0.06)}
-    .btn-dice .dice-num{font-size:44px;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+    .btn-dice .dice-num{font-size:52px;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+    .btn-dice .dice-icon{font-size:48px;line-height:1}
     .dir-btn{padding:8px 14px;border-radius:12px;border:none;
       background:rgba(16,185,129,0.2);backdrop-filter:blur(8px);
       color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;
@@ -108,6 +109,17 @@
     .dir-btn.dir-ccw:hover{background:rgba(251,146,60,0.35)}
     .dir-btn.dir-forward{background:rgba(16,185,129,0.2);color:#6ee7b7}
     .dir-btn.dir-forward:hover{background:rgba(16,185,129,0.35)}
+    /* Direction button pulsing glow when awaiting choice */
+    .dir-btn.dir-pulse{animation:dirPulse 1.2s ease-in-out infinite}
+    @keyframes dirPulse{0%,100%{box-shadow:inset 0 0 0 1.5px currentColor,0 0 0 0 transparent}50%{box-shadow:inset 0 0 0 2px currentColor,0 0 12px 2px currentColor}}
+
+    /* Idle reminder popup */
+    #idle-reminder{display:none;position:fixed;z-index:50;top:50%;left:50%;transform:translate(-50%,-50%);
+      background:var(--bg2);border:1px solid var(--accent);border-radius:16px;padding:20px 28px;
+      text-align:center;backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(0,0,0,0.5);
+      animation:idleFadeIn 0.3s ease-out}
+    #idle-reminder.show{display:block}
+    @keyframes idleFadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
     .ctx-placeholder{width:42px;height:38px;display:inline-block}
     .ctx-btn{min-width:40px;height:40px;padding:0 8px;display:none;align-items:center;justify-content:center;gap:2px;border-radius:12px;backdrop-filter:blur(8px)}
     .ctx-btn:hover{transform:translateY(-2px) scale(1.05)}
@@ -129,7 +141,7 @@
     .building-item .b-icon{font-size:14px}.building-item .b-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.building-item .b-lv{color:var(--accent);font-weight:700;font-size:9px}
 
     /* === Game Log (bottom-left, above action bar) === */
-    #game-log{position:fixed;z-index:12;bottom:80px;left:12px;width:280px;max-height:150px;
+    #game-log{position:fixed;z-index:12;bottom:130px;left:12px;width:280px;max-height:150px;
       overflow-y:auto;display:flex;flex-direction:column;gap:2px;pointer-events:auto}
     .log-item{font-size:9px;color:var(--text2);background:rgba(0,0,0,0.55);padding:2px 6px;border-radius:4px;backdrop-filter:blur(4px)}
     .log-item.warn{color:var(--yellow);border-left:2px solid var(--yellow)}
@@ -154,7 +166,7 @@
     @keyframes gntScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
     /* === Building Action Overlay (above action bar) === */
-    #building-overlay{position:fixed;z-index:16;bottom:90px;left:50%;transform:translateX(-50%);
+    #building-overlay{position:fixed;z-index:16;bottom:140px;left:50%;transform:translateX(-50%);
       display:none;flex-direction:column;align-items:center;gap:6px;
       background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 18px;
       backdrop-filter:blur(10px);min-width:220px;max-width:340px}
@@ -249,7 +261,7 @@
     /* === Responsive === */
     @media(max-width:768px){
       #right-panel{display:none}
-      #game-log{width:calc(100% - 24px);left:12px;right:12px;max-height:100px}
+      #game-log{width:calc(100% - 24px);left:12px;right:12px;max-height:100px;bottom:110px}
       .stat-bars{display:none}
       .mobile-stats{display:flex}
       .pos-info,.dice-info{display:none!important}
@@ -257,12 +269,13 @@
       .logo-full{display:none}
       .logo-m{display:inline-block!important}
       #action-bar{padding:6px 10px;bottom:8px;left:8px;right:8px;border-radius:20px}
-      .btn-dice{width:76px;height:76px;font-size:26px}
-      .btn-dice .dice-num{font-size:34px}
+      .btn-dice{width:76px;height:76px;font-size:36px}
+      .btn-dice .dice-num{font-size:40px}
+      .btn-dice .dice-icon{font-size:36px}
       .dir-btn{padding:6px 10px;font-size:14px}
       .action-center{margin:0 6px}
       .ctx-placeholder{width:34px;height:32px}
-      #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
+      #building-overlay{bottom:110px;min-width:200px;padding:10px 14px}
       .modal-content{width:calc(100vw - 16px);padding:12px}
       .inbox-text{display:none}
       .money-badge-bottom{font-size:11px;padding:4px 8px;min-width:60px;border-radius:8px}
@@ -327,14 +340,14 @@
   <!-- Center: dice + directions -->
   <div class="action-center">
     <button class="dir-btn dir-cw" id="btn-left" style="display:none">↻</button>
-    <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
+    <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span class="dice-icon">🎲</span></button>
     <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺</button>
   </div>
   <!-- Right: context actions (placeholder keeps dice centered) -->
   <div class="action-side right" id="ctx-actions">
     <span class="ctx-placeholder" id="ctx-placeholder"></span>
     <button class="dir-btn ctx-btn" id="btn-consume" style="display:none;background:rgba(249,115,22,0.2);box-shadow:inset 0 0 0 1.5px rgba(249,115,22,0.4)" onclick="useBuilding()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg></button>
-    <button class="dir-btn ctx-btn" id="btn-build" style="display:none;background:rgba(168,85,247,0.2);box-shadow:inset 0 0 0 1.5px rgba(168,85,247,0.4)" onclick="openBuildModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-build" style="display:none;background:rgba(168,85,247,0.2);box-shadow:inset 0 0 0 1.5px rgba(168,85,247,0.4)" onclick="openBuildModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V10l7-5 7 5v10"/><path d="M9 20v-4h6v4"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-sell" style="display:none;background:rgba(16,185,129,0.2);box-shadow:inset 0 0 0 1.5px rgba(16,185,129,0.4)" onclick="openTradeListModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="#6ee7b7"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-trade" style="display:none;background:rgba(56,189,248,0.2);box-shadow:inset 0 0 0 1.5px rgba(56,189,248,0.4)" onclick="openTradeOfferModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-demolish" style="display:none;background:rgba(239,68,68,0.15);box-shadow:inset 0 0 0 1.5px rgba(239,68,68,0.35)" onclick="demolishBuilding()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
@@ -527,6 +540,53 @@
   </div>
 </div>
 
+<!-- Sell / Listing Price Modal -->
+<div id="sell-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;width:min(360px,calc(100vw - 32px))">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span id="sell-modal-title" style="font-size:15px;font-weight:700"></span>
+      <button class="btn-close-modal" onclick="closeSellModal()">&times;</button>
+    </div>
+    <div id="sell-building-info" style="font-size:12px;color:var(--text2);margin-bottom:12px;text-align:center"></div>
+    <!-- Set listing price section -->
+    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px" id="sell-price-label"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="sell-price-input" type="number" min="1" placeholder="CC" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;text-align:center">
+        <button id="sell-set-btn" onclick="setListingPrice()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--green);color:#000;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap"></button>
+      </div>
+      <div id="sell-current-price" style="font-size:10px;color:var(--text2);margin-top:6px;text-align:center"></div>
+      <button id="sell-delist-btn" onclick="delistBuilding()" style="display:none;margin-top:6px;width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text2);font-size:11px;cursor:pointer"></button>
+    </div>
+    <!-- View trade inbox -->
+    <button id="sell-inbox-btn" onclick="closeSellModal();openTradeInbox()" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:rgba(59,130,246,0.08);color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <span id="sell-inbox-label"></span>
+    </button>
+  </div>
+</div>
+
+<!-- Demolish Confirm Modal -->
+<div id="demolish-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;width:min(340px,calc(100vw - 32px));text-align:center">
+    <div style="font-size:28px;margin-bottom:8px">🗑️</div>
+    <div id="dm-title" style="font-size:15px;font-weight:700;margin-bottom:8px"></div>
+    <div id="dm-refund" style="font-size:13px;color:var(--green);margin-bottom:14px"></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="dm-confirm" style="padding:10px 24px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer"></button>
+      <button onclick="closeDemolishModal()" style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text2);font-size:13px;cursor:pointer"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Idle reminder popup -->
+<div id="idle-reminder">
+  <div style="font-size:28px;margin-bottom:8px">🎮</div>
+  <div id="idle-msg" style="font-size:14px;font-weight:700;margin-bottom:6px"></div>
+  <div id="idle-hint" style="font-size:11px;color:var(--text2);margin-bottom:14px"></div>
+  <button onclick="dismissIdleReminder()" style="padding:8px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer">OK</button>
+</div>
+
 <!-- Death warning banner -->
 <div id="death-warning" class="death-warning" style="display:none"></div>
 
@@ -687,6 +747,9 @@ const I18N = {
     enter_price:'请输入出价金额',inbox_badge:'收件箱',
     offer_for:'购买',you:'你',pending:'待处理',
     sent_offers:'我发出的出价',received_offers:'收到的出价',
+    sell_manage:'出售管理',set_price:'设置挂牌价',set_price_btn:'挂牌',
+    current_listing:'当前挂牌价',no_listing:'未挂牌',delist:'取消挂牌',
+    view_inbox:'查看交易收件箱',price_set:'挂牌价已设置',price_removed:'已取消挂牌',
   },
   en: {
     home:'Home',logout:'Logout',loading:'Loading...',action:'Act',light_mode:'Light Mode',dark_mode:'Dark Mode',
@@ -742,6 +805,9 @@ const I18N = {
     enter_price:'Enter offer price',inbox_badge:'Inbox',
     offer_for:'Buy',you:'You',pending:'Pending',
     sent_offers:'Sent Offers',received_offers:'Received Offers',
+    sell_manage:'Sell',set_price:'Set Listing Price',set_price_btn:'List',
+    current_listing:'Current Price',no_listing:'Not listed',delist:'Delist',
+    view_inbox:'View Trade Inbox',price_set:'Listing price set',price_removed:'Delisted',
   }
 };
 let currentLang = localStorage.getItem('echoworld_lang') || 'zh';
@@ -1398,6 +1464,37 @@ function renderPlayers(players) {
   }
 }
 
+// ============ IDLE TIMER (remind user to take action) ============
+let _idleTimer = null;
+const IDLE_TIMEOUT = 15000; // 15 seconds
+
+function startIdleTimer(context) {
+  clearIdleTimer();
+  _idleTimer = setTimeout(() => {
+    const el = document.getElementById('idle-reminder');
+    const msgEl = document.getElementById('idle-msg');
+    const hintEl = document.getElementById('idle-hint');
+    if (context === 'direction') {
+      msgEl.textContent = currentLang === 'zh' ? '请选择前进方向' : 'Choose a direction';
+      hintEl.textContent = currentLang === 'zh' ? '点击箭头按钮或3D地图中的箭头选择方向' : 'Tap an arrow button or the 3D arrow to choose';
+    } else {
+      msgEl.textContent = currentLang === 'zh' ? '轮到你行动了' : 'Your turn to act';
+      hintEl.textContent = currentLang === 'zh' ? '点击骰子开始移动，或使用下方的操作按钮' : 'Roll the dice or use the action buttons below';
+    }
+    el.classList.add('show');
+  }, IDLE_TIMEOUT);
+}
+
+function clearIdleTimer() {
+  if (_idleTimer) { clearTimeout(_idleTimer); _idleTimer = null; }
+  const el = document.getElementById('idle-reminder');
+  if (el) el.classList.remove('show');
+}
+
+window.dismissIdleReminder = function() {
+  document.getElementById('idle-reminder').classList.remove('show');
+};
+
 const DIR_COLORS = {
   cw:      { color: 0x38bdf8, emissive: 0x38bdf8 },   // sky-blue (顺时针)
   ccw:     { color: 0xfb923c, emissive: 0xfb923c },   // orange   (逆时针)
@@ -1709,7 +1806,8 @@ function showBuildingOverlay(node) {
   const lvMult = 1 + (b.level - 1) * 0.3;
   const fee = Math.floor(tpl.baseFee * lvMult);
   document.getElementById('bo-title').textContent = `${tpl.icon} ${bldgName(tpl)} (Lv.${b.level}) - ${b.ownerName}`;
-  document.getElementById('bo-desc').textContent = `${bldgDesc(tpl)} | ${t('use_fee')}: ${fee} CC`;
+  const listingStr = b.listingPrice ? ` | ${currentLang === 'zh' ? '售价' : 'Price'}: ${b.listingPrice} CC` : '';
+  document.getElementById('bo-desc').textContent = `${bldgDesc(tpl)} | ${t('use_fee')}: ${fee} CC${listingStr}`;
   const effectsHtml = Object.entries(tpl.effects).map(([k, v]) => {
     const eMult = 1 + (b.level - 1) * 0.2;
     const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
@@ -1817,7 +1915,7 @@ async function fetchCatalog() {
 
 // ============ GAME ACTIONS ============
 
-/** 显示方向按钮 (顺时针/逆时针) */
+/** 显示方向按钮 (顺时针/逆时针) - 匹配3D箭头颜色并闪烁提醒 */
 function showDirButtons(directions) {
   const btnLeft = document.getElementById('btn-left');
   const btnRight = document.getElementById('btn-right');
@@ -1825,24 +1923,25 @@ function showDirButtons(directions) {
   btnRight.style.display = 'none';
 
   if (directions.length === 1) {
-    btnLeft.style.display = 'block';
-    btnLeft.textContent = '→';
-    btnLeft.className = 'dir-btn dir-forward';
-    btnLeft.onclick = () => chooseDirection(directions[0].nodeId);
+    btnLeft.style.display = 'inline-flex';
+    btnLeft.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    btnLeft.className = 'dir-btn dir-forward dir-pulse';
+    btnLeft.onclick = () => { clearIdleTimer(); chooseDirection(directions[0].nodeId); };
   } else if (directions.length >= 2) {
     const cwDir = directions.find(d => d.label.includes('顺')) || directions[0];
     const ccwDir = directions.find(d => d.label.includes('逆')) || directions[1];
-    btnLeft.style.display = 'block';
-    btnLeft.textContent = '↻';
-    btnLeft.className = 'dir-btn dir-cw';
-    btnLeft.onclick = () => chooseDirection(cwDir.nodeId);
-    btnRight.style.display = 'block';
-    btnRight.textContent = '↺';
-    btnRight.className = 'dir-btn dir-ccw';
-    btnRight.onclick = () => chooseDirection(ccwDir.nodeId);
+    btnLeft.style.display = 'inline-flex';
+    btnLeft.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.22-8.56"/><polyline points="21 3 21 8.5 15.5 8.5"/></svg>';
+    btnLeft.className = 'dir-btn dir-cw dir-pulse';
+    btnLeft.onclick = () => { clearIdleTimer(); chooseDirection(cwDir.nodeId); };
+    btnRight.style.display = 'inline-flex';
+    btnRight.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 116.22-8.56"/><polyline points="3 3 3 8.5 8.5 8.5"/></svg>';
+    btnRight.className = 'dir-btn dir-ccw dir-pulse';
+    btnRight.onclick = () => { clearIdleTimer(); chooseDirection(ccwDir.nodeId); };
   }
 
   showDirectionArrows(directions);
+  startIdleTimer('direction');
 }
 
 /** 隐藏方向按钮 */
@@ -1850,6 +1949,7 @@ function hideDirButtons() {
   document.getElementById('btn-left').style.display = 'none';
   document.getElementById('btn-right').style.display = 'none';
   clearDirectionArrows();
+  clearIdleTimer();
 }
 
 window.rollDice = async function() {
@@ -1879,7 +1979,7 @@ window.rollDice = async function() {
       showDirButtons(data.directions);
     } else {
       // No valid direction - reset dice button
-      btn.innerHTML = '<span>🎲</span>';
+      btn.innerHTML = '<span class="dice-icon">🎲</span>';
       btn.disabled = false;
       document.getElementById('dice-info').textContent = '🎲 -';
       addLog(t('no_path') || '无路可走', 'warn');
@@ -1938,7 +2038,7 @@ async function chooseDirection(directionNodeId) {
     }
 
     // Reset dice button
-    document.getElementById('btn-roll').innerHTML = '<span>🎲</span>';
+    document.getElementById('btn-roll').innerHTML = '<span class="dice-icon">🎲</span>';
     document.getElementById('dice-info').textContent = '🎲 -';
 
     // Check death
@@ -2015,9 +2115,80 @@ window.confirmConsume = async function() {
 };
 
 window.openTradeListModal = function() {
-  // Own building: open trade inbox to view/accept buyer offers
-  openTradeInbox();
+  // Own building: open sell modal with listing price + inbox
+  const curNode = allNodes.find(n => n.id === myState?.nodeId);
+  if (!curNode?.building || curNode.building.ownerId !== currentUser?.entityId) return;
+  const b = curNode.building;
+  const tpl = buildingCatalog.find(t => t.type === b.templateType);
+  const pc = parentCoord(curNode.x, curNode.y);
+
+  document.getElementById('sell-modal-title').textContent = t('sell_manage');
+  document.getElementById('sell-building-info').textContent =
+    `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} (Lv.${b.level}) · (${pc.x},${pc.y})`;
+  document.getElementById('sell-price-label').textContent = t('set_price');
+  document.getElementById('sell-set-btn').textContent = t('set_price_btn');
+  document.getElementById('sell-inbox-label').textContent = t('view_inbox');
+
+  // Show current listing price
+  if (b.listingPrice && b.listingPrice > 0) {
+    document.getElementById('sell-current-price').textContent = `${t('current_listing')}: ${b.listingPrice} CC`;
+    document.getElementById('sell-price-input').value = b.listingPrice;
+    document.getElementById('sell-delist-btn').style.display = 'block';
+    document.getElementById('sell-delist-btn').textContent = t('delist');
+  } else {
+    document.getElementById('sell-current-price').textContent = t('no_listing');
+    document.getElementById('sell-price-input').value = '';
+    document.getElementById('sell-delist-btn').style.display = 'none';
+  }
+
+  document.getElementById('sell-modal').style.display = 'flex';
 };
+
+window.closeSellModal = function() {
+  document.getElementById('sell-modal').style.display = 'none';
+};
+
+window.setListingPrice = async function() {
+  const price = parseInt(document.getElementById('sell-price-input').value);
+  if (!price || price <= 0) { addLog(t('enter_price'), 'warn'); return; }
+  const curNode = allNodes.find(n => n.id === myState?.nodeId);
+  if (!curNode) return;
+  try {
+    const res = await fetch(API + '/api/world/trade/set-price', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId: curNode.id, price }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    const data = await res.json();
+    addLog(data.message || t('price_set'), 'good');
+    closeSellModal();
+    await fetchMap();
+    await fetchMe();
+  } catch (e) {
+    addLog(t('offer_fail'), 'danger');
+  }
+};
+
+window.delistBuilding = async function() {
+  const curNode = allNodes.find(n => n.id === myState?.nodeId);
+  if (!curNode) return;
+  try {
+    const res = await fetch(API + '/api/world/trade/set-price', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId: curNode.id, price: null }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    const data = await res.json();
+    addLog(data.message || t('price_removed'), 'good');
+    closeSellModal();
+    await fetchMap();
+    await fetchMe();
+  } catch (e) {
+    addLog(t('offer_fail'), 'danger');
+  }
+};
+
+let _demolishNodeId = null;
 
 window.demolishBuilding = async function() {
   try {
@@ -2030,11 +2201,31 @@ window.demolishBuilding = async function() {
     const tpl = buildingCatalog.find(b => b.type === curNode.building.templateType);
     const refund = Math.floor((tpl?.cost || 0) * 0.3);
     const name = bldgName(tpl) || curNode.building.name;
-    if (!confirm(`${t('confirm_demolish') || '确认拆除'} "${name}"?\n${t('refund_hint') || '返还'}: ${refund} CC`)) return;
+    _demolishNodeId = curNode.id;
+    document.getElementById('dm-title').textContent = `${t('confirm_demolish') || '确认拆除'} "${name}"?`;
+    document.getElementById('dm-refund').textContent = `${t('refund_hint') || '返还'}: ${refund} CC`;
+    document.getElementById('dm-confirm').textContent = t('confirm_demolish') || '确认拆除';
+    document.querySelector('#demolish-modal .btn-cancel-dm') || (document.querySelector('#demolish-modal div:last-child button:last-child').textContent = t('cancel') || '取消');
+    document.getElementById('dm-confirm').onclick = confirmDemolish;
+    document.getElementById('demolish-modal').style.display = 'flex';
+  } catch (e) {
+    addLog(t('demolish_fail') || '拆除失败', 'danger');
+  }
+};
+
+window.closeDemolishModal = function() {
+  document.getElementById('demolish-modal').style.display = 'none';
+  _demolishNodeId = null;
+};
+
+async function confirmDemolish() {
+  if (!_demolishNodeId) return;
+  try {
     const res = await fetch(API + '/api/world/demolish', {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ nodeId: curNode.id }),
+      body: JSON.stringify({ nodeId: _demolishNodeId }),
     });
+    closeDemolishModal();
     if (!res.ok) { const err = await res.json(); addLog(err.error || t('demolish_fail'), 'warn'); return; }
     const data = await res.json();
     addLog(data.message, 'good');
@@ -2042,9 +2233,10 @@ window.demolishBuilding = async function() {
     await fetchMap();
     await fetchMe();
   } catch (e) {
+    closeDemolishModal();
     addLog(t('demolish_fail') || '拆除失败', 'danger');
   }
-};
+}
 
 window.openBuildModal = function() {
   const modal = document.getElementById('build-modal');
@@ -2241,20 +2433,53 @@ async function fetchEconomy() {
   } catch (e) { /* ignore */ }
 }
 
-/** 获取世界播报 → 新闻滚动条 */
+/** 事件优先级 (越高越重要) */
+const EVENT_PRIORITY = {
+  entity_bankrupt: 10,
+  rule_evolved: 9,
+  building_upgraded: 7,
+  building_built: 6,
+  entity_created: 5,
+  entity_removed: 5,
+  transaction: 3,
+  market_price_change: 4,
+  entity_action: 2,
+  day_start: 1,
+  day_end: 1,
+  tick: 0,
+};
+
+/** 获取世界播报 → 新闻滚动条 (仅重要事件, 按优先级排序) */
 async function fetchNewsTicker() {
   try {
-    const res = await fetch(API + '/api/events?count=30');
+    const res = await fetch(API + '/api/events?count=50');
     if (!res.ok) return;
     const events = await res.json();
     const el = document.getElementById('gnt-content');
     if (!events.length) { el.innerHTML = '<span class="gnt-item">-</span>'; return; }
-    const items = events.map(ev => {
+    // Filter out low-priority noise (tick, day_start, day_end, entity_action)
+    const important = events.filter(ev => (EVENT_PRIORITY[ev.type] || 0) >= 3);
+    // Sort by priority desc, then by time desc
+    important.sort((a, b) => {
+      const pa = EVENT_PRIORITY[a.type] || 0, pb = EVENT_PRIORITY[b.type] || 0;
+      if (pa !== pb) return pb - pa;
+      return 0; // preserve server order for same priority
+    });
+    const top = important.slice(0, 20);
+    if (!top.length) { el.innerHTML = '<span class="gnt-item">-</span>'; return; }
+    const typeLabels = {
+      entity_bankrupt: '💀', rule_evolved: '📜', building_upgraded: '⬆️',
+      building_built: '🏗️', entity_created: '👤', entity_removed: '🚪',
+      transaction: '💰', market_price_change: '📊',
+    };
+    const items = top.map(ev => {
       const d = ev.data || {};
-      const desc = d.description || d.reason || d.action || ev.type || '';
+      const desc = d.description || d.reason || d.action || '';
+      if (!desc) return '';
       const time = ev.timestamp ? `D${ev.timestamp.day||'?'}` : '';
-      return `<span class="gnt-item"><span class="gnt-time">${time}</span><span class="gnt-type">${ev.type||''}</span>${desc}</span>`;
-    }).join('');
+      const icon = typeLabels[ev.type] || '📰';
+      return `<span class="gnt-item"><span class="gnt-time">${time}</span><span class="gnt-type">${icon}</span>${desc}</span>`;
+    }).filter(Boolean).join('');
     // Duplicate for seamless scrolling
     el.innerHTML = items + items;
   } catch(e) { /* ignore */ }
@@ -2355,9 +2580,10 @@ window.openTradeOfferModal = function() {
   const b = _tradeTargetNode.building;
   const tpl = buildingCatalog.find(t => t.type === b.templateType);
   const pc = parentCoord(_tradeTargetNode.x, _tradeTargetNode.y);
+  const listingHint = b.listingPrice ? ` | ${currentLang === 'zh' ? '挂牌价' : 'Listed'}: ${b.listingPrice} CC` : '';
   document.getElementById('trade-bld-info').textContent =
-    `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} (Lv.${b.level}) - ${b.ownerName} · (${pc.x},${pc.y})`;
-  document.getElementById('trade-price').value = '';
+    `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} (Lv.${b.level}) - ${b.ownerName} · (${pc.x},${pc.y})${listingHint}`;
+  document.getElementById('trade-price').value = b.listingPrice || '';
   document.getElementById('trade-tax-hint').textContent = '';
   document.getElementById('trade-offer-modal').style.display = 'flex';
   closeBuildingOverlay();
