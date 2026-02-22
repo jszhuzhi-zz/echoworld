@@ -152,6 +152,12 @@
     .dead-msg{font-size:13px;color:var(--text2);text-align:center;max-width:320px;line-height:1.6}
     .btn-death-action{padding:10px 30px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer}
     .btn-go-home{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
+    .death-warning{display:none;position:fixed;z-index:18;top:56px;left:50%;transform:translateX(-50%);
+      padding:8px 20px;border-radius:10px;font-size:12px;font-weight:700;text-align:center;
+      max-width:420px;animation:pulse-warn 1.5s ease-in-out infinite}
+    .death-warning.warn{background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.5);color:#fbbf24}
+    .death-warning.critical{background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.6);color:#f87171}
+    @keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:0.6}}
     /* === Recharge Modal === */
     #recharge-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
     #recharge-modal.show{display:flex}
@@ -456,11 +462,17 @@
   </div>
 </div>
 
+<!-- Death warning banner -->
+<div id="death-warning" class="death-warning" style="display:none"></div>
+
 <!-- Dead Overlay (永久死亡) -->
 <div id="dead-overlay">
   <div class="dead-title" data-i18n="death_title">角色永久死亡</div>
   <div class="dead-msg" id="dead-msg" data-i18n="death_msg" data-i18n-html="1">生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。</div>
-  <button class="btn-death-action btn-go-home" onclick="confirmDeath()" data-i18n="confirm_ret">确认并返回</button>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+    <button class="btn-death-action btn-go-home" onclick="confirmDeath()" data-i18n="confirm_ret">确认并返回</button>
+    <button class="btn-death-action" onclick="doLogout()" style="background:rgba(255,255,255,0.1);color:var(--text2);border:1px solid var(--border)">退出登录</button>
+  </div>
 </div>
 
 <!-- Recharge Modal -->
@@ -573,6 +585,9 @@ const I18N = {
     daily_in:'今日收入',daily_out:'今日支出',credit:'信用评分',
     days:'生存天数',recharged:'累计充值',my_assets:'我的资产',
     no_assets:'暂无资产，建造设施获得被动收入',
+    confirm_demolish:'确认拆除',refund_hint:'返还',
+    death_imminent:'⚠️ 即将死亡！饥饿或体力归零将永久死亡，不可复活！',
+    death_risk:'⚠️ 警告：饥饿或体力过低，继续行动可能导致永久死亡！',
     life_rec:'生命恢复',rec_hunger:'🍔 恢复饥饿 +20',rec_cost:'花费 80 CC',
     rec_hint:'体力每日自动恢复，饥饿仅可通过消费建筑或花费CC恢复',
     buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',copy_link:'📎 复制邀请链接',link_copied:'邀请链接已复制',
@@ -623,6 +638,9 @@ const I18N = {
     daily_in:'Today Income',daily_out:'Today Expense',credit:'Credit Score',
     days:'Days Survived',recharged:'Recharged',my_assets:'ASSETS',
     no_assets:'No assets yet. Build for passive income.',
+    confirm_demolish:'Confirm demolish',refund_hint:'Refund',
+    death_imminent:'⚠️ Death imminent! Zero hunger or energy = permanent death, no revival!',
+    death_risk:'⚠️ Warning: Low hunger/energy. Moving may cause permanent death!',
     life_rec:'RECOVERY',rec_hunger:'🍔 Hunger +20',rec_cost:'Cost 80 CC',
     rec_hint:'Energy recovers daily. Hunger only via buildings or CC.',
     buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',copy_link:'📎 Copy Invite Link',link_copied:'Invite link copied',
@@ -1534,6 +1552,18 @@ function updateStats(stats) {
   document.getElementById('hp-hunger-val').textContent = h;
   document.getElementById('hp-energy-val').textContent = e;
   document.getElementById('hp-happy-val').textContent = hp;
+  // Death warning when hunger or energy critically low
+  const warnEl = document.getElementById('death-warning');
+  if (stats?.alive !== false && (h <= 20 || e <= 15)) {
+    const critical = h <= 5 || e <= 5;
+    warnEl.textContent = critical
+      ? (t('death_imminent') || '⚠️ 即将死亡！饥饿或体力归零将永久死亡，不可复活！')
+      : (t('death_risk') || '⚠️ 警告：饥饿或体力过低，继续行动可能导致永久死亡！');
+    warnEl.className = 'death-warning ' + (critical ? 'critical' : 'warn');
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
   // 低血量警告 - 变红
   document.getElementById('hp-hunger-val').style.color = h <= 20 ? 'var(--red)' : 'var(--text2)';
   document.getElementById('hp-energy-val').style.color = e <= 15 ? 'var(--red)' : 'var(--text2)';
@@ -1889,6 +1919,10 @@ window.demolishBuilding = async function() {
     if (!curNode?.building || curNode.building.ownerId !== currentUser?.entityId) {
       addLog(t('demolish_fail') || '无法拆除', 'warn'); return;
     }
+    const tpl = buildingCatalog.find(b => b.type === curNode.building.templateType);
+    const refund = Math.floor((tpl?.cost || 0) * 0.3);
+    const name = bldgName(tpl) || curNode.building.name;
+    if (!confirm(`${t('confirm_demolish') || '确认拆除'} "${name}"?\n${t('refund_hint') || '返还'}: ${refund} CC`)) return;
     const res = await fetch(API + '/api/world/demolish', {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ nodeId: curNode.id }),
@@ -1973,8 +2007,13 @@ window.confirmDeath = async function() {
     await fetch(API + '/api/world/confirm-death', { method: 'POST', headers: authHeaders() });
   } catch (e) { /* ignore */ }
   addLog(t('death_log'), 'danger');
-  // 返回首页
   setTimeout(() => { location.href = '/'; }, 1500);
+};
+
+window.doLogout = function() {
+  localStorage.removeItem('echoworld_token');
+  localStorage.removeItem('echoworld_user');
+  location.href = '/login';
 };
 
 /** 打开个人财富页 */

@@ -242,6 +242,37 @@
         </div>
       </div>
     </div>
+
+    <div class="grid-2">
+      <!-- Revive Player -->
+      <div class="card">
+        <div class="card-title">复活玩家</div>
+        <div class="input-row">
+          <div class="input-group">
+            <label>选择玩家</label>
+            <select id="reviveEntity" style="min-width:160px"></select>
+          </div>
+          <button class="btn btn-green" onclick="revivePlayer()">复活</button>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:8px">复活后: 饥饿/体力/幸福感 = 50，行动重置</div>
+      </div>
+
+      <!-- Treasury Transfer -->
+      <div class="card">
+        <div class="card-title">国库转账 <span style="font-size:11px;color:var(--yellow);font-weight:400" id="treasuryBalance"></span></div>
+        <div class="input-row">
+          <div class="input-group">
+            <label>目标成员</label>
+            <select id="transferEntity" style="min-width:140px"></select>
+          </div>
+          <div class="input-group">
+            <label>金额 (CC)</label>
+            <input type="number" id="transferAmount" placeholder="1000" min="1" style="width:120px">
+          </div>
+          <button class="btn btn-yellow" onclick="treasuryTransfer()">转账</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -452,9 +483,17 @@
           </div>
         `).join('');
 
-        // Update money entity select
-        const sel = document.getElementById('moneyEntity');
-        sel.innerHTML = allEntities.map(e => `<option value="${e.id}">${e.name} (${e.money.toFixed(0)} CC)</option>`).join('');
+        // Update entity selects
+        const opts = allEntities.map(e => `<option value="${e.id}">${e.name} (${e.money.toFixed(0)} CC)</option>`).join('');
+        document.getElementById('moneyEntity').innerHTML = opts;
+        document.getElementById('reviveEntity').innerHTML = opts;
+        document.getElementById('transferEntity').innerHTML = opts;
+
+        // Show treasury balance
+        const treasury = allEntities.find(e => e.name === '世界国库');
+        if (treasury) {
+          document.getElementById('treasuryBalance').textContent = `国库: ${treasury.money.toFixed(0)} CC`;
+        }
       } catch (e) { console.error(e); }
     }
 
@@ -493,6 +532,44 @@
       } catch (e) {
         showToast('创建失败: ' + e.message, 'error');
       }
+    }
+
+    // ========== Revive ==========
+    async function revivePlayer() {
+      const entityId = document.getElementById('reviveEntity').value;
+      if (!entityId) return showToast('请选择玩家', 'error');
+      const name = document.getElementById('reviveEntity').selectedOptions[0]?.textContent || '';
+      if (!confirm(`确认复活 ${name}？`)) return;
+      try {
+        const res = await fetch(API + '/api/admin/revive', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ entityId })
+        });
+        const data = await res.json();
+        if (!res.ok) return showToast(data.error || '复活失败', 'error');
+        showToast(data.message);
+        loadEntities();
+      } catch (e) { showToast('操作失败', 'error'); }
+    }
+
+    // ========== Treasury Transfer ==========
+    async function treasuryTransfer() {
+      const entityId = document.getElementById('transferEntity').value;
+      const amount = parseInt(document.getElementById('transferAmount').value);
+      if (!entityId || !amount || amount <= 0) return showToast('请填写完整', 'error');
+      const name = document.getElementById('transferEntity').selectedOptions[0]?.textContent || '';
+      if (!confirm(`确认从国库转 ${amount} CC 给 ${name}？`)) return;
+      try {
+        const res = await fetch(API + '/api/admin/treasury-transfer', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ entityId, amount })
+        });
+        const data = await res.json();
+        if (!res.ok) return showToast(data.error || '转账失败', 'error');
+        showToast(data.message);
+        document.getElementById('transferAmount').value = '';
+        loadEntities();
+      } catch (e) { showToast('操作失败', 'error'); }
     }
 
     // ========== Init ==========

@@ -725,6 +725,19 @@ export class InfiniteWorld {
     return Array.from(this.players.values());
   }
 
+  /** 管理员复活玩家 */
+  revivePlayer(entityId: string): boolean {
+    const state = this.players.get(entityId);
+    if (!state || state.alive) return false;
+    state.alive = true;
+    state.hunger = 50;
+    state.energy = 50;
+    state.happiness = 50;
+    state.actionsToday = 0;
+    state.pendingRoll = null;
+    return true;
+  }
+
   resetDailyActions(): void {
     for (const state of this.players.values()) {
       state.actionsToday = 0;

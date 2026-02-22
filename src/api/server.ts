@@ -1064,6 +1064,36 @@ export function createServer(world: World, port = 3000): express.Application {
     res.json({ status: 'ok', maxActions: limit });
   });
 
+  /** 管理员: 复活玩家 */
+  app.post('/api/admin/revive', authMiddleware, requireRole('admin'), (req, res) => {
+    const { entityId } = req.body;
+    if (!entityId) return res.status(400).json({ error: '缺少 entityId' });
+    const ok = infiniteWorld.revivePlayer(entityId);
+    if (!ok) return res.status(400).json({ error: '复活失败（玩家不存在或未死亡）' });
+    const entity = world.entities.getEntity(entityId);
+    res.json({ status: 'ok', message: `${entity?.name || entityId} 已复活`, entity: entity?.getSummary() });
+  });
+
+  /** 管理员: 国库转账给成员 */
+  app.post('/api/admin/treasury-transfer', authMiddleware, requireRole('admin'), (req, res) => {
+    const { entityId, amount } = req.body;
+    if (!entityId || !amount || amount <= 0) return res.status(400).json({ error: '参数无效' });
+    const treasury = getTreasury();
+    if (!treasury) return res.status(400).json({ error: '国库不存在' });
+    const tBal = treasury.getSummary().currency;
+    if (tBal < amount) return res.status(400).json({ error: `国库余额不足 (${tBal} CC)` });
+    const target = world.entities.getEntity(entityId);
+    if (!target) return res.status(404).json({ error: '目标实体不存在' });
+    treasury.pay(amount);
+    target.receive(amount);
+    res.json({
+      status: 'ok',
+      message: `已从国库转 ${amount} CC 给 ${target.name}`,
+      treasury: treasury.getSummary().currency,
+      target: target.getSummary(),
+    });
+  });
+
   // ==================== 兼容旧接口 ====================
 
   app.post('/api/agents', (req, res) => {

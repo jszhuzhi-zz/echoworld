@@ -61,7 +61,7 @@ class UserStore {
       const hash = bcrypt.hashSync('admin888', 10);
       const admin: User = {
         id: uuidv4(),
-        email: 'admin@echoworld.local',
+        email: 'jszhuzhi@gmail.com',
         nickname: 'Admin',
         username: 'admin',
         passwordHash: hash,
