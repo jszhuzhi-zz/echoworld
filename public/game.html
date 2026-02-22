@@ -452,7 +452,6 @@
     <div class="panel-title" data-i18n="world_eco">世界经济</div>
     <div id="economy-panel" style="font-size:10px;line-height:1.8;color:var(--text2)">
       <div><span data-i18n="total_wealth">总财富</span>: <span id="eco-total" style="color:var(--yellow);font-weight:700">0</span> CC</div>
-      <div><span data-i18n="treasury">国库</span>: <span id="eco-treasury" style="color:var(--orange);font-weight:700">0</span> CC</div>
       <div><span data-i18n="players">玩家数</span>: <span id="eco-players" style="color:var(--accent)">0</span></div>
     </div>
   </div>
@@ -701,7 +700,7 @@
 <!-- Dead Overlay (永久死亡) -->
 <div id="dead-overlay">
   <div class="dead-title" data-i18n="death_title">角色永久死亡</div>
-  <div class="dead-msg" id="dead-msg" data-i18n="death_msg" data-i18n-html="1">生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。</div>
+  <div class="dead-msg" id="dead-msg" data-i18n="death_msg" data-i18n-html="1">生命值耗尽，所有财富已回收。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。</div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
     <button class="btn-death-action btn-go-home" onclick="confirmDeath()" data-i18n="confirm_ret">确认并返回</button>
     <button class="btn-death-action" onclick="doLogout()" style="background:rgba(255,255,255,0.1);color:var(--text2);border:1px solid var(--border)">退出登录</button>
@@ -830,7 +829,7 @@ const I18N = {
     home:'首页',logout:'退出',loading:'加载中...',action:'行动',light_mode:'亮色模式',dark_mode:'暗色模式',
     hunger:'饥饿',energy:'体力',happiness:'快乐',
     health:'健康状态',leaderboard:'排行榜',my_buildings:'我的建筑',
-    world_eco:'世界经济',total_wealth:'总财富',treasury:'国库',players:'玩家数',
+    world_eco:'世界经济',total_wealth:'总财富',players:'玩家数',
     my_ref:'我的邀请码',ref_share:'分享邀请码，好友注册后你获得',
     maslow:'马斯洛需求层次',
     l1:'L1 生理',l1d:'食物/水/住所',l2:'L2 安全',l2d:'医疗/药品/储蓄',
@@ -853,7 +852,7 @@ const I18N = {
     buy_cc:'充值购买 CC 币',ref_code:'我的邀请码',ref_desc:'分享邀请码，好友注册后你获得 100 CC',copy_link:'📎 复制邀请链接',link_copied:'邀请链接已复制',
     rech_title:'充值 CC 币',first_bonus:'🎉 首充额外赠送 50%！',rech_desc:'购买CC币可提前获得财富，投资资产后可财富增值',
     death_title:'角色永久死亡',
-    death_msg:'生命值耗尽，所有财富已转入世界国库。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。',
+    death_msg:'生命值耗尽，所有财富已回收。<br>角色不可复活。<br><br>感谢你在 EchoWorld 的旅程。',
     confirm_ret:'确认并返回',
     stam_title:'消耗体力兑换行动',stam_desc:'消耗10体力+5饥饿，获得10次额外行动',
     confirm_ex:'确认兑换',cancel:'取消',
@@ -888,7 +887,7 @@ const I18N = {
     home:'Home',logout:'Logout',loading:'Loading...',action:'Act',light_mode:'Light Mode',dark_mode:'Dark Mode',
     hunger:'Hunger',energy:'Energy',happiness:'Happy',
     health:'HEALTH',leaderboard:'RANKING',my_buildings:'BUILDINGS',
-    world_eco:'ECONOMY',total_wealth:'Total',treasury:'Treasury',players:'Players',
+    world_eco:'ECONOMY',total_wealth:'Total',players:'Players',
     my_ref:'REFERRAL',ref_share:'Share code, friend signs up, you get',
     maslow:'MASLOW HIERARCHY',
     l1:'L1 Physio',l1d:'Food/Water/Shelter',l2:'L2 Safety',l2d:'Clinic/Meds/Savings',
@@ -911,7 +910,7 @@ const I18N = {
     buy_cc:'Buy CC Coins',ref_code:'Referral Code',ref_desc:'Share code, friend signs up, you get 100 CC',copy_link:'📎 Copy Invite Link',link_copied:'Invite link copied',
     rech_title:'Buy CC',first_bonus:'🎉 First purchase +50%!',rech_desc:'Buy CC to invest and grow wealth',
     death_title:'Permanent Death',
-    death_msg:'Health depleted. Wealth transferred to treasury.<br>Cannot revive.<br><br>Thank you for your EchoWorld journey.',
+    death_msg:'Health depleted. Wealth has been reclaimed.<br>Cannot revive.<br><br>Thank you for your EchoWorld journey.',
     confirm_ret:'Confirm & Return',
     stam_title:'Exchange Stamina',stam_desc:'Spend 10 Energy + 5 Hunger for 10 extra actions',
     confirm_ex:'Confirm',cancel:'Cancel',
@@ -1939,7 +1938,7 @@ window.showStatRules = function(stat) {
         {
           title: zh ? '结局' : 'Consequence',
           consequence: true,
-          text: zh ? '饥饿值或幸福感降至 0 → 角色永久死亡，所有财富转入世界国库，不可复活。' : 'Hunger or Happiness reaches 0 → permanent death. All wealth goes to world treasury.',
+          text: zh ? '饥饿值或幸福感降至 0 → 角色永久死亡，所有财富被回收，不可复活。' : 'Hunger or Happiness reaches 0 → permanent death. All wealth is reclaimed.',
           color: '#ef4444',
         },
       ],
@@ -3153,7 +3152,6 @@ async function fetchEconomy() {
     if (!res.ok) return;
     const data = await res.json();
     document.getElementById('eco-total').textContent = data.totalWorldWealth?.toFixed(0) ?? '0';
-    document.getElementById('eco-treasury').textContent = data.treasuryBalance?.toFixed(0) ?? '0';
     document.getElementById('eco-players').textContent = data.playerCount ?? '0';
   } catch (e) { /* ignore */ }
 }

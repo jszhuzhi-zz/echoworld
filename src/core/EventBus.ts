@@ -15,8 +15,9 @@ export class EventBus {
     this.maxLogSize = maxLogSize;
   }
 
-  /** 发布事件 */
+  /** 发布事件 (自动附加真实时间戳) */
   emit(event: WorldEvent): void {
+    (event as any).realTime = new Date().toISOString();
     this.eventLog.push(event);
     if (this.eventLog.length > this.maxLogSize) {
       this.eventLog = this.eventLog.slice(-this.maxLogSize / 2);

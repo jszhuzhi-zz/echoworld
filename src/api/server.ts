@@ -42,13 +42,13 @@ const S_I18N: Record<string, Record<string, string>> = {
     tax_paid: '缴税 %s CC', welfare: '领取福利 100 CC',
     lucky: '幸运事件！获得 %s CC', loss: '意外损失 %s CC',
     found_bld: '发现 %s 的 %s (%s Lv.%s)，可选择消费',
-    death: '角色死亡！%s CC 已转入世界国库。角色不可复活。',
+    death: '角色死亡！%s CC 已被回收。角色不可复活。',
     hunger_warn: '⚠️ 饥饿值过低！请尽快进食', energy_warn: '⚠️ 体力不支！请尽快休息',
     used_bld: '使用了 %s，花费 %s CC', consumed_bld: '消费了 %s，支付 %s CC',
     stat_hunger: '饱食度', stat_energy: '体力', stat_happy: '幸福感',
     effect_prefix: '效果', upgraded: '🎉 %s 升级到 Lv.%s！',
     built: '建造了 %s (%s,%s)，花费 %s CC',
-    death_confirm: '角色已永久死亡，剩余财富已转入世界国库',
+    death_confirm: '角色已永久死亡，剩余财富已被回收',
     recharge_amt: '充值 %s CC', first_bonus: '🎉 首充赠送 %s CC！', received: '到账 %s CC',
     rec_hunger: '花费 %s CC 恢复饥饿 +%s',
     rec_energy: '花费 %s CC 恢复体力 +%s',
@@ -89,13 +89,13 @@ const S_I18N: Record<string, Record<string, string>> = {
     tax_paid: 'Tax paid %s CC', welfare: 'Welfare received 100 CC',
     lucky: 'Lucky! Gained %s CC', loss: 'Unexpected loss %s CC',
     found_bld: 'Found %s\'s %s (%s Lv.%s), can consume',
-    death: 'Character died! %s CC transferred to treasury. Cannot revive.',
+    death: 'Character died! %s CC reclaimed. Cannot revive.',
     hunger_warn: '⚠️ Hunger critical! Eat soon', energy_warn: '⚠️ Energy low! Rest soon',
     used_bld: 'Used %s, cost %s CC', consumed_bld: 'Consumed %s, paid %s CC',
     stat_hunger: 'Hunger', stat_energy: 'Energy', stat_happy: 'Happiness',
     effect_prefix: 'Effects', upgraded: '🎉 %s upgraded to Lv.%s!',
     built: 'Built %s (%s,%s), cost %s CC',
-    death_confirm: 'Character permanently dead, remaining wealth transferred to treasury',
+    death_confirm: 'Character permanently dead, remaining wealth reclaimed',
     recharge_amt: 'Recharged %s CC', first_bonus: '🎉 First purchase bonus %s CC!', received: 'Received %s CC',
     rec_hunger: 'Spent %s CC, hunger +%s',
     rec_energy: 'Spent %s CC, energy +%s',
@@ -540,9 +540,18 @@ export function createServer(world: World, port = 3000): express.Application {
     });
   });
 
-  /** 世界状态 */
-  app.get('/api/world', optionalAuth, (_req, res) => {
-    res.json(world.getFullSnapshot());
+  /** 世界状态 (过滤国库/管理员敏感信息) */
+  app.get('/api/world', optionalAuth, (req, res) => {
+    const snapshot = world.getFullSnapshot();
+    // 过滤国库实体
+    snapshot.entities = (snapshot.entities as any[]).filter((e: any) => e.id !== treasuryEntityId);
+    snapshot.leaderboard = snapshot.leaderboard.filter(e => e.name !== '世界国库');
+    // 非管理员隐藏税务国库信息
+    const isAdmin = req.user?.role === 'admin';
+    if (!isAdmin && snapshot.tax) {
+      snapshot.tax = { ...(snapshot.tax as any), treasury: 0 };
+    }
+    res.json(snapshot);
   });
 
   /** 世界统计 */
@@ -564,19 +573,20 @@ export function createServer(world: World, port = 3000): express.Application {
     res.json({ time: world.state.getTime() });
   });
 
-  /** 实体列表 */
+  /** 实体列表 (排除国库) */
   app.get('/api/entities', (_req, res) => {
-    res.json(world.entities.getAllEntities().map(e => e.getSummary()));
+    res.json(world.entities.getAllEntities().filter(e => e.id !== treasuryEntityId).map(e => e.getSummary()));
   });
 
-  /** 排行榜 */
+  /** 排行榜 (排除国库) */
   app.get('/api/entities/leaderboard', (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
-    res.json(world.entities.getLeaderboard(limit).map(e => e.getSummary()));
+    res.json(world.entities.getLeaderboard(limit).filter(e => e.id !== treasuryEntityId).map(e => e.getSummary()));
   });
 
-  /** 单个实体 */
+  /** 单个实体 (禁止查询国库和管理员) */
   app.get('/api/entities/:id', (req, res) => {
+    if (req.params.id === treasuryEntityId) return res.status(404).json({ error: 'Entity not found' });
     const entity = world.entities.getEntity(req.params.id);
     if (!entity) return res.status(404).json({ error: 'Entity not found' });
     res.json(entity.getSummary());
@@ -612,10 +622,16 @@ export function createServer(world: World, port = 3000): express.Application {
     res.json(world.rules.getRuleHistory());
   });
 
-  /** 事件 */
+  /** 事件 (过滤国库相关) */
   app.get('/api/events', (req, res) => {
     const count = parseInt(req.query.count as string) || 50;
-    res.json(world.state.eventBus.getRecentEvents(count));
+    const events = world.state.eventBus.getRecentEvents(count * 2)
+      .filter(e => {
+        const d = e.data;
+        return d.entityId !== treasuryEntityId && d.from !== treasuryEntityId && d.to !== treasuryEntityId;
+      })
+      .slice(-count);
+    res.json(events);
   });
 
   // ==================== 投资用户 API ====================
@@ -1326,10 +1342,9 @@ export function createServer(world: World, port = 3000): express.Application {
     });
   });
 
-  /** 世界经济概览 */
+  /** 世界经济概览 (不暴露国库) */
   app.get('/api/world/economy', (req, res) => {
-    const treasury = getTreasury();
-    const allEntities = world.entities.getAllEntities();
+    const allEntities = world.entities.getAllEntities().filter(e => e.id !== treasuryEntityId);
     let totalWealth = 0;
     for (const e of allEntities) {
       totalWealth += e.getSummary().currency;
@@ -1338,9 +1353,8 @@ export function createServer(world: World, port = 3000): express.Application {
 
     res.json({
       totalWorldWealth: totalWealth,
-      treasuryBalance: treasury?.getSummary().currency ?? 0,
       playerCount,
-      theoreticalWealth: playerCount * 1100, // 每个玩家进入世界产生1100CC
+      theoreticalWealth: playerCount * 1100,
     });
   });
 

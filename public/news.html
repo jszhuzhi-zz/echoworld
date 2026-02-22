@@ -287,6 +287,89 @@
       renderEvents();
     }
 
+    const EVENT_TYPE_LABELS = {
+      tick: '世界运转', day_start: '新一天', day_end: '日终结算',
+      entity_created: '新成员', entity_removed: '成员退出',
+      building_built: '建造', building_upgraded: '升级',
+      transaction: '交易', market_price_change: '市场波动',
+      rule_evolved: '规则变动', entity_bankrupt: '破产',
+      entity_action: '行动',
+    };
+
+    function formatRealTime(ev) {
+      if (ev.realTime) {
+        const d = new Date(ev.realTime);
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+      // Fallback to game time
+      const t = ev.timestamp;
+      return t ? `Game Day ${t.day || '?'}, ${t.hour || '?'}:00` : '';
+    }
+
+    function buildEventDesc(ev) {
+      const d = ev.data || {};
+      const p = d.params || {};
+      const type = (ev.type || '').toLowerCase();
+      const name = d.entityName || d.entity || '';
+
+      switch (type) {
+        case 'entity_action': {
+          const act = d.action || '';
+          if (act === 'roll_dice') return `<strong>${name}</strong> 掷出骰子 <strong>${p.roll}</strong> 点，${p.directions} 个方向可选`;
+          if (act === 'move') {
+            const evts = (p.events || []);
+            let detail = `<strong>${name}</strong> 移动到节点 ${p.toNode ?? '?'}`;
+            if (evts.includes('TAX')) detail += '，经过税务区缴税';
+            if (evts.includes('WELFARE')) detail += '，获得福利金 100 CC';
+            if (evts.includes('RANDOM_EVENT')) detail += '，触发随机事件';
+            if (evts.includes('DEATH')) detail += '，<span style="color:var(--red)">角色死亡</span>';
+            const msgs = (p.messages || []);
+            if (msgs.length) detail += ` — ${msgs.join('; ')}`;
+            return detail;
+          }
+          if (act === 'use_building') {
+            const effs = Object.entries(p.effects || {}).map(([k, v]) => `${k === 'hunger' ? '饱食' : k === 'energy' ? '体力' : k === 'happiness' ? '幸福' : k}+${v}`).join(' ');
+            return `<strong>${name}</strong> 消费了 <strong>${p.building}</strong>，花费 ${p.fee ?? 0} CC` + (effs ? `，${effs}` : '');
+          }
+          if (act === 'build') return `<strong>${name}</strong> 在 (${p.x},${p.y}) 建造了 <strong>${p.building}</strong>，耗资 ${p.cost} CC`;
+          return `<strong>${name}</strong> ${act}` + (Object.keys(p).length ? ` — ${JSON.stringify(p).slice(0, 100)}` : '');
+        }
+        case 'entity_created':
+          return `新成员 <strong>${d.entityName || d.name || '???'}</strong> 加入了 EchoWorld`;
+        case 'entity_removed':
+          return `<strong>${d.entityName || d.name || '???'}</strong> 离开了 EchoWorld`;
+        case 'entity_bankrupt':
+          return `<strong>${d.entityName || d.name || '???'}</strong> <span style="color:var(--red)">宣告破产</span>，所有资产被清算`;
+        case 'transaction':
+          return `交易: <strong>${d.from || '?'}</strong> 向 <strong>${d.to || '?'}</strong> 出售 ${d.amount || '?'} 单位 ${d.resourceType || d.resource || '?'}，成交额 ${(d.totalCost || 0).toFixed(0)} CC`;
+        case 'market_price_change':
+          return `<strong>${d.resource || d.resourceType || '?'}</strong> 市场价格变化: ${d.oldPrice != null ? d.oldPrice.toFixed(1) : '?'} → ${d.newPrice != null ? d.newPrice.toFixed(1) : '?'} CC`;
+        case 'building_built':
+          return `<strong>${d.entityName || d.owner || '?'}</strong> 建造了 <strong>${d.buildingType || d.building || '?'}</strong>` + (d.cost ? `，耗资 ${d.cost} CC` : '');
+        case 'building_upgraded':
+          return `<strong>${d.buildingName || d.building || '?'}</strong> 升级至 Lv.${d.level || '?'}`;
+        case 'rule_evolved':
+          return `规则 <strong>${d.ruleName || '?'}</strong> 调整: ${d.oldValue != null ? d.oldValue : '?'} → ${d.newValue != null ? d.newValue : '?'}`;
+        case 'day_start':
+          return `第 ${d.day || ev.timestamp?.day || '?'} 天开始，世界继续运转`;
+        case 'day_end':
+          return `第 ${d.day || ev.timestamp?.day || '?'} 天结束，日终结算完成`;
+        default: {
+          // Generic fallback
+          const parts = [];
+          if (name) parts.push(`<strong>${name}</strong>`);
+          if (d.action) parts.push(d.action);
+          if (d.amount) parts.push(`${d.amount} CC`);
+          if (d.resource || d.resourceType) parts.push(d.resource || d.resourceType);
+          if (d.description) parts.push(d.description);
+          if (d.reason) parts.push(d.reason);
+          if (d.ruleName) parts.push(`规则: ${d.ruleName}`);
+          return parts.join(' — ') || JSON.stringify(d).slice(0, 150);
+        }
+      }
+    }
+
     function renderEvents() {
       const filtered = currentFilter === 'all' ? allEvents :
         allEvents.filter(e => categorizeEvent(e) === currentFilter);
@@ -299,31 +382,14 @@
       document.getElementById('eventList').innerHTML = '<ul class="event-list">' +
         filtered.slice(0, 100).map(ev => {
           const cat = categorizeEvent(ev);
-          const time = ev.timestamp ? `Day ${ev.timestamp.day || '?'}, ${ev.timestamp.hour || '?'}:00` : '';
-          const data = ev.data || {};
-          let desc = '';
-          if (typeof data === 'string') {
-            desc = data;
-          } else if (data.description) {
-            desc = data.description;
-          } else if (data.reason) {
-            desc = data.reason;
-          } else {
-            // Build a description from event data
-            const parts = [];
-            if (data.entityName || data.entity) parts.push(data.entityName || data.entity);
-            if (data.action) parts.push(data.action);
-            if (data.amount) parts.push(`${data.amount} CC`);
-            if (data.resource) parts.push(data.resource);
-            if (data.type) parts.push(data.type);
-            if (data.ruleName) parts.push(`规则: ${data.ruleName}`);
-            if (data.oldValue !== undefined && data.newValue !== undefined) parts.push(`${data.oldValue} -> ${data.newValue}`);
-            desc = parts.join(' | ') || JSON.stringify(data).slice(0, 120);
-          }
+          const timeStr = formatRealTime(ev);
+          const gameTime = ev.timestamp ? ` (Day ${ev.timestamp.day || '?'})` : '';
+          const typeLabel = EVENT_TYPE_LABELS[ev.type] || ev.type || 'event';
+          const desc = buildEventDesc(ev);
           return `
             <li class="event-item ${cat}">
-              <div class="event-time">${time}</div>
-              <span class="event-type">${ev.type || 'event'}</span>
+              <div class="event-time">${timeStr}<span style="color:var(--accent);margin-left:6px">${gameTime}</span></div>
+              <span class="event-type">${typeLabel}</span>
               <span class="event-content">${desc}</span>
             </li>
           `;

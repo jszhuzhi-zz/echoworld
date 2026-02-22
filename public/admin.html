@@ -605,11 +605,7 @@
         document.getElementById('reviveEntity').innerHTML = opts;
         document.getElementById('transferEntity').innerHTML = opts;
 
-        // Show treasury balance
-        const treasury = allEntities.find(e => e.name === '世界国库');
-        if (treasury) {
-          document.getElementById('treasuryBalance').textContent = `国库: ${treasury.money.toFixed(0)} CC`;
-        }
+        // Treasury balance is shown via BI dashboard (admin-only data)
       } catch (e) { console.error(e); }
     }
 
@@ -833,8 +829,14 @@
         }
 
         tbody.innerHTML = events.reverse().map(ev => {
-          const t = ev.timestamp || {};
-          const timeStr = `D${t.day ?? '?'} H${t.hour ?? '?'}`;
+          let timeStr;
+          if (ev.realTime) {
+            const d = new Date(ev.realTime);
+            timeStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+          } else {
+            const t = ev.timestamp || {};
+            timeStr = `D${t.day ?? '?'} H${t.hour ?? '?'}`;
+          }
           const actionKey = ev.data?.action || ev.type || 'other';
           const [label, cls] = ACTION_LABELS[actionKey] || [actionKey, 'other'];
           const details = formatActionDetails(actionKey, ev.data || {});
