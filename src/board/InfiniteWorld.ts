@@ -356,6 +356,14 @@ export class InfiniteWorld {
       directions.push({ nodeId: cid, x: cn.x, y: cn.y, label: '' });
     }
 
+    // 如果没有可走方向 (死角)，搜索最近的可行走节点
+    if (directions.length === 0) {
+      const walkable = this.findNearestWalkable(node);
+      if (walkable) {
+        directions.push({ nodeId: walkable.id, x: walkable.x, y: walkable.y, label: '' });
+      }
+    }
+
     // 限制最多2个方向 (多于2个时随机选取2个)
     if (directions.length > 2) {
       for (let i = directions.length - 1; i > 0; i--) {
@@ -369,6 +377,23 @@ export class InfiniteWorld {
     this.labelDirections(directions, node);
 
     return { roll, directions };
+  }
+
+  /** 从给定节点出发，BFS 找到最近的可行走节点 (road/intersection/start/event/tax/welfare) */
+  private findNearestWalkable(from: MapNode): MapNode | null {
+    const visited = new Set<number>([from.id]);
+    const queue: number[] = [...from.connections];
+    for (const id of queue) visited.add(id);
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      const node = this.nodes.get(id);
+      if (!node) continue;
+      if (node.type !== 'lot') return node; // found a walkable node
+      for (const cid of node.connections) {
+        if (!visited.has(cid)) { visited.add(cid); queue.push(cid); }
+      }
+    }
+    return null;
   }
 
   /** 根据叉路口位置和来向，用顺逆时针标注方向 */

@@ -761,10 +761,8 @@ export function createServer(world: World, port = 3000): express.Application {
     entity.pay(template.cost);
 
     const node = infiniteWorld.nodes.get(nodeId)!;
-    const SP = 14;
-    const ix = Math.round(node.x / SP) * SP, iy = Math.round(node.y / SP) * SP;
     res.json({
-      message: st(lang, 'built', result.building.name, ix, iy, template.cost),
+      message: st(lang, 'built', result.building.name, node.x, node.y, template.cost),
       building: result.building,
       template: result.template,
       entity: entity.getSummary(),

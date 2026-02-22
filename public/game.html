@@ -1729,8 +1729,18 @@ window.rollDice = async function() {
     document.getElementById('btn-consume').style.display = 'none';
     closeBuildingOverlay();
 
-    // Show direction buttons
-    showDirButtons(data.directions);
+    // Auto-move if only 1 direction (no real choice), otherwise show buttons
+    if (data.directions.length === 1) {
+      await chooseDirection(data.directions[0].nodeId);
+    } else if (data.directions.length >= 2) {
+      showDirButtons(data.directions);
+    } else {
+      // No valid direction - reset dice button
+      btn.innerHTML = '<span>🎲</span>';
+      btn.disabled = false;
+      document.getElementById('dice-info').textContent = '🎲 -';
+      addLog(t('no_path') || '无路可走', 'warn');
+    }
 
   } catch (e) {
     addLog(t('dice_fail'), 'danger');
@@ -1806,13 +1816,8 @@ async function chooseDirection(directionNodeId) {
       const lvMult = 1 + (data.finalNode.building.level - 1) * 0.3;
       const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
       document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
-    } else if (!data.finalNode.building) {
-      // Landing on empty node → show build option
-      const buildable = ['lot', 'intersection'];
-      if (buildable.includes(data.finalNode.type)) {
-        document.getElementById('btn-build').style.display = 'block';
-      }
     }
+    // Build button visibility is handled by fetchMe() below (uses nearbyLots)
 
     // Refresh map
     await fetchMap();
