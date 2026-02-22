@@ -190,13 +190,14 @@
     <div class="nav-left">
       <div class="nav-logo">EchoWorld</div>
       <div class="nav-links">
-        <a href="/" class="active">首页</a>
-        <a href="/game">游戏</a>
+        <a href="/" class="active" data-i18n="nav_home">首页</a>
+        <a href="/game" data-i18n="nav_game">游戏</a>
       </div>
     </div>
     <div class="nav-right">
-      <a href="/login" class="btn-nav btn-outline">登录</a>
-      <a href="/login" class="btn-nav btn-primary">注册</a>
+      <button class="btn-nav btn-outline" onclick="toggleLang()" id="idxLangBtn" style="font-size:11px;font-weight:700;padding:5px 10px;min-width:36px">EN</button>
+      <a href="/login" class="btn-nav btn-outline" data-i18n="nav_login">登录</a>
+      <a href="/login" class="btn-nav btn-primary" data-i18n="nav_register">注册</a>
     </div>
   </nav>
 
@@ -204,11 +205,11 @@
   <section class="hero">
     <div class="hero-content">
       <div class="hero-badge">AI Powered Economy Simulation</div>
-      <h1>EchoWorld<br>无限商业世界</h1>
-      <p>在 AI 驱动的无限开放世界中掷骰冒险、建造设施、满足生存需求。<br>从小食摊到创业中心，用马斯洛需求层次征服经济排行榜。</p>
+      <h1 id="idx-hero-title">EchoWorld<br>无限商业世界</h1>
+      <p id="idx-hero-desc">在 AI 驱动的无限开放世界中掷骰冒险、建造设施、满足生存需求。<br>从小食摊到创业中心，用马斯洛需求层次征服经济排行榜。</p>
       <div class="hero-buttons">
-        <a href="/login" class="btn-hero btn-hero-primary">立即加入游戏</a>
-        <a href="/login" class="btn-hero btn-hero-secondary">注册免费领 1000 CC</a>
+        <a href="/login" class="btn-hero btn-hero-primary" data-i18n="hero_cta">立即加入游戏</a>
+        <a href="/login" class="btn-hero btn-hero-secondary" data-i18n="hero_cta2">注册免费领 1000 CC</a>
       </div>
     </div>
   </section>
@@ -217,29 +218,29 @@
   <div class="live-ticker">
     <div class="ticker-item">
       <div class="ticker-value" style="color:var(--accent)" id="tkEntities">--</div>
-      <div class="ticker-label">活跃实体</div>
+      <div class="ticker-label" data-i18n="tk_entities">活跃实体</div>
     </div>
     <div class="ticker-item">
       <div class="ticker-value" style="color:var(--yellow)" id="tkWealth">--</div>
-      <div class="ticker-label">流通 CC</div>
+      <div class="ticker-label" data-i18n="tk_wealth">流通 CC</div>
     </div>
     <div class="ticker-item">
       <div class="ticker-value" style="color:var(--green)" id="tkBuildings">--</div>
-      <div class="ticker-label">建筑总数</div>
+      <div class="ticker-label" data-i18n="tk_buildings">建筑总数</div>
     </div>
     <div class="ticker-item">
       <div class="ticker-value" style="color:var(--orange)" id="tkTransactions">--</div>
-      <div class="ticker-label">交易次数</div>
+      <div class="ticker-label" data-i18n="tk_transactions">交易次数</div>
     </div>
     <div class="ticker-item">
       <div class="ticker-value" style="color:var(--accent2)" id="tkDay">--</div>
-      <div class="ticker-label">世界日期</div>
+      <div class="ticker-label" data-i18n="tk_day">世界日期</div>
     </div>
   </div>
 
   <!-- News Ticker -->
   <div class="news-ticker-bar">
-    <div class="news-ticker-label">世界播报</div>
+    <div class="news-ticker-label" data-i18n="news_label">世界播报</div>
     <div class="news-ticker-content" id="newsTicker">
       <span style="color:var(--text2)">加载中...</span>
     </div>
@@ -247,38 +248,38 @@
 
   <!-- Features -->
   <section class="features">
-    <div class="features-title">游戏特色</div>
-    <div class="features-sub">一个由 AI 驱动的无限开放经济世界</div>
+    <div class="features-title" data-i18n="feat_title">游戏特色</div>
+    <div class="features-sub" data-i18n="feat_sub">一个由 AI 驱动的无限开放经济世界</div>
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">🎲</div>
-        <h3>无限世界探索</h3>
-        <p>掷骰子在无限延伸的十字路网中移动，遇到岔路口自由选择方向，每一步都是全新冒险。</p>
+        <h3 data-i18n="f1t">无限世界探索</h3>
+        <p data-i18n="f1d">掷骰子在无限延伸的十字路网中移动，遇到岔路口自由选择方向，每一步都是全新冒险。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🏗️</div>
-        <h3>马斯洛建筑体系</h3>
-        <p>15 种建筑覆盖 5 层马斯洛需求：从小食摊、水站到学院、创业中心，建造设施赚取被动收入。</p>
+        <h3 data-i18n="f2t">马斯洛建筑体系</h3>
+        <p data-i18n="f2d">15 种建筑覆盖 5 层马斯洛需求：从小食摊、水站到学院、创业中心，建造设施赚取被动收入。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🍔</div>
-        <h3>生存需求</h3>
-        <p>角色需要维持饥饿、体力和快乐值，路过其他玩家的设施可以消费补给，但要付费给店主。</p>
+        <h3 data-i18n="f3t">生存需求</h3>
+        <p data-i18n="f3d">角色需要维持饥饿、体力和快乐值，路过其他玩家的设施可以消费补给，但要付费给店主。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📈</div>
-        <h3>升级与收入</h3>
-        <p>设施被使用次数越多等级越高，费用和效果随之提升。建一座繁华的商业帝国，获得源源不断的收入。</p>
+        <h3 data-i18n="f4t">升级与收入</h3>
+        <p data-i18n="f4d">设施被使用次数越多等级越高，费用和效果随之提升。建一座繁华的商业帝国，获得源源不断的收入。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🤖</div>
-        <h3>AI 智能体</h3>
-        <p>与 AI 驱动的商业智能体竞争，它们拥有独特的性格和策略，会根据市场环境动态调整决策。</p>
+        <h3 data-i18n="f5t">AI 智能体</h3>
+        <p data-i18n="f5d">与 AI 驱动的商业智能体竞争，它们拥有独特的性格和策略，会根据市场环境动态调整决策。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📰</div>
-        <h3>世界新闻播报</h3>
-        <p>实时查看世界动态，建筑、交易、市场行情一目了然。即使未登录也能浏览滚动新闻。</p>
+        <h3 data-i18n="f6t">世界新闻播报</h3>
+        <p data-i18n="f6d">实时查看世界动态，建筑、交易、市场行情一目了然。即使未登录也能浏览滚动新闻。</p>
       </div>
     </div>
   </section>
@@ -286,25 +287,25 @@
   <!-- How to Play -->
   <section class="roles">
     <div class="roles-inner">
-      <div class="roles-title">三步开始冒险</div>
+      <div class="roles-title" data-i18n="steps_title">三步开始冒险</div>
       <div class="roles-grid">
         <div class="role-card">
           <div class="role-icon">1️⃣</div>
-          <h3>注册领币</h3>
-          <p>免费注册即可获得 1000 CC 启动资金。填写邀请码，邀请人额外获得 100 CC 奖励。</p>
-          <span class="role-tag investor">30秒完成注册</span>
+          <h3 data-i18n="s1t">注册领币</h3>
+          <p data-i18n="s1d">免费注册即可获得 1000 CC 启动资金。填写邀请码，邀请人额外获得 100 CC 奖励。</p>
+          <span class="role-tag investor" data-i18n="s1tag">30秒完成注册</span>
         </div>
         <div class="role-card">
           <div class="role-icon">2️⃣</div>
-          <h3>掷骰探索</h3>
-          <p>掷骰子在无限世界中移动，遇到空地就能建造设施。路过别人的建筑可以消费补给。</p>
-          <span class="role-tag investor">每日 8 次行动</span>
+          <h3 data-i18n="s2t">掷骰探索</h3>
+          <p data-i18n="s2d">掷骰子在无限世界中移动，遇到空地就能建造设施。路过别人的建筑可以消费补给。</p>
+          <span class="role-tag investor" data-i18n="s2tag">每日 8 次行动</span>
         </div>
         <div class="role-card">
           <div class="role-icon">3️⃣</div>
-          <h3>建造帝国</h3>
-          <p>从 L1 小食摊起步，一路升级到 L5 创业中心。设施被其他玩家消费时你自动获得收入。</p>
-          <span class="role-tag investor">15种建筑可选</span>
+          <h3 data-i18n="s3t">建造帝国</h3>
+          <p data-i18n="s3d">从 L1 小食摊起步，一路升级到 L5 创业中心。设施被其他玩家消费时你自动获得收入。</p>
+          <span class="role-tag investor" data-i18n="s3tag">15种建筑可选</span>
         </div>
       </div>
     </div>
@@ -312,35 +313,112 @@
 
   <!-- Live Preview -->
   <section class="preview">
-    <div class="preview-title">实时世界数据</div>
-    <div class="preview-sub">以下数据来自正在运行的 EchoWorld</div>
+    <div class="preview-title" data-i18n="prev_title">实时世界数据</div>
+    <div class="preview-sub" data-i18n="prev_sub">以下数据来自正在运行的 EchoWorld</div>
     <div class="preview-grid">
       <div class="preview-card">
-        <div class="preview-card-title">财富排行榜</div>
-        <div id="liveLeaderboard"><div style="color:var(--text2);font-size:13px;">加载中...</div></div>
+        <div class="preview-card-title" data-i18n="prev_lb">财富排行榜</div>
+        <div id="liveLeaderboard"><div style="color:var(--text2);font-size:13px;" data-i18n="loading">加载中...</div></div>
       </div>
       <div class="preview-card">
-        <div class="preview-card-title">市场行情 (CC)</div>
-        <div id="livePrices"><div style="color:var(--text2);font-size:13px;">加载中...</div></div>
+        <div class="preview-card-title" data-i18n="prev_price">市场行情 (CC)</div>
+        <div id="livePrices"><div style="color:var(--text2);font-size:13px;" data-i18n="loading">加载中...</div></div>
       </div>
     </div>
   </section>
 
   <!-- CTA -->
   <section class="cta">
-    <h2>准备好开始了吗?</h2>
-    <p>加入 EchoWorld，在 AI 驱动的无限世界中建造你的商业帝国</p>
+    <h2 data-i18n="cta_title">准备好开始了吗?</h2>
+    <p data-i18n="cta_desc">加入 EchoWorld，在 AI 驱动的无限世界中建造你的商业帝国</p>
     <div class="cta-buttons">
-      <a href="/login" class="btn-hero btn-hero-primary">注册账号</a>
+      <a href="/login" class="btn-hero btn-hero-primary" data-i18n="cta_btn">注册账号</a>
     </div>
   </section>
 
   <footer>
-    EchoWorld &copy; 2026 - AI 智能体商业世界模拟 | 货币单位: CC (CryptoCoin)
+    <span data-i18n="footer">EchoWorld &copy; 2026 - AI 智能体商业世界模拟 | 货币单位: CC (CryptoCoin)</span>
   </footer>
 
   <script>
-    const RESOURCE_NAMES = { food: '食物', material: '原料', goods: '商品', energy: '能源', labor: '劳动力' };
+    // ============ I18N ============
+    const IDX_I18N = {
+      zh: {
+        nav_home:'首页', nav_game:'游戏', nav_login:'登录', nav_register:'注册',
+        hero_title:'EchoWorld<br>无限商业世界',
+        hero_desc:'在 AI 驱动的无限开放世界中掷骰冒险、建造设施、满足生存需求。<br>从小食摊到创业中心，用马斯洛需求层次征服经济排行榜。',
+        hero_cta:'立即加入游戏', hero_cta2:'注册免费领 1000 CC',
+        tk_entities:'活跃实体', tk_wealth:'流通 CC', tk_buildings:'建筑总数',
+        tk_transactions:'交易次数', tk_day:'世界日期',
+        news_label:'世界播报',
+        feat_title:'游戏特色', feat_sub:'一个由 AI 驱动的无限开放经济世界',
+        f1t:'无限世界探索', f1d:'掷骰子在无限延伸的十字路网中移动，遇到岔路口自由选择方向，每一步都是全新冒险。',
+        f2t:'马斯洛建筑体系', f2d:'15 种建筑覆盖 5 层马斯洛需求：从小食摊、水站到学院、创业中心，建造设施赚取被动收入。',
+        f3t:'生存需求', f3d:'角色需要维持饥饿、体力和快乐值，路过其他玩家的设施可以消费补给，但要付费给店主。',
+        f4t:'升级与收入', f4d:'设施被使用次数越多等级越高，费用和效果随之提升。建一座繁华的商业帝国，获得源源不断的收入。',
+        f5t:'AI 智能体', f5d:'与 AI 驱动的商业智能体竞争，它们拥有独特的性格和策略，会根据市场环境动态调整决策。',
+        f6t:'世界新闻播报', f6d:'实时查看世界动态，建筑、交易、市场行情一目了然。即使未登录也能浏览滚动新闻。',
+        steps_title:'三步开始冒险',
+        s1t:'注册领币', s1d:'免费注册即可获得 1000 CC 启动资金。填写邀请码，邀请人额外获得 100 CC 奖励。', s1tag:'30秒完成注册',
+        s2t:'掷骰探索', s2d:'掷骰子在无限世界中移动，遇到空地就能建造设施。路过别人的建筑可以消费补给。', s2tag:'每日 8 次行动',
+        s3t:'建造帝国', s3d:'从 L1 小食摊起步，一路升级到 L5 创业中心。设施被其他玩家消费时你自动获得收入。', s3tag:'15种建筑可选',
+        prev_title:'实时世界数据', prev_sub:'以下数据来自正在运行的 EchoWorld',
+        prev_lb:'财富排行榜', prev_price:'市场行情 (CC)', loading:'加载中...',
+        cta_title:'准备好开始了吗?', cta_desc:'加入 EchoWorld，在 AI 驱动的无限世界中建造你的商业帝国', cta_btn:'注册账号',
+        footer:'EchoWorld © 2026 - AI 智能体商业世界模拟 | 货币单位: CC (CryptoCoin)',
+        lang_toggle:'EN', player:'玩家', no_data:'暂无数据',
+      },
+      en: {
+        nav_home:'Home', nav_game:'Play', nav_login:'Login', nav_register:'Sign Up',
+        hero_title:'EchoWorld<br>Infinite Economy World',
+        hero_desc:'Roll dice in an AI-powered infinite open world. Build facilities, survive, and conquer.<br>From food stalls to startup hubs, master Maslow\'s hierarchy to top the leaderboard.',
+        hero_cta:'Join the Game', hero_cta2:'Sign up, get 1000 CC free',
+        tk_entities:'Active Players', tk_wealth:'Circulating CC', tk_buildings:'Buildings',
+        tk_transactions:'Transactions', tk_day:'World Day',
+        news_label:'World News',
+        feat_title:'Game Features', feat_sub:'An AI-powered infinite open economy world',
+        f1t:'Infinite World', f1d:'Roll dice to move across an ever-expanding crossroad grid. Choose your direction at forks—every step is a new adventure.',
+        f2t:'Maslow Buildings', f2d:'15 buildings across 5 Maslow levels: from food stalls to startup hubs. Build facilities to earn passive income.',
+        f3t:'Survival Needs', f3d:'Maintain hunger, energy, and happiness. Consume at other players\' facilities—but you\'ll have to pay the owner.',
+        f4t:'Upgrades & Income', f4d:'The more your facility is used, the higher its level. Fees and effects scale up. Build a thriving empire for steady income.',
+        f5t:'AI Agents', f5d:'Compete with AI-driven business agents that have unique personalities and strategies, adapting to market conditions.',
+        f6t:'World News Feed', f6d:'Follow real-time world events: buildings, trades, and market trends at a glance. Browse news even before logging in.',
+        steps_title:'3 Steps to Start',
+        s1t:'Sign Up & Earn', s1d:'Register free and get 1000 CC starting capital. Use a referral code—inviter gets 100 CC bonus.', s1tag:'30-sec sign up',
+        s2t:'Roll & Explore', s2d:'Roll dice to move across the infinite world. Build on empty lots. Consume at others\' buildings for supplies.', s2tag:'8 actions per day',
+        s3t:'Build an Empire', s3d:'Start with L1 food stalls, upgrade to L5 startup hubs. Earn income automatically when others use your facilities.', s3tag:'15 building types',
+        prev_title:'Live World Data', prev_sub:'Real-time data from the running EchoWorld',
+        prev_lb:'Wealth Leaderboard', prev_price:'Market Prices (CC)', loading:'Loading...',
+        cta_title:'Ready to Start?', cta_desc:'Join EchoWorld and build your business empire in an AI-powered infinite world', cta_btn:'Create Account',
+        footer:'EchoWorld © 2026 - AI Agent Economy Simulation | Currency: CC (CryptoCoin)',
+        lang_toggle:'中文', player:'Player', no_data:'No data',
+      }
+    };
+    let currentLang = localStorage.getItem('echoworld_lang') || 'zh';
+    function t(k) { return (IDX_I18N[currentLang] || IDX_I18N.zh)[k] || IDX_I18N.zh[k] || k; }
+
+    function applyI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.dataset.i18n;
+        const v = t(k);
+        if (k === 'footer' || k === 'hero_title' || k === 'hero_desc') el.innerHTML = v;
+        else el.textContent = v;
+      });
+      document.getElementById('idxLangBtn').textContent = t('lang_toggle');
+      document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+      document.title = currentLang === 'zh' ? 'EchoWorld - AI智能体大富翁' : 'EchoWorld - AI Economy Game';
+    }
+    function toggleLang() {
+      currentLang = currentLang === 'zh' ? 'en' : 'zh';
+      localStorage.setItem('echoworld_lang', currentLang);
+      applyI18n();
+      loadLiveData(); // refresh to re-render labels
+    }
+
+    const RESOURCE_NAMES_ZH = { food: '食物', material: '原料', goods: '商品', energy: '能源', labor: '劳动力' };
+    const RESOURCE_NAMES_EN = { food: 'Food', material: 'Material', goods: 'Goods', energy: 'Energy', labor: 'Labor' };
+    function getResourceNames() { return currentLang === 'en' ? RESOURCE_NAMES_EN : RESOURCE_NAMES_ZH; }
+    const RESOURCE_NAMES = RESOURCE_NAMES_ZH; // backward compat
 
     function fmt(n) {
       if (n === undefined || n === null) return '--';
@@ -368,21 +446,23 @@
         document.getElementById('tkDay').textContent = time.day ? `Day ${time.day}` : '--';
 
         // Leaderboard
+        const playerLabel = currentLang === 'en' ? 'Player' : '玩家';
         document.getElementById('liveLeaderboard').innerHTML = entRes.map((e, i) => `
           <div class="lb-item">
             <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':'n'}">${i+1}</div>
-            <span class="lb-name">${e.name} <span style="font-size:10px;color:var(--text2)">${e.type==='ai_agent'?'AI':'玩家'}</span></span>
+            <span class="lb-name">${e.name} <span style="font-size:10px;color:var(--text2)">${e.type==='ai_agent'?'AI':playerLabel}</span></span>
             <span class="lb-val">${fmt(e.netWorth)} CC</span>
           </div>
-        `).join('') || '<div style="color:var(--text2)">暂无数据</div>';
+        `).join('') || `<div style="color:var(--text2)">${t('no_data')}</div>`;
 
         // Prices
+        const rn = getResourceNames();
         document.getElementById('livePrices').innerHTML = Object.entries(priceRes).map(([k, v]) => `
           <div class="price-row">
-            <span style="color:var(--text2)">${RESOURCE_NAMES[k]||k}</span>
+            <span style="color:var(--text2)">${rn[k]||k}</span>
             <span style="color:var(--yellow);font-weight:600;font-family:monospace">${(typeof v==='number'?v:v.price||0).toFixed(2)} CC</span>
           </div>
-        `).join('') || '<div style="color:var(--text2)">暂无数据</div>';
+        `).join('') || `<div style="color:var(--text2)">${t('no_data')}</div>`;
       } catch (e) { console.error(e); }
     }
 
@@ -401,6 +481,7 @@
       } catch(e) { /* ignore */ }
     }
 
+    applyI18n();
     loadLiveData();
     loadNewsTicker();
     setInterval(loadLiveData, 10000);

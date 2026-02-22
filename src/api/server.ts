@@ -36,6 +36,21 @@ const S_I18N: Record<string, Record<string, string>> = {
     offer_received: '收到 %s 的出价 %s CC 购买你的 %s',
     seller_accept: '%s 已出售给 %s，收入 %s CC (税后)',
     offer_price_low: '出价须大于0',
+    // Auth
+    email_required: '请输入邮箱地址',
+    email_invalid: '邮箱格式不正确',
+    email_exists: '该邮箱已注册',
+    nickname_required: '请输入昵称',
+    nickname_len: '昵称长度2-20个字符',
+    nickname_exists: '该昵称已被使用',
+    pwd_required: '请输入密码',
+    pwd_len: '密码至少6个字符',
+    code_required: '请输入验证码',
+    code_invalid: '验证码错误或已过期',
+    code_sent: '验证码已发送至 %s',
+    code_frequent: '请求过于频繁，请稍后再试',
+    login_failed: '邮箱或密码错误',
+    login_empty: '请输入邮箱和密码',
   },
   en: {
     tax_paid: 'Tax paid %s CC', welfare: 'Welfare received 100 CC',
@@ -65,6 +80,21 @@ const S_I18N: Record<string, Record<string, string>> = {
     offer_received: 'Received %s CC offer from %s for your %s',
     seller_accept: '%s sold to %s, received %s CC (after tax)',
     offer_price_low: 'Price must be > 0',
+    // Auth
+    email_required: 'Email is required',
+    email_invalid: 'Invalid email format',
+    email_exists: 'Email already registered',
+    nickname_required: 'Nickname is required',
+    nickname_len: 'Nickname must be 2-20 characters',
+    nickname_exists: 'Nickname already taken',
+    pwd_required: 'Password is required',
+    pwd_len: 'Password must be at least 6 characters',
+    code_required: 'Verification code is required',
+    code_invalid: 'Invalid or expired verification code',
+    code_sent: 'Code sent to %s',
+    code_frequent: 'Too many requests, please wait',
+    login_failed: 'Incorrect email or password',
+    login_empty: 'Email and password are required',
   },
 };
 function st(lang: string, key: string, ...args: (string|number)[]): string {
@@ -145,18 +175,58 @@ export function createServer(world: World, port = 3000): express.Application {
 
   // ==================== 认证 API ====================
 
-  /** 注册 (支持邀请码) */
+  /** 发送邮箱验证码 */
+  app.post('/api/auth/send-code', (req, res) => {
+    const lang = getLang(req);
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: st(lang, 'email_required') });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ error: st(lang, 'email_invalid') });
+
+    try {
+      const code = userStore.generateVerificationCode(email);
+      // In production, send email via SMTP/service. Here we log + return for demo.
+      console.log(`[EchoWorld] Verification code for ${email}: ${code}`);
+      res.json({ message: st(lang, 'code_sent', email), _devCode: code });
+    } catch (err: any) {
+      if (err.message === 'CODE_TOO_FREQUENT') {
+        return res.status(429).json({ error: st(lang, 'code_frequent') });
+      }
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /** 检查昵称是否可用 */
+  app.post('/api/auth/check-nickname', (req, res) => {
+    const lang = getLang(req);
+    const { nickname } = req.body;
+    if (!nickname || nickname.length < 2 || nickname.length > 20) {
+      return res.json({ available: false, error: st(lang, 'nickname_len') });
+    }
+    const existing = userStore.findByNickname(nickname);
+    res.json({ available: !existing, error: existing ? st(lang, 'nickname_exists') : undefined });
+  });
+
+  /** 注册 (邮箱+验证码+昵称) */
   app.post('/api/auth/register', (req, res) => {
-    const { username, password, role, referralCode } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
+    const lang = getLang(req);
+    const { email, nickname, password, code, referralCode } = req.body;
+
+    // Validation
+    if (!email) return res.status(400).json({ error: st(lang, 'email_required') });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ error: st(lang, 'email_invalid') });
+    if (!nickname) return res.status(400).json({ error: st(lang, 'nickname_required') });
+    if (nickname.length < 2 || nickname.length > 20) return res.status(400).json({ error: st(lang, 'nickname_len') });
+    if (!password) return res.status(400).json({ error: st(lang, 'pwd_required') });
+    if (password.length < 6) return res.status(400).json({ error: st(lang, 'pwd_len') });
+    if (!code) return res.status(400).json({ error: st(lang, 'code_required') });
+
+    // Verify email code
+    if (!userStore.verifyCode(email, code)) {
+      return res.status(400).json({ error: st(lang, 'code_invalid') });
     }
-    if (username.length < 2 || username.length > 20) {
-      return res.status(400).json({ error: '用户名长度2-20个字符' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: '密码至少6个字符' });
-    }
+
     // 注册统一为 investor
     const userRole: 'investor' = 'investor';
 
@@ -168,13 +238,12 @@ export function createServer(world: World, port = 3000): express.Application {
     }
 
     try {
-      const user = userStore.createUser(username, password, userRole, inviterUserId);
-      const token = userStore.login(username, password);
+      const user = userStore.createUser(email, nickname, password, userRole, inviterUserId);
+      const token = userStore.login(email, password);
 
       let entityId: string | undefined;
       if (userRole === 'investor') {
-        const entity = world.createPlayer(username);
-        // 新用户自带1000CC (由 startingCurrency 配置)
+        const entity = world.createPlayer(nickname);
         entityId = entity.id;
         userStore.updateUser(user.id, { entityId });
         infiniteWorld.initPlayer(entity.id);
@@ -187,12 +256,10 @@ export function createServer(world: World, port = 3000): express.Application {
             const inviterEntity = world.entities.getEntity(inviterUser.entityId);
             if (inviterEntity) {
               inviterEntity.receive(INVITE_BONUS);
-              // 增加建筑推荐积分
               infiniteWorld.addReferralCredit(inviterUser.entityId);
             }
           }
         } else {
-          // 无邀请者，奖励给国库
           const treasury = getTreasury();
           if (treasury) treasury.receive(INVITE_BONUS);
         }
@@ -200,32 +267,40 @@ export function createServer(world: World, port = 3000): express.Application {
 
       res.status(201).json({
         token,
-        user: { id: user.id, username, role: userRole, entityId, referralCode: user.referralCode },
+        user: { id: user.id, email: user.email, nickname: user.nickname, username: user.nickname, role: userRole, entityId, referralCode: user.referralCode },
       });
     } catch (err: any) {
-      res.status(400).json({ error: err.message });
+      const msg = err.message;
+      if (msg === 'EMAIL_EXISTS') return res.status(400).json({ error: st(lang, 'email_exists') });
+      if (msg === 'NICKNAME_EXISTS') return res.status(400).json({ error: st(lang, 'nickname_exists') });
+      res.status(400).json({ error: msg });
     }
   });
 
-  /** 登录 */
+  /** 登录 (邮箱+密码, 兼容旧用户名) */
   app.post('/api/auth/login', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
+    const lang = getLang(req);
+    const { email, password, username } = req.body;
+    const loginId = email || username; // backward compat
+    if (!loginId || !password) {
+      return res.status(400).json({ error: st(lang, 'login_empty') });
     }
     try {
-      const token = userStore.login(username, password);
-      const user = userStore.findByUsername(username)!;
+      const token = userStore.login(loginId, password);
+      const user = userStore.findByEmail(loginId) || userStore.findByUsername(loginId);
+      if (!user) return res.status(401).json({ error: st(lang, 'login_failed') });
       res.json({
         token,
         user: {
-          id: user.id, username: user.username, role: user.role,
-          entityId: user.entityId, referralCode: user.referralCode,
+          id: user.id, email: user.email, nickname: user.nickname, username: user.nickname,
+          role: user.role, entityId: user.entityId, referralCode: user.referralCode,
           hasRecharged: user.hasRecharged ?? false,
         },
       });
     } catch (err: any) {
-      res.status(401).json({ error: err.message });
+      const msg = err.message;
+      if (msg === 'LOGIN_FAILED') return res.status(401).json({ error: st(lang, 'login_failed') });
+      res.status(401).json({ error: msg });
     }
   });
 
@@ -235,7 +310,9 @@ export function createServer(world: World, port = 3000): express.Application {
     if (!user) return res.status(404).json({ error: '用户不存在' });
     res.json({
       id: user.id,
-      username: user.username,
+      email: user.email,
+      nickname: user.nickname,
+      username: user.nickname,
       role: user.role,
       entityId: user.entityId,
       referralCode: user.referralCode,

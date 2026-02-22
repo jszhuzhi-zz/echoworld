@@ -8,7 +8,9 @@ export type UserRole = 'admin' | 'investor' | 'observer';
 
 export interface User {
   id: string;
-  username: string;
+  email: string;              // 邮箱 (唯一登录ID)
+  nickname: string;           // 昵称 (唯一, 显示名)
+  username: string;           // 保留兼容 (= nickname)
   passwordHash: string;
   role: UserRole;
   entityId?: string; // Linked game entity for investors
@@ -21,6 +23,8 @@ export interface User {
 
 export interface UserPublic {
   id: string;
+  email: string;
+  nickname: string;
   username: string;
   role: UserRole;
   entityId?: string;
@@ -29,6 +33,14 @@ export interface UserPublic {
   invitedBy?: string;
   hasRecharged: boolean;
   totalRecharged: number;
+}
+
+/** Email verification code storage */
+interface VerificationCode {
+  email: string;
+  code: string;
+  expiresAt: number;
+  attempts: number; // prevent brute force
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'echoworld-secret-key-2026';
@@ -40,6 +52,7 @@ function generateReferralCode(): string {
 
 class UserStore {
   private users: Map<string, User> = new Map();
+  private verificationCodes: Map<string, VerificationCode> = new Map(); // key = email
 
   constructor() {
     this.load();
@@ -48,6 +61,8 @@ class UserStore {
       const hash = bcrypt.hashSync('admin888', 10);
       const admin: User = {
         id: uuidv4(),
+        email: 'admin@echoworld.local',
+        nickname: 'Admin',
         username: 'admin',
         passwordHash: hash,
         role: 'admin',
@@ -64,6 +79,8 @@ class UserStore {
       const hash = bcrypt.hashSync('test123456', 10);
       const tester: User = {
         id: uuidv4(),
+        email: 'test@echoworld.local',
+        nickname: 'TestPlayer',
         username: 'testplayer',
         passwordHash: hash,
         role: 'investor',
@@ -86,6 +103,8 @@ class UserStore {
           if (!u.referralCode) u.referralCode = generateReferralCode();
           if (u.hasRecharged === undefined) u.hasRecharged = false;
           if (u.totalRecharged === undefined) u.totalRecharged = 0;
+          if (!u.email) u.email = `${u.username}@echoworld.local`;
+          if (!u.nickname) u.nickname = u.username;
           this.users.set(u.id, u);
         }
       }
@@ -118,6 +137,8 @@ class UserStore {
   getAllUsers(): UserPublic[] {
     return Array.from(this.users.values()).map(u => ({
       id: u.id,
+      email: u.email || `${u.username}@echoworld.local`,
+      nickname: u.nickname || u.username,
       username: u.username,
       role: u.role,
       entityId: u.entityId,
@@ -129,6 +150,22 @@ class UserStore {
     }));
   }
 
+  findByEmail(email: string): User | undefined {
+    const lower = email.toLowerCase();
+    for (const u of this.users.values()) {
+      if ((u.email || '').toLowerCase() === lower) return u;
+    }
+    return undefined;
+  }
+
+  findByNickname(nickname: string): User | undefined {
+    const lower = nickname.toLowerCase();
+    for (const u of this.users.values()) {
+      if ((u.nickname || u.username).toLowerCase() === lower) return u;
+    }
+    return undefined;
+  }
+
   findByReferralCode(code: string): User | undefined {
     for (const u of this.users.values()) {
       if (u.referralCode === code) return u;
@@ -136,13 +173,18 @@ class UserStore {
     return undefined;
   }
 
-  createUser(username: string, password: string, role: UserRole, invitedBy?: string): User {
-    if (this.findByUsername(username)) {
-      throw new Error('用户名已存在');
+  createUser(email: string, nickname: string, password: string, role: UserRole, invitedBy?: string): User {
+    if (this.findByEmail(email)) {
+      throw new Error('EMAIL_EXISTS');
+    }
+    if (this.findByNickname(nickname)) {
+      throw new Error('NICKNAME_EXISTS');
     }
     const user: User = {
       id: uuidv4(),
-      username,
+      email: email.toLowerCase(),
+      nickname,
+      username: nickname, // keep username = nickname for backward compat
       passwordHash: bcrypt.hashSync(password, 10),
       role,
       createdAt: new Date().toISOString(),
@@ -172,16 +214,65 @@ class UserStore {
     this.save();
   }
 
-  login(username: string, password: string): string {
-    const user = this.findByUsername(username);
+  login(emailOrUsername: string, password: string): string {
+    // Try email first, then username (backward compat)
+    const user = this.findByEmail(emailOrUsername) || this.findByUsername(emailOrUsername);
     if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-      throw new Error('用户名或密码错误');
+      throw new Error('LOGIN_FAILED');
     }
     return jwt.sign(
-      { userId: user.id, username: user.username, role: user.role },
+      { userId: user.id, username: user.nickname || user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+  }
+
+  // ============ EMAIL VERIFICATION ============
+
+  /** Generate and store a 6-digit verification code for email */
+  generateVerificationCode(email: string): string {
+    const lower = email.toLowerCase();
+    // Rate limit: if existing code not expired and < 60s old, reject
+    const existing = this.verificationCodes.get(lower);
+    if (existing && existing.expiresAt > Date.now() && (existing.expiresAt - 5 * 60 * 1000 + 60 * 1000) > Date.now()) {
+      throw new Error('CODE_TOO_FREQUENT');
+    }
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
+    this.verificationCodes.set(lower, {
+      email: lower,
+      code,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 min
+      attempts: 0,
+    });
+    return code;
+  }
+
+  /** Verify a code for email */
+  verifyCode(email: string, code: string): boolean {
+    const lower = email.toLowerCase();
+    const vc = this.verificationCodes.get(lower);
+    if (!vc) return false;
+    if (vc.expiresAt < Date.now()) {
+      this.verificationCodes.delete(lower);
+      return false;
+    }
+    vc.attempts++;
+    if (vc.attempts > 5) {
+      this.verificationCodes.delete(lower);
+      return false; // too many attempts
+    }
+    if (vc.code !== code) return false;
+    // Success - remove code
+    this.verificationCodes.delete(lower);
+    return true;
+  }
+
+  /** Clean expired verification codes */
+  cleanExpiredCodes() {
+    const now = Date.now();
+    for (const [email, vc] of this.verificationCodes) {
+      if (vc.expiresAt < now) this.verificationCodes.delete(email);
+    }
   }
 
   verifyToken(token: string): { userId: string; username: string; role: UserRole } {

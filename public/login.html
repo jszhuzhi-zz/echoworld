@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EchoWorld - 登录</title>
+  <title>EchoWorld - Login</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -16,12 +16,8 @@
       background: var(--bg); color: var(--text); min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
     }
-    .login-container {
-      width: 100%; max-width: 420px; padding: 20px;
-    }
-    .logo-section {
-      text-align: center; margin-bottom: 32px;
-    }
+    .login-container { width: 100%; max-width: 420px; padding: 20px; }
+    .logo-section { text-align: center; margin-bottom: 32px; }
     .logo-section h1 {
       font-size: 32px; font-weight: 700;
       background: linear-gradient(135deg, #60a5fa, #a78bfa);
@@ -47,16 +43,25 @@
       display: block; font-size: 13px; color: var(--text2);
       margin-bottom: 6px; font-weight: 500;
     }
-    .form-group input, .form-group select {
+    .form-group input {
       width: 100%; padding: 10px 14px; background: var(--bg3);
       border: 1px solid var(--border); border-radius: 8px;
       color: var(--text); font-size: 14px; outline: none;
       transition: border-color 0.2s;
     }
-    .form-group input:focus, .form-group select:focus {
-      border-color: var(--accent);
+    .form-group input:focus { border-color: var(--accent); }
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .btn-code {
+      padding: 10px 14px; background: var(--bg3); border: 1px solid var(--accent);
+      border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0;
     }
-    .form-group select option { background: var(--bg3); }
+    .btn-code:hover { background: rgba(59,130,246,0.15); }
+    .btn-code:disabled { opacity: 0.4; cursor: not-allowed; }
+    .nickname-status { font-size: 11px; margin-top: 4px; min-height: 16px; }
+    .nickname-ok { color: var(--green); }
+    .nickname-err { color: var(--red); }
     .btn-primary {
       width: 100%; padding: 12px; background: var(--accent);
       border: none; border-radius: 8px; color: white; font-size: 15px;
@@ -75,25 +80,32 @@
       color: var(--green); padding: 10px 14px; border-radius: 8px;
       font-size: 13px; margin-bottom: 16px; display: none;
     }
-    .guest-link {
-      text-align: center; margin-top: 16px;
+    .bottom-links {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 16px;
     }
-    .guest-link a {
+    .bottom-links a {
       color: var(--text2); font-size: 13px; text-decoration: none;
     }
-    .guest-link a:hover { color: var(--accent); }
+    .bottom-links a:hover { color: var(--accent); }
+    .lang-toggle {
+      padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      background: rgba(255,255,255,0.06); color: var(--text2); transition: all 0.2s;
+    }
+    .lang-toggle:hover { background: rgba(255,255,255,0.12); color: #fff; }
   </style>
 </head>
 <body>
   <div class="login-container">
     <div class="logo-section">
       <h1>EchoWorld</h1>
-      <p>AI智能体商业世界 - 超级大富翁</p>
+      <p id="lp-subtitle">AI智能体商业世界 - 超级大富翁</p>
     </div>
     <div class="card">
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('login')">登录</button>
-        <button class="tab" onclick="switchTab('register')">注册</button>
+        <button class="tab active" id="tab-login" onclick="switchTab('login')"><span data-i18n="tab_login">登录</span></button>
+        <button class="tab" id="tab-register" onclick="switchTab('register')"><span data-i18n="tab_register">注册</span></button>
       </div>
       <div class="error-msg" id="errorMsg"></div>
       <div class="success-msg" id="successMsg"></div>
@@ -101,58 +113,145 @@
       <!-- Login Form -->
       <form id="loginForm" onsubmit="handleLogin(event)">
         <div class="form-group">
-          <label>用户名</label>
-          <input type="text" id="loginUsername" placeholder="请输入用户名" required>
+          <label data-i18n="lbl_email">邮箱</label>
+          <input type="email" id="loginEmail" data-i18n-ph="ph_email" placeholder="请输入邮箱" required>
         </div>
         <div class="form-group">
-          <label>密码</label>
-          <input type="password" id="loginPassword" placeholder="请输入密码" required>
+          <label data-i18n="lbl_password">密码</label>
+          <input type="password" id="loginPassword" data-i18n-ph="ph_password" placeholder="请输入密码" required>
         </div>
-        <button type="submit" class="btn-primary" id="loginBtn">登录</button>
+        <button type="submit" class="btn-primary" id="loginBtn" data-i18n="btn_login">登录</button>
       </form>
 
       <!-- Register Form -->
       <form id="registerForm" style="display:none" onsubmit="handleRegister(event)">
         <div class="form-group">
-          <label>用户名</label>
-          <input type="text" id="regUsername" placeholder="2-20个字符" required minlength="2" maxlength="20">
+          <label data-i18n="lbl_email">邮箱</label>
+          <div class="input-row">
+            <input type="email" id="regEmail" data-i18n-ph="ph_email_reg" placeholder="用于登录的邮箱地址" required>
+            <button type="button" class="btn-code" id="btnSendCode" onclick="sendCode()" data-i18n="btn_send_code">发送验证码</button>
+          </div>
         </div>
         <div class="form-group">
-          <label>密码</label>
-          <input type="password" id="regPassword" placeholder="至少6个字符" required minlength="6">
+          <label data-i18n="lbl_code">验证码</label>
+          <input type="text" id="regCode" data-i18n-ph="ph_code" placeholder="6位数字验证码" required maxlength="6" inputmode="numeric" pattern="[0-9]{6}">
         </div>
         <div class="form-group">
-          <label>邀请码 (可选)</label>
-          <input type="text" id="regReferralCode" placeholder="有邀请码可填写，邀请者获得100CC" maxlength="8" style="text-transform:uppercase">
+          <label data-i18n="lbl_nickname">昵称</label>
+          <input type="text" id="regNickname" data-i18n-ph="ph_nickname" placeholder="2-20个字符，游戏中显示" required minlength="2" maxlength="20">
+          <div class="nickname-status" id="nicknameStatus"></div>
         </div>
-        <button type="submit" class="btn-primary" id="regBtn">注册</button>
+        <div class="form-group">
+          <label data-i18n="lbl_password">密码</label>
+          <input type="password" id="regPassword" data-i18n-ph="ph_password_reg" placeholder="至少6个字符" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label data-i18n="lbl_referral">邀请码 (可选)</label>
+          <input type="text" id="regReferralCode" data-i18n-ph="ph_referral" placeholder="有邀请码可填写，邀请者获得100CC" maxlength="8" style="text-transform:uppercase">
+        </div>
+        <button type="submit" class="btn-primary" id="regBtn" data-i18n="btn_register">注册</button>
       </form>
     </div>
-    <div class="guest-link">
-      <a href="/">← 返回世界总览</a>
+    <div class="bottom-links">
+      <a href="/" data-i18n="back_home">← 返回首页</a>
+      <button class="lang-toggle" id="langToggle" onclick="toggleLang()">EN</button>
     </div>
   </div>
 
   <script>
-    // Check if already logged in
+    // ============ I18N ============
+    const I18N = {
+      zh: {
+        subtitle: 'AI智能体商业世界 - 超级大富翁',
+        tab_login: '登录', tab_register: '注册',
+        lbl_email: '邮箱', lbl_password: '密码', lbl_code: '验证码',
+        lbl_nickname: '昵称', lbl_referral: '邀请码 (可选)',
+        ph_email: '请输入邮箱', ph_password: '请输入密码',
+        ph_email_reg: '用于登录的邮箱地址', ph_code: '6位数字验证码',
+        ph_nickname: '2-20个字符，游戏中显示', ph_password_reg: '至少6个字符',
+        ph_referral: '有邀请码可填写，邀请者获得100CC',
+        btn_login: '登录', btn_register: '注册',
+        btn_send_code: '发送验证码', btn_sending: '发送中...',
+        btn_resend: '%ss后重发',
+        back_home: '← 返回首页',
+        logging_in: '登录中...', registering: '注册中...',
+        login_ok: '登录成功，正在跳转...',
+        reg_ok: '注册成功，正在跳转...',
+        nickname_ok: '昵称可用 ✓', nickname_taken: '昵称已被使用',
+        nickname_short: '至少2个字符',
+        lang_toggle: 'EN',
+      },
+      en: {
+        subtitle: 'AI Agent Economy World - Monopoly+',
+        tab_login: 'Login', tab_register: 'Sign Up',
+        lbl_email: 'Email', lbl_password: 'Password', lbl_code: 'Verification Code',
+        lbl_nickname: 'Nickname', lbl_referral: 'Referral Code (optional)',
+        ph_email: 'Enter your email', ph_password: 'Enter your password',
+        ph_email_reg: 'Email for login', ph_code: '6-digit code',
+        ph_nickname: '2-20 chars, shown in game', ph_password_reg: 'At least 6 characters',
+        ph_referral: 'Referral code (inviter gets 100CC)',
+        btn_login: 'Login', btn_register: 'Sign Up',
+        btn_send_code: 'Send Code', btn_sending: 'Sending...',
+        btn_resend: 'Resend in %ss',
+        back_home: '← Back to Home',
+        logging_in: 'Logging in...', registering: 'Signing up...',
+        login_ok: 'Login successful, redirecting...',
+        reg_ok: 'Registered! Redirecting...',
+        nickname_ok: 'Available ✓', nickname_taken: 'Already taken',
+        nickname_short: 'At least 2 chars',
+        lang_toggle: '中文',
+      }
+    };
+    let currentLang = localStorage.getItem('echoworld_lang') || 'zh';
+    function t(k) { return (I18N[currentLang] || I18N.zh)[k] || I18N.zh[k] || k; }
+
+    function applyI18n() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPh);
+      });
+      document.getElementById('lp-subtitle').textContent = t('subtitle');
+      document.getElementById('langToggle').textContent = t('lang_toggle');
+      document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+      document.title = currentLang === 'zh' ? 'EchoWorld - 登录' : 'EchoWorld - Login';
+    }
+
+    function toggleLang() {
+      currentLang = currentLang === 'zh' ? 'en' : 'zh';
+      localStorage.setItem('echoworld_lang', currentLang);
+      applyI18n();
+    }
+
+    function langHeaders() {
+      return { 'Content-Type': 'application/json', 'X-Lang': currentLang };
+    }
+
+    // ============ AUTH CHECK ============
     (function checkAuth() {
       const token = localStorage.getItem('echoworld_token');
       const user = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
-      if (token && user) {
-        redirectByRole(user.role);
-      }
+      if (token && user) redirectByRole(user.role);
     })();
 
+    function redirectByRole(role) {
+      if (role === 'admin') window.location.href = '/admin';
+      else window.location.href = '/game';
+    }
+
+    // ============ TAB SWITCHING ============
     function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById('errorMsg').style.display = 'none';
       document.getElementById('successMsg').style.display = 'none';
       if (tab === 'login') {
-        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('tab-login').classList.add('active');
+        document.getElementById('tab-register').classList.remove('active');
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('registerForm').style.display = 'none';
       } else {
-        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('tab-login').classList.remove('active');
+        document.getElementById('tab-register').classList.add('active');
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('registerForm').style.display = 'block';
       }
@@ -163,28 +262,90 @@
       el.textContent = msg; el.style.display = 'block';
       document.getElementById('successMsg').style.display = 'none';
     }
-
     function showSuccess(msg) {
       const el = document.getElementById('successMsg');
       el.textContent = msg; el.style.display = 'block';
       document.getElementById('errorMsg').style.display = 'none';
     }
 
-    function redirectByRole(role) {
-      if (role === 'admin') window.location.href = '/admin';
-      else window.location.href = '/game';
+    // ============ SEND VERIFICATION CODE ============
+    let _codeCountdown = 0;
+    async function sendCode() {
+      const email = document.getElementById('regEmail').value.trim();
+      if (!email) { showError(t('lbl_email')); return; }
+      const btn = document.getElementById('btnSendCode');
+      btn.disabled = true;
+      btn.textContent = t('btn_sending');
+      try {
+        const res = await fetch('/api/auth/send-code', {
+          method: 'POST', headers: langHeaders(),
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showSuccess(data.message);
+        // Dev mode: auto-fill code
+        if (data._devCode) {
+          document.getElementById('regCode').value = data._devCode;
+        }
+        // Countdown 60s
+        _codeCountdown = 60;
+        const timer = setInterval(() => {
+          _codeCountdown--;
+          if (_codeCountdown <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.textContent = t('btn_send_code');
+          } else {
+            btn.textContent = t('btn_resend').replace('%s', _codeCountdown);
+          }
+        }, 1000);
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+        btn.textContent = t('btn_send_code');
+      }
     }
 
+    // ============ NICKNAME CHECK ============
+    let _nickTimer = null;
+    document.getElementById('regNickname').addEventListener('input', function() {
+      clearTimeout(_nickTimer);
+      const val = this.value.trim();
+      const status = document.getElementById('nicknameStatus');
+      if (val.length < 2) {
+        status.className = 'nickname-status nickname-err';
+        status.textContent = val.length > 0 ? t('nickname_short') : '';
+        return;
+      }
+      _nickTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('/api/auth/check-nickname', {
+            method: 'POST', headers: langHeaders(),
+            body: JSON.stringify({ nickname: val }),
+          });
+          const data = await res.json();
+          if (data.available) {
+            status.className = 'nickname-status nickname-ok';
+            status.textContent = t('nickname_ok');
+          } else {
+            status.className = 'nickname-status nickname-err';
+            status.textContent = data.error || t('nickname_taken');
+          }
+        } catch { /* ignore */ }
+      }, 400);
+    });
+
+    // ============ LOGIN ============
     async function handleLogin(e) {
       e.preventDefault();
       const btn = document.getElementById('loginBtn');
-      btn.disabled = true; btn.textContent = '登录中...';
+      btn.disabled = true; btn.textContent = t('logging_in');
       try {
         const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: langHeaders(),
           body: JSON.stringify({
-            username: document.getElementById('loginUsername').value,
+            email: document.getElementById('loginEmail').value.trim(),
             password: document.getElementById('loginPassword').value,
           }),
         });
@@ -192,27 +353,28 @@
         if (!res.ok) throw new Error(data.error);
         localStorage.setItem('echoworld_token', data.token);
         localStorage.setItem('echoworld_user', JSON.stringify(data.user));
-        showSuccess('登录成功，正在跳转...');
+        showSuccess(t('login_ok'));
         setTimeout(() => redirectByRole(data.user.role), 500);
       } catch (err) {
         showError(err.message);
       } finally {
-        btn.disabled = false; btn.textContent = '登录';
+        btn.disabled = false; btn.textContent = t('btn_login');
       }
     }
 
+    // ============ REGISTER ============
     async function handleRegister(e) {
       e.preventDefault();
       const btn = document.getElementById('regBtn');
-      btn.disabled = true; btn.textContent = '注册中...';
+      btn.disabled = true; btn.textContent = t('registering');
       try {
         const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: langHeaders(),
           body: JSON.stringify({
-            username: document.getElementById('regUsername').value,
+            email: document.getElementById('regEmail').value.trim(),
+            code: document.getElementById('regCode').value.trim(),
+            nickname: document.getElementById('regNickname').value.trim(),
             password: document.getElementById('regPassword').value,
-            role: 'investor',
             referralCode: document.getElementById('regReferralCode').value.trim().toUpperCase() || undefined,
           }),
         });
@@ -220,14 +382,17 @@
         if (!res.ok) throw new Error(data.error);
         localStorage.setItem('echoworld_token', data.token);
         localStorage.setItem('echoworld_user', JSON.stringify(data.user));
-        showSuccess('注册成功，正在跳转...');
+        showSuccess(t('reg_ok'));
         setTimeout(() => redirectByRole(data.user.role), 500);
       } catch (err) {
         showError(err.message);
       } finally {
-        btn.disabled = false; btn.textContent = '注册';
+        btn.disabled = false; btn.textContent = t('btn_register');
       }
     }
+
+    // Init i18n
+    applyI18n();
   </script>
 </body>
 </html>
