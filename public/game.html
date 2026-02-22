@@ -267,6 +267,7 @@
   <div class="action-group">
     <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()" data-i18n="build">🔨</button>
     <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰</button>
+    <button class="dir-btn" id="btn-demolish" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="demolishBuilding()">🗑️</button>
     <button class="dir-btn" id="btn-extra-action" style="display:none;border-color:var(--red);background:rgba(239,68,68,0.12)" onclick="buyExtraAction()" data-i18n="extra_act">❤️ +1</button>
   </div>
 </div>
@@ -575,6 +576,7 @@ const I18N = {
     death_log:'角色已永久死亡',ref_copied:'邀请码已复制',broadcast:'播报',
     n_start:'原点 🏛',n_tax:'税务站 💸',n_welfare:'福利站 🎁',
     n_event:'随机事件 🎲',n_inter:'十字路口',n_road:'道路',n_lot:'空地',
+    owner:'所有者',no_build_zone:'不可建设',demolish_fail:'拆除失败',
     me:'我',fee_label:'费用',use_label:'使用',times:'次',
     facility:'的设施',status:'当前状态',after:'兑换后',
     lang:'EN',need_req:'需要饥饿≥15且体力≥15',
@@ -624,6 +626,7 @@ const I18N = {
     death_log:'Character permanently dead',ref_copied:'Code copied',broadcast:'News',
     n_start:'Origin 🏛',n_tax:'Tax 💸',n_welfare:'Welfare 🎁',
     n_event:'Event 🎲',n_inter:'Intersection',n_road:'Road',n_lot:'Empty Lot',
+    owner:'Owner',no_build_zone:'No Build Zone',demolish_fail:'Demolish failed',
     me:'Me',fee_label:'Fee',use_label:'Used',times:'x',
     facility:"'s facility",status:'Status',after:'After',
     lang:'中文',need_req:'Need Hunger≥15 & Energy≥15',
@@ -1537,9 +1540,12 @@ function updatePosInfo(node) {
   const labelKeys = { start: 'n_start', tax: 'n_tax', welfare: 'n_welfare', event: 'n_event', intersection: 'n_inter', road: 'n_road', lot: 'n_lot' };
   let text = t(labelKeys[node.type] || node.type);
   text += ` (${node.x}, ${node.y})`;
+  const notBuildable = ['start', 'tax', 'welfare', 'event'];
   if (node.building) {
-    const pc = parentCoord(node.x, node.y);
-    text = `${node.building.name} ${buildingCatalog.find(b => b.type === node.building.templateType)?.icon || ''} Lv.${node.building.level} (${pc.x},${pc.y})`;
+    const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
+    text = `${tpl?.icon || ''} ${node.building.name} Lv.${node.building.level} | ${t('owner')}: ${node.building.ownerName} (${node.x},${node.y})`;
+  } else if (notBuildable.includes(node.type)) {
+    text += ` [${t('no_build_zone') || '不可建设'}]`;
   }
   document.getElementById('pos-info').textContent = text;
 }
@@ -1624,22 +1630,28 @@ async function fetchMe() {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // Check building on current tile - show consume in action bar
+    // Current tile actions: consume / build / demolish
     document.getElementById('btn-consume').style.display = 'none';
-    if (meData.node?.building && meData.node.building.ownerId !== currentUser.entityId) {
-      showBuildingOverlay(meData.node);
-      document.getElementById('btn-consume').style.display = 'block';
-      const tpl = buildingCatalog.find(t => t.type === meData.node.building.templateType);
-      const lvMult = 1 + (meData.node.building.level - 1) * 0.3;
-      const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
-      document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
-    }
-
-    // Show build button if current node is buildable OR nearby lots exist
+    document.getElementById('btn-build').style.display = 'none';
+    document.getElementById('btn-demolish').style.display = 'none';
     const curNode = meData.node;
-    const onBuildable = curNode && !curNode.building && ['lot', 'intersection'].includes(curNode.type);
-    const hasNearbyLots = meData.nearbyLots && meData.nearbyLots.length > 0;
-    document.getElementById('btn-build').style.display = (onBuildable || hasNearbyLots) ? 'block' : 'none';
+    if (curNode?.building) {
+      if (curNode.building.ownerId === currentUser.entityId) {
+        // Own building - show demolish
+        document.getElementById('btn-demolish').style.display = 'block';
+      } else {
+        // Other's building - show consume
+        showBuildingOverlay(curNode);
+        document.getElementById('btn-consume').style.display = 'block';
+        const tpl = buildingCatalog.find(t => t.type === curNode.building.templateType);
+        const lvMult = 1 + (curNode.building.level - 1) * 0.3;
+        const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
+        document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
+      }
+    } else if (curNode && !curNode.building && ['road', 'intersection'].includes(curNode.type)) {
+      // Empty buildable node - show build
+      document.getElementById('btn-build').style.display = 'block';
+    }
 
     return meData;
   } catch (e) {
@@ -1803,21 +1815,8 @@ async function chooseDirection(directionNodeId) {
       document.getElementById('dead-overlay').classList.add('show');
     }
 
-    // 到达后显示动作按钮：建造 / 消费 / 交易
+    // 到达后的动作按钮由 fetchMe 统一处理
     closeBuildingOverlay();
-    document.getElementById('btn-consume').style.display = 'none';
-    document.getElementById('btn-build').style.display = 'none';
-
-    if (data.finalNode.building && data.finalNode.building.ownerId !== currentUser?.entityId) {
-      // Landing on another player's building → show consume + trade
-      showBuildingOverlay(data.finalNode);
-      document.getElementById('btn-consume').style.display = 'block';
-      const tpl = buildingCatalog.find(t => t.type === data.finalNode.building.templateType);
-      const lvMult = 1 + (data.finalNode.building.level - 1) * 0.3;
-      const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
-      document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
-    }
-    // Build button visibility is handled by fetchMe() below (uses nearbyLots)
 
     // Refresh map
     await fetchMap();
@@ -1848,6 +1847,29 @@ window.useBuilding = async function() {
 
   } catch (e) {
     addLog(t('consume_fail'), 'danger');
+  }
+};
+
+window.demolishBuilding = async function() {
+  try {
+    const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
+    const meData = await meRes.json();
+    const curNode = meData.node;
+    if (!curNode?.building || curNode.building.ownerId !== currentUser?.entityId) {
+      addLog(t('demolish_fail') || '无法拆除', 'warn'); return;
+    }
+    const res = await fetch(API + '/api/world/demolish', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId: curNode.id }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('demolish_fail'), 'warn'); return; }
+    const data = await res.json();
+    addLog(data.message, 'good');
+    updateMoney(data.entity);
+    await fetchMap();
+    await fetchMe();
+  } catch (e) {
+    addLog(t('demolish_fail') || '拆除失败', 'danger');
   }
 };
 
@@ -1886,19 +1908,14 @@ window.closeBuildModal = function() {
 
 async function doBuild(templateType) {
   try {
-    // Build on current position or nearest empty lot
+    // Build on current node only
     const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
     const meData = await meRes.json();
     const curNode = meData.node;
-    let nodeId;
-    const onBuildable = curNode && !curNode.building && ['lot', 'intersection'].includes(curNode.type);
-    if (onBuildable) {
-      nodeId = curNode.id;
-    } else if (meData.nearbyLots && meData.nearbyLots.length > 0) {
-      nodeId = meData.nearbyLots[0].id;
-    } else {
+    if (!curNode || curNode.building || !['road', 'intersection'].includes(curNode.type)) {
       addLog(t('no_lots'), 'warn'); return;
     }
+    const nodeId = curNode.id;
     const customName = document.getElementById('build-custom-name').value.trim() || undefined;
 
     const res = await fetch(API + '/api/world/build', {

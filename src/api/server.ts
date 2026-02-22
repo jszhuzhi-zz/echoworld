@@ -25,6 +25,7 @@ const S_I18N: Record<string, Record<string, string>> = {
     no_move: '行动次数已用完或角色已死亡', cant_move: '无法移动，请先掷骰子',
     no_fund: '资金不足，需要 %s CC', no_use: '无法使用该设施',
     bad_type: '无效建筑类型', cant_build: '该位置无法建造（非空地块或已有建筑）',
+    demolished: '已拆除 %s，返还 %s CC', cant_demolish: '无法拆除（不是你的建筑或位置无效）',
     not_dead: '角色尚未死亡', hunger_full: '饥饿值已满', no_nodeId: '缺少 nodeId',
     cant_consume: '无法消费该建筑', reset_ok: '所有玩家每日行动已重置',
     rech_range: '充值金额 1-100000 CC',
@@ -69,6 +70,7 @@ const S_I18N: Record<string, Record<string, string>> = {
     no_move: 'No actions left or character dead', cant_move: 'Cannot move, roll dice first',
     no_fund: 'Insufficient funds, need %s CC', no_use: 'Cannot use this facility',
     bad_type: 'Invalid building type', cant_build: 'Cannot build here (not empty lot or already occupied)',
+    demolished: 'Demolished %s, refunded %s CC', cant_demolish: 'Cannot demolish (not your building or invalid)',
     not_dead: 'Character not dead yet', hunger_full: 'Hunger is full', no_nodeId: 'Missing nodeId',
     cant_consume: 'Cannot consume this building', reset_ok: 'All daily actions reset',
     rech_range: 'Recharge 1-100000 CC',
@@ -765,6 +767,25 @@ export function createServer(world: World, port = 3000): express.Application {
       message: st(lang, 'built', result.building.name, node.x, node.y, template.cost),
       building: result.building,
       template: result.template,
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 拆除建筑 (所有者拆除，返还30%费用) */
+  app.post('/api/world/demolish', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+
+    const { nodeId } = req.body;
+    const result = infiniteWorld.demolishBuilding(user.entityId, nodeId);
+    if (!result) return res.status(400).json({ error: st(lang, 'cant_demolish') });
+
+    entity.receive(result.refund);
+    res.json({
+      message: st(lang, 'demolished', result.template.name, result.refund),
       entity: entity.getSummary(),
     });
   });

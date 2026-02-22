@@ -582,8 +582,8 @@ export class InfiniteWorld {
   ): { building: WorldBuilding; template: BuildingTemplate } | null {
     const node = this.nodes.get(nodeId);
     if (!node || node.building) return null;
-    // Allow building on lots and intersections (not on road/start/tax/welfare/event)
-    const buildable: NodeType[] = ['lot', 'intersection'];
+    // Allow building on road and intersection (not on start/tax/welfare/event/lot)
+    const buildable: NodeType[] = ['road', 'intersection'];
     if (!buildable.includes(node.type)) return null;
 
     const template = MASLOW_BUILDINGS.find(b => b.type === templateType);
@@ -652,6 +652,18 @@ export class InfiniteWorld {
     }
 
     return { fee, effects, building, template, upgraded };
+  }
+
+  /** 拆除建筑 (仅建筑所有者可拆除，返还 30% 建设费用) */
+  demolishBuilding(entityId: string, nodeId: number): { refund: number; template: BuildingTemplate } | null {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return null;
+    if (node.building.ownerId !== entityId) return null;
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    if (!template) return null;
+    const refund = Math.floor(template.cost * 0.3);
+    node.building = undefined;
+    return { refund, template };
   }
 
   /** 引荐新人 → 推荐人名下所有建筑获得引荐积分 */
@@ -730,10 +742,10 @@ export class InfiniteWorld {
     }
   }
 
-  /** 获取附近可建空地 (含交叉路口，按距离排序) */
+  /** 获取附近可建空地 (road/intersection，按距离排序) */
   getNearbyBuildable(cx: number, cy: number, radius = 6): MapNode[] {
     return this.getVisibleNodes(cx, cy, radius)
-      .filter(n => !n.building && (n.type === 'lot' || n.type === 'intersection'))
+      .filter(n => !n.building && (n.type === 'road' || n.type === 'intersection'))
       .sort((a, b) => {
         const da = (a.x - cx) ** 2 + (a.y - cy) ** 2;
         const db = (b.x - cx) ** 2 + (b.y - cy) ** 2;
