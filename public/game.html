@@ -2333,7 +2333,9 @@ window.rollDice = async function() {
     }
 
   } catch (e) {
+    clearInterval(rollAnim);
     addLog(t('dice_fail'), 'danger');
+    resetDiceUI(true);
   }
 };
 
@@ -2345,7 +2347,14 @@ async function chooseDirection(directionNodeId) {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ directionNodeId }),
     });
-    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    if (!res.ok) {
+      const err = await res.json();
+      addLog(err.error, 'warn');
+      // 移动失败：重置 UI 状态，重新同步服务端状态
+      resetDiceUI(true);
+      await fetchMe();
+      return;
+    }
     const data = await res.json();
 
     // 逐步动画 + 路过建筑实时消费提示
@@ -2385,8 +2394,7 @@ async function chooseDirection(directionNodeId) {
     }
 
     // Reset dice button
-    document.getElementById('btn-roll').innerHTML = '<span class="dice-icon">🎲</span>';
-    document.getElementById('dice-info').textContent = '🎲 -';
+    resetDiceUI();
 
     // Check death
     if (!data.stats.alive) {
@@ -2402,6 +2410,22 @@ async function chooseDirection(directionNodeId) {
 
   } catch (e) {
     addLog(t('move_fail'), 'danger');
+    // 异常时也要恢复 UI，否则会卡死
+    isAnimating = false;
+    resetDiceUI(true);
+    try { await fetchMe(); } catch(_) {}
+  }
+}
+
+function resetDiceUI(cancelServerRoll) {
+  isAnimating = false;
+  document.getElementById('btn-roll').innerHTML = '<span class="dice-icon">🎲</span>';
+  document.getElementById('btn-roll').disabled = false;
+  document.getElementById('btn-roll').classList.remove('dice-rolling');
+  document.getElementById('dice-info').textContent = '🎲 -';
+  // 出错时通知服务器清除 pendingRoll，防止卡死
+  if (cancelServerRoll) {
+    fetch(API + '/api/world/cancel-roll', { method: 'POST', headers: authHeaders() }).catch(() => {});
   }
 }
 

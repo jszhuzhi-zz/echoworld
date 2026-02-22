@@ -466,19 +466,34 @@ export class InfiniteWorld {
     const state = this.players.get(entityId);
     if (!state?.alive || state.pendingRoll === null) return null;
 
+    // 确保 nodeId 是数字类型（JSON 反序列化可能传来 string）
+    const nodeId = Number(firstStepNodeId);
+
+    // 验证目标节点存在
+    const targetNode = this.nodes.get(nodeId);
+    if (!targetNode) {
+      // 节点无效，清除 pendingRoll 避免卡死
+      state.pendingRoll = null;
+      return null;
+    }
+
     // 确保移动方向的区域已生成
-    const targetNode = this.nodes.get(firstStepNodeId);
-    if (targetNode) this.ensureRegion(targetNode.x, targetNode.y, 20);
+    this.ensureRegion(targetNode.x, targetNode.y, 20);
+
+    const startNode = this.nodes.get(state.nodeId);
+    if (!startNode) {
+      state.pendingRoll = null;
+      return null;
+    }
 
     let remaining = state.pendingRoll;
 
     // 沿道路行走，遇岔路暂停；同时收集路过的可消费建筑
-    let current = firstStepNodeId;
+    let current = nodeId;
     let prev = state.nodeId;
-    const startNode = this.nodes.get(state.nodeId)!;
     const path: { x: number; y: number }[] = [
       { x: startNode.x, y: startNode.y },
-      { x: this.nodes.get(current)!.x, y: this.nodes.get(current)!.y },
+      { x: targetNode.x, y: targetNode.y },
     ];
     remaining--;
     const passedBuildings: PassedBuilding[] = [];

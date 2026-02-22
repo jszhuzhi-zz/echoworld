@@ -860,6 +860,17 @@ export function createServer(world: World, port = 3000): express.Application {
     res.json(result);
   });
 
+  /** 取消掷骰子（清除 pendingRoll 避免卡死） */
+  app.post('/api/world/cancel-roll', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: 'no entity' });
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (state && state.pendingRoll !== null) {
+      (state as any).pendingRoll = null;
+    }
+    res.json({ ok: true });
+  });
+
   /** 选择方向移动 */
   app.post('/api/world/move', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);
@@ -868,7 +879,19 @@ export function createServer(world: World, port = 3000): express.Application {
     if (!entity) return res.status(404).json({ error: st(getLang(req), 'no_char') });
 
     const { directionNodeId } = req.body;
-    const moveResult = infiniteWorld.moveToDirection(user.entityId, directionNodeId);
+    if (directionNodeId === undefined || directionNodeId === null) {
+      return res.status(400).json({ error: st(getLang(req), 'cant_move') });
+    }
+
+    let moveResult: ReturnType<typeof infiniteWorld.moveToDirection>;
+    try {
+      moveResult = infiniteWorld.moveToDirection(user.entityId, directionNodeId);
+    } catch (e) {
+      // 移动过程中出错，清除 pendingRoll 避免卡死
+      const state = infiniteWorld.getPlayer(user.entityId);
+      if (state) (state as any).pendingRoll = null;
+      return res.status(500).json({ error: st(getLang(req), 'cant_move') });
+    }
     if (!moveResult) return res.status(400).json({ error: st(getLang(req), 'cant_move') });
 
     // 如果遇到岔路，直接返回（不结算事件）
