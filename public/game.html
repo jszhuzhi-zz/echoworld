@@ -525,22 +525,30 @@
 
 <!-- Passed Buildings - inline consume prompt (路过消费) -->
 <div id="consume-prompt" style="display:none;position:fixed;z-index:22;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:rgba(17,24,39,0.95);border:1px solid var(--accent);border-radius:14px;padding:16px 22px;
-  backdrop-filter:blur(12px);min-width:280px;max-width:360px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
-  <div style="font-size:11px;color:var(--text2);margin-bottom:8px" data-i18n="passed">路过建筑</div>
-  <div id="cp-title" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
-  <div id="cp-owner" style="font-size:11px;color:var(--text2);margin-bottom:6px"></div>
-  <div id="cp-effects" style="font-size:12px;margin-bottom:10px"></div>
-  <div style="display:flex;gap:8px;justify-content:center">
-    <button id="cp-consume-btn" style="padding:8px 20px;border-radius:8px;border:none;
-      background:var(--accent);color:white;font-size:13px;font-weight:700;cursor:pointer" onclick="resolveConsumePrompt(true)">
-      💰 <span id="cp-fee"></span> CC
+  background:rgba(17,24,39,0.97);border:2px solid var(--accent);border-radius:16px;padding:20px 26px;
+  backdrop-filter:blur(16px);min-width:320px;max-width:400px;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,0.6);
+  animation:consumePopIn 0.3s ease-out">
+  <style>
+    @keyframes consumePopIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+    @keyframes consumePulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.4)}50%{box-shadow:0 0 0 8px rgba(99,102,241,0)}}
+    #cp-consume-btn{animation:consumePulse 1.5s infinite}
+  </style>
+  <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:6px;letter-spacing:1px">🛍️ <span data-i18n="passed">路过商家</span></div>
+  <div id="cp-title" style="font-size:18px;font-weight:800;margin-bottom:4px"></div>
+  <div id="cp-owner" style="font-size:11px;color:var(--text2);margin-bottom:8px"></div>
+  <div id="cp-effects" style="font-size:13px;margin-bottom:6px"></div>
+  <div id="cp-benefit" style="font-size:11px;color:var(--green);margin-bottom:10px;font-weight:600"></div>
+  <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px">
+    <button id="cp-consume-btn" style="padding:10px 24px;border-radius:10px;border:none;
+      background:linear-gradient(135deg,var(--accent),var(--purple));color:white;font-size:14px;font-weight:800;cursor:pointer;flex:1" onclick="resolveConsumePrompt(true)">
+      💰 消费 <span id="cp-fee"></span> CC
     </button>
-    <button id="cp-skip-btn" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);
-      background:rgba(255,255,255,0.06);color:var(--text2);font-size:13px;cursor:pointer" onclick="resolveConsumePrompt(false)">
-      <span data-i18n="skip">跳过</span> (<span id="cp-countdown">3</span>s)
+    <button id="cp-skip-btn" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);
+      background:rgba(255,255,255,0.06);color:var(--text2);font-size:12px;cursor:pointer" onclick="resolveConsumePrompt(false)">
+      <span data-i18n="skip">跳过</span> (<span id="cp-countdown">8</span>s)
     </button>
   </div>
+  <div style="font-size:9px;color:var(--text2)">⌨️ <span data-i18n="cp_hotkey">空格/回车=消费 · Esc=跳过</span></div>
 </div>
 
 <!-- Build Modal -->
@@ -823,7 +831,7 @@ const I18N = {
     none:'暂无',build:'🔨',consume:'💰',extra_act:'❤️ +1',got_it:'知道了',
     stat_hunger:'饱食度',stat_energy:'体力',stat_happy:'幸福感',
     receive_income:'获得收益',consume_btn:'消费',tax:'税',
-    passed:'路过建筑',skip:'跳过',
+    passed:'路过商家',skip:'跳过',cp_hotkey:'空格/回车=消费 · Esc=跳过',
     choose_build:'选择建筑类型',custom_name:'自定义名称 (可选)',custom_hint:'留空使用默认名',
     wealth:'个人财富',net_worth:'净资产',income_ov:'收支概览',
     daily_in:'今日收入',daily_out:'今日支出',credit:'信用评分',
@@ -881,7 +889,7 @@ const I18N = {
     none:'None',build:'🔨',consume:'💰',extra_act:'❤️ +1',got_it:'OK',
     stat_hunger:'Hunger',stat_energy:'Energy',stat_happy:'Happiness',
     receive_income:'receives',consume_btn:'Consume',tax:'Tax',
-    passed:'Passed Building',skip:'Skip',
+    passed:'Nearby Shop',skip:'Skip',cp_hotkey:'Space/Enter=Use · Esc=Skip',
     choose_build:'Choose Building',custom_name:'Custom Name (optional)',custom_hint:'Leave empty for default',
     wealth:'Wealth',net_worth:'Net Worth',income_ov:'INCOME',
     daily_in:'Today Income',daily_out:'Today Expense',credit:'Credit Score',
@@ -1670,6 +1678,7 @@ let _countdownInterval = null;
 window.resolveConsumePrompt = function(doConsume) {
   if (_consumeTimer) { clearTimeout(_consumeTimer); _consumeTimer = null; }
   if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+  removeConsumeKeyHandler();
   document.getElementById('consume-prompt').style.display = 'none';
   if (_consumeResolve) { _consumeResolve(doConsume); _consumeResolve = null; }
 };
@@ -1688,18 +1697,38 @@ function getBuildingEffectDesc(tpl, b) {
   return Object.entries(tpl?.effects || {}).map(([k,v]) => `${effectNames[k]||k}+${Math.floor(v * eMult)}`).join(' ');
 }
 
+let _consumeKeyHandler = null;
+
 function showConsumePrompt(pb) {
   return new Promise(resolve => {
     _consumeResolve = resolve;
     const tpl = pb.template;
     const b = pb.building;
+    const zh = currentLang === 'zh';
+
     document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} Lv.${b.level}`;
     document.getElementById('cp-owner').textContent = `${b.ownerName}${t('facility')}`;
-    document.getElementById('cp-effects').innerHTML = `<span style="font-size:13px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
+    document.getElementById('cp-effects').innerHTML = `<span style="font-size:14px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
     document.getElementById('cp-fee').textContent = pb.fee;
+
+    // 根据当前状态生成消费建议
+    const stats = myState || {};
+    const benefits = [];
+    if (tpl?.effects) {
+      if (tpl.effects.hunger && stats.hunger < 60) benefits.push(zh ? `饱食度偏低(${stats.hunger})，消费可恢复！` : `Hunger low (${stats.hunger}), consume to recover!`);
+      if (tpl.effects.energy && stats.energy < 60) benefits.push(zh ? `体力偏低(${stats.energy})，消费可补充！` : `Energy low (${stats.energy}), consume to refill!`);
+      if (tpl.effects.happiness && stats.happiness < 60) benefits.push(zh ? `幸福感偏低(${stats.happiness})，消费可提升！` : `Happiness low (${stats.happiness}), consume to boost!`);
+    }
+    if (!benefits.length) benefits.push(zh ? '💡 消费促进经济流转，业主获得收益' : '💡 Spending drives the economy!');
+    document.getElementById('cp-benefit').textContent = benefits[0];
+
+    // 消费按钮文字
+    document.getElementById('cp-consume-btn').innerHTML = `💰 ${zh ? '消费' : 'Use'} ${pb.fee} CC`;
+
     document.getElementById('consume-prompt').style.display = 'block';
 
-    let remaining = 5;
+    // 倒计时 8 秒（给更多决策时间）
+    let remaining = 8;
     document.getElementById('cp-countdown').textContent = remaining;
     _countdownInterval = setInterval(() => {
       remaining--;
@@ -1709,9 +1738,25 @@ function showConsumePrompt(pb) {
       _consumeTimer = null;
       if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
       document.getElementById('consume-prompt').style.display = 'none';
+      removeConsumeKeyHandler();
       if (_consumeResolve) { _consumeResolve(false); _consumeResolve = null; }
-    }, 5000);
+    }, 8000);
+
+    // 键盘快捷键: 空格/回车=消费, Esc=跳过
+    removeConsumeKeyHandler();
+    _consumeKeyHandler = function(e) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); resolveConsumePrompt(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); resolveConsumePrompt(false); }
+    };
+    document.addEventListener('keydown', _consumeKeyHandler);
   });
+}
+
+function removeConsumeKeyHandler() {
+  if (_consumeKeyHandler) {
+    document.removeEventListener('keydown', _consumeKeyHandler);
+    _consumeKeyHandler = null;
+  }
 }
 
 /** 逐步动画：玩家棋子沿路径跳跃移动，遇到建筑弹出消费提示 */
