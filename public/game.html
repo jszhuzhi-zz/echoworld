@@ -351,6 +351,22 @@
   </div>
 </div>
 
+<!-- Consume Confirmation Modal -->
+<div id="consume-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;width:min(360px,calc(100vw - 32px));text-align:center">
+    <div id="cm-title" style="font-size:16px;font-weight:800;margin-bottom:6px"></div>
+    <div id="cm-owner" style="font-size:11px;color:var(--text2);margin-bottom:10px"></div>
+    <div id="cm-desc" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
+    <div id="cm-effects" style="display:flex;gap:8px;font-size:13px;font-weight:600;flex-wrap:wrap;justify-content:center;margin-bottom:12px"></div>
+    <div id="cm-fee" style="font-size:15px;font-weight:700;color:var(--orange);margin-bottom:6px"></div>
+    <div id="cm-owner-income" style="font-size:10px;color:var(--text2);margin-bottom:14px"></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button id="cm-confirm" onclick="confirmConsume()" style="padding:10px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;font-size:14px;font-weight:700;cursor:pointer">消费</button>
+      <button onclick="closeConsumeModal()" style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text2);font-size:13px;cursor:pointer">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- Building Action Overlay -->
 <div id="building-overlay">
   <div class="bo-title" id="bo-title"></div>
@@ -579,6 +595,8 @@ const I18N = {
     l3:'L3 社交',l3d:'茶馆/酒吧/社区',l4:'L4 尊重',l4d:'餐厅/酒店/银行',
     l5:'L5 实现',l5d:'学院/艺术馆/创业',
     none:'暂无',build:'🔨',consume:'💰',extra_act:'❤️ +1',got_it:'知道了',
+    stat_hunger:'饱食度',stat_energy:'体力',stat_happy:'幸福感',
+    receive_income:'获得收益',consume_btn:'消费',tax:'税',
     passed:'路过建筑',skip:'跳过',
     choose_build:'选择建筑类型',custom_name:'自定义名称 (可选)',custom_hint:'留空使用默认名',
     wealth:'个人财富',net_worth:'净资产',income_ov:'收支概览',
@@ -632,6 +650,8 @@ const I18N = {
     l3:'L3 Social',l3d:'Tea/Bar/Community',l4:'L4 Esteem',l4d:'Restaurant/Hotel/Bank',
     l5:'L5 Actualize',l5d:'Academy/Gallery/Hub',
     none:'None',build:'🔨',consume:'💰',extra_act:'❤️ +1',got_it:'OK',
+    stat_hunger:'Hunger',stat_energy:'Energy',stat_happy:'Happiness',
+    receive_income:'receives',consume_btn:'Consume',tax:'Tax',
     passed:'Passed Building',skip:'Skip',
     choose_build:'Choose Building',custom_name:'Custom Name (optional)',custom_hint:'Leave empty for default',
     wealth:'Wealth',net_worth:'Net Worth',income_ov:'INCOME',
@@ -1883,7 +1903,40 @@ async function chooseDirection(directionNodeId) {
   }
 }
 
-window.useBuilding = async function() {
+window.useBuilding = function() {
+  // Open consume confirmation modal with building details
+  const curNode = allNodes.find(n => n.id === myState?.nodeId);
+  if (!curNode?.building) return;
+  const b = curNode.building;
+  const tpl = buildingCatalog.find(t => t.type === b.templateType);
+  if (!tpl) return;
+  const lvMult = 1 + (b.level - 1) * 0.3;
+  const eMult = 1 + (b.level - 1) * 0.2;
+  const fee = Math.floor(tpl.baseFee * lvMult);
+  const statIcons = { hunger: '🍔', energy: '⚡', happiness: '😊' };
+  const statLabels = { hunger: t('stat_hunger') || '饱食度', energy: t('stat_energy') || '体力', happiness: t('stat_happy') || '幸福感' };
+
+  document.getElementById('cm-title').textContent = `${tpl.icon} ${bldgName(tpl)} (Lv.${b.level})`;
+  document.getElementById('cm-owner').textContent = `${t('owner')}: ${b.ownerName}`;
+  document.getElementById('cm-desc').textContent = bldgDesc(tpl);
+  document.getElementById('cm-effects').innerHTML = Object.entries(tpl.effects).map(([k, v]) => {
+    const boost = Math.floor(v * eMult);
+    return `<span style="padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.15);color:var(--green)">${statIcons[k] || ''} ${statLabels[k] || k} +${boost}</span>`;
+  }).join('');
+  document.getElementById('cm-fee').textContent = `${t('use_fee') || '费用'}: ${fee} CC`;
+  const tax = 0; // 当前消费税率 0%
+  const ownerIncome = fee - Math.floor(fee * tax);
+  document.getElementById('cm-owner-income').textContent = `${b.ownerName} ${t('receive_income') || '获得收益'}: ${ownerIncome} CC${tax > 0 ? ` (${t('tax') || '税'} ${(tax*100).toFixed(0)}%)` : ''}`;
+  document.getElementById('cm-confirm').textContent = `${t('consume_btn') || '消费'} ${fee} CC`;
+  document.getElementById('consume-modal').style.display = 'flex';
+};
+
+window.closeConsumeModal = function() {
+  document.getElementById('consume-modal').style.display = 'none';
+};
+
+window.confirmConsume = async function() {
+  closeConsumeModal();
   try {
     const res = await fetch(API + '/api/world/use-building', { method: 'POST', headers: authHeaders() });
     if (!res.ok) { const err = await res.json(); addLog(err.error || t('consume_fail'), 'warn'); return; }
