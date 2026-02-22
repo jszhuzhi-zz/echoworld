@@ -13,8 +13,8 @@ export class Bank {
   private deposits: Map<string, Deposit[]> = new Map();
   private totalMoneySupply: number = 0;
   private baseInterestRate: number = 0.05;   // 基础利率 5%
-  private loanInterestRate: number = 0.08;   // 贷款利率 8%
-  private depositInterestRate: number = 0.03; // 存款利率 3%
+  private loanInterestRate: number = 0.08;   // 贷款利率 8%（每日）
+  private depositInterestRate: number = 0.05; // 存款利率 5%（每日）
 
   constructor(worldState: WorldState) {
     this.worldState = worldState;
@@ -113,29 +113,27 @@ export class Bank {
     return true;
   }
 
-  /** 每日利息结算 */
+  /** 每日利息结算 (利率为每日利率，不再除365) */
   private settleInterest(): void {
-    // 贷款利息
+    // 贷款利息 (每日 8% 默认)
     for (const [entityId, entityLoans] of this.loans) {
       for (const loan of entityLoans) {
         if (loan.status !== 'active') continue;
 
-        const dailyInterest = loan.remainingBalance * (loan.interestRate / 365);
+        const dailyInterest = loan.remainingBalance * loan.interestRate;
         loan.remainingBalance += dailyInterest;
 
         // 检查逾期
         if (this.worldState.clock.getDay() > loan.dueDay) {
           loan.status = 'overdue';
-          // 查找借款人并降低信用
-          // 注意：需要通过外部EntityManager来操作实体
         }
       }
     }
 
-    // 存款利息
+    // 存款利息 (每日 5% 默认)
     for (const [, entityDeposits] of this.deposits) {
       for (const deposit of entityDeposits) {
-        const dailyInterest = deposit.amount * (deposit.interestRate / 365);
+        const dailyInterest = deposit.amount * deposit.interestRate;
         deposit.accumulatedInterest += dailyInterest;
       }
     }

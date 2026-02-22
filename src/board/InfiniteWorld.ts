@@ -76,6 +76,12 @@ export interface WorldBuilding {
   usageCount: number;
   referralCredits: number;
   listingPrice?: number;   // 挂牌出售价格 (undefined = 不出售)
+  // 银行类建筑自定义利率
+  customDepositRate?: number;  // 自定义存款日利率 (如 0.05 = 5%)
+  customLoanRate?: number;     // 自定义贷款日利率 (如 0.08 = 8%)
+  loanPool?: number;           // 该银行的可贷资金池
+  totalDeposits?: number;      // 总存款额
+  totalLoansOut?: number;      // 总贷出额
 }
 
 // ============ 玩家状态 ============
@@ -636,17 +642,19 @@ export class InfiniteWorld {
 
     // 特殊建筑类型处理
     const bType = template.type;
-    if (bType === 'food_stand' || bType === 'water_station') {
+    if (bType === 'food_stand') {
       // 小食摊: 饥饿 +30~50 随机
       const hungerBoost = Math.floor((30 + Math.random() * 20) * effectMult);
       effects.hunger = hungerBoost;
       state.hunger = Math.min(100, state.hunger + hungerBoost);
-      // water_station 也补少量体力
-      if (bType === 'water_station') {
-        const energyBoost = Math.floor(5 * effectMult);
-        effects.energy = energyBoost;
-        state.energy = Math.min(100, state.energy + energyBoost);
-      }
+    } else if (bType === 'water_station') {
+      // 水站: 饥饿 +5~15 随机 (仅饮水), 体力 +5
+      const hungerBoost = Math.floor((5 + Math.random() * 10) * effectMult);
+      effects.hunger = hungerBoost;
+      state.hunger = Math.min(100, state.hunger + hungerBoost);
+      const energyBoost = Math.floor(5 * effectMult);
+      effects.energy = energyBoost;
+      state.energy = Math.min(100, state.energy + energyBoost);
     } else if (bType === 'restaurant') {
       // 高级餐厅: 饥饿 +50~100 随机
       const hungerBoost = Math.floor((50 + Math.random() * 50) * effectMult);
@@ -711,6 +719,107 @@ export class InfiniteWorld {
     if (node.building.ownerId !== entityId) return false;
     node.building.listingPrice = price !== null && price > 0 ? price : undefined;
     return true;
+  }
+
+  /** 银行类建筑: 设置自定义利率 */
+  setBankRates(entityId: string, nodeId: number, depositRate: number, loanRate: number): boolean {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return false;
+    if (node.building.ownerId !== entityId) return false;
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    if (!template?.isBank) return false;
+    // 利率限制: 存款 0~10%, 贷款 1~20%
+    node.building.customDepositRate = Math.max(0, Math.min(0.10, depositRate));
+    node.building.customLoanRate = Math.max(0.01, Math.min(0.20, loanRate));
+    return true;
+  }
+
+  /** 银行类建筑: 业主注入资金到贷款资金池 */
+  depositToLoanPool(entityId: string, nodeId: number, amount: number): number {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return 0;
+    if (node.building.ownerId !== entityId) return 0;
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    if (!template?.isBank) return 0;
+    if (amount <= 0) return 0;
+    node.building.loanPool = (node.building.loanPool ?? 0) + amount;
+    return node.building.loanPool;
+  }
+
+  /** 银行类建筑: 用户存款 */
+  bankDeposit(entityId: string, nodeId: number, amount: number): { depositRate: number; amount: number } | null {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return null;
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    if (!template?.isBank) return null;
+    if (amount <= 0) return null;
+    const rate = node.building.customDepositRate ?? 0.05;
+    node.building.totalDeposits = (node.building.totalDeposits ?? 0) + amount;
+    return { depositRate: rate, amount };
+  }
+
+  /** 银行类建筑: 用户贷款 */
+  bankLoan(entityId: string, nodeId: number, amount: number, isPaidUser: boolean): {
+    loanRate: number; amount: number; remaining: number;
+  } | null {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return null;
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    if (!template?.isBank) return null;
+    if (amount <= 0) return null;
+    const pool = node.building.loanPool ?? 0;
+    if (pool < amount) return null;  // 资金池不足
+    // 贷款额度: 储蓄所 2000 / 银行 10000, 付费用户 x3
+    const baseLimit = template.type === 'savings' ? 2000 : 10000;
+    const limit = isPaidUser ? baseLimit * 3 : baseLimit;
+    const currentLoans = node.building.totalLoansOut ?? 0;
+    if (currentLoans + amount > limit) return null;
+    const rate = node.building.customLoanRate ?? 0.08;
+    node.building.loanPool = pool - amount;
+    node.building.totalLoansOut = currentLoans + amount;
+    return { loanRate: rate, amount, remaining: node.building.loanPool };
+  }
+
+  /** 银行类建筑: 还款 */
+  bankRepay(nodeId: number, amount: number): boolean {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return false;
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    if (!template?.isBank) return false;
+    node.building.loanPool = (node.building.loanPool ?? 0) + amount;
+    node.building.totalLoansOut = Math.max(0, (node.building.totalLoansOut ?? 0) - amount);
+    return true;
+  }
+
+  /** 获取银行建筑列表 (所有银行类建筑) */
+  getBankBuildings(): Array<{ nodeId: number; building: WorldBuilding; template: BuildingTemplate }> {
+    const result: Array<{ nodeId: number; building: WorldBuilding; template: BuildingTemplate }> = [];
+    for (const node of this.nodes.values()) {
+      if (!node.building) continue;
+      const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+      if (template?.isBank) {
+        result.push({ nodeId: node.id, building: node.building, template });
+      }
+    }
+    return result;
+  }
+
+  /** 每日结算银行利息 (由 TICK 事件驱动) */
+  settleBankInterest(): void {
+    // 由外部 Bank.ts 的 settleInterest 来处理具体的贷款/存款利息
+    // 这里只更新建筑层面的资金池回收利息
+    for (const node of this.nodes.values()) {
+      if (!node.building) continue;
+      const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+      if (!template?.isBank) continue;
+      const loanRate = node.building.customLoanRate ?? 0.08;
+      const loansOut = node.building.totalLoansOut ?? 0;
+      if (loansOut > 0) {
+        // 贷款产生的利息归入资金池 (作为银行业主收益)
+        const interest = Math.floor(loansOut * loanRate);
+        node.building.loanPool = (node.building.loanPool ?? 0) + interest;
+      }
+    }
   }
 
   /** 引荐新人 → 推荐人名下所有建筑获得引荐积分 */

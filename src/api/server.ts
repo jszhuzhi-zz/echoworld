@@ -577,6 +577,121 @@ export function createServer(world: World, port = 3000): express.Application {
     res.json(deposit);
   });
 
+  /** 投资者操作: 取款 */
+  app.post('/api/game/withdraw', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: '角色不存在' });
+    const total = world.bank.withdraw(entity, req.body.depositId);
+    if (total === 0) return res.status(400).json({ error: '取款失败' });
+    res.json({ amount: total, entity: entity.getSummary() });
+  });
+
+  /** 投资者操作: 还贷 */
+  app.post('/api/game/repay', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: '未绑定游戏角色' });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: '角色不存在' });
+    const ok = world.bank.repayLoan(entity, req.body.loanId, req.body.amount);
+    if (!ok) return res.status(400).json({ error: '还款失败' });
+    res.json({ message: '还款成功', entity: entity.getSummary() });
+  });
+
+  /** 获取所有银行类建筑 */
+  app.get('/api/world/banks', (_req, res) => {
+    const banks = infiniteWorld.getBankBuildings();
+    res.json(banks.map(b => ({
+      nodeId: b.nodeId,
+      name: b.building.name,
+      type: b.building.templateType,
+      owner: b.building.ownerName,
+      level: b.building.level,
+      depositRate: b.building.customDepositRate ?? 0.05,
+      loanRate: b.building.customLoanRate ?? 0.08,
+      loanPool: b.building.loanPool ?? 0,
+      totalDeposits: b.building.totalDeposits ?? 0,
+      totalLoansOut: b.building.totalLoansOut ?? 0,
+    })));
+  });
+
+  /** 银行业主: 设置利率 */
+  app.post('/api/world/bank/set-rates', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const { nodeId, depositRate, loanRate } = req.body;
+    const ok = infiniteWorld.setBankRates(user.entityId, nodeId, depositRate, loanRate);
+    if (!ok) return res.status(400).json({ error: lang === 'zh' ? '无法设置利率' : 'Cannot set rates' });
+    res.json({ message: lang === 'zh' ? '利率设置成功' : 'Rates updated' });
+  });
+
+  /** 银行业主: 注入资金池 */
+  app.post('/api/world/bank/fund-pool', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+    const { nodeId, amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: lang === 'zh' ? '金额无效' : 'Invalid amount' });
+    if (!entity.pay(amount)) return res.status(400).json({ error: st(lang, 'no_fund', amount) });
+    const pool = infiniteWorld.depositToLoanPool(user.entityId, nodeId, amount);
+    if (pool === 0) { entity.receive(amount); return res.status(400).json({ error: lang === 'zh' ? '操作失败' : 'Failed' }); }
+    res.json({ message: lang === 'zh' ? `已注入 ${amount} CC 到资金池` : `Funded ${amount} CC to loan pool`, pool, entity: entity.getSummary() });
+  });
+
+  /** 用户在银行建筑存款 */
+  app.post('/api/world/bank/deposit', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+    const { nodeId, amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: lang === 'zh' ? '金额无效' : 'Invalid amount' });
+    if (!entity.pay(amount)) return res.status(400).json({ error: st(lang, 'no_fund', amount) });
+    const result = infiniteWorld.bankDeposit(user.entityId, nodeId, amount);
+    if (!result) { entity.receive(amount); return res.status(400).json({ error: lang === 'zh' ? '存款失败' : 'Deposit failed' }); }
+    // 同时记录到 Bank 系统
+    world.bank.makeDeposit(entity, 0); // 已扣款，记录即可
+    res.json({
+      message: lang === 'zh' ? `存入 ${amount} CC，日利率 ${(result.depositRate * 100).toFixed(1)}%` : `Deposited ${amount} CC at ${(result.depositRate * 100).toFixed(1)}% daily`,
+      depositRate: result.depositRate,
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 用户在银行建筑贷款 */
+  app.post('/api/world/bank/loan', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+    const { nodeId, amount } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ error: lang === 'zh' ? '金额无效' : 'Invalid amount' });
+    const isPaidUser = user.hasRecharged ?? false;
+    const result = infiniteWorld.bankLoan(user.entityId, nodeId, amount, isPaidUser);
+    if (!result) return res.status(400).json({
+      error: lang === 'zh' ? '贷款失败（额度不足或资金池不够）' : 'Loan denied (limit exceeded or insufficient pool)',
+    });
+    entity.receive(amount);
+    // 记录到 Bank 系统
+    world.bank.requestLoan(entity, 0); // 已发放，记录即可
+    const riskWarn = lang === 'zh'
+      ? `⚠️ 金融风险提示: 日利率 ${(result.loanRate * 100).toFixed(1)}%，请及时还款避免债务增长`
+      : `⚠️ Risk: ${(result.loanRate * 100).toFixed(1)}% daily rate. Repay timely to avoid debt growth`;
+    res.json({
+      message: lang === 'zh' ? `贷款 ${amount} CC，日利率 ${(result.loanRate * 100).toFixed(1)}%` : `Loan ${amount} CC at ${(result.loanRate * 100).toFixed(1)}% daily`,
+      riskWarning: riskWarn,
+      loanRate: result.loanRate,
+      remainingPool: result.remaining,
+      entity: entity.getSummary(),
+    });
+  });
+
   /** 投资者: 获取自己的状态 */
   app.get('/api/game/me', authMiddleware, requireRole('investor'), (req, res) => {
     const user = userStore.findById(req.user!.userId);

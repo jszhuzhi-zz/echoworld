@@ -97,6 +97,23 @@
     .btn-dice:disabled{opacity:.35;cursor:not-allowed;transform:none;
       box-shadow:0 2px 10px rgba(59,130,246,0.15),inset 0 0 0 3px rgba(255,255,255,0.06)}
     .btn-dice .dice-num{font-size:52px;font-weight:900;text-shadow:0 2px 8px rgba(0,0,0,0.3)}
+    .btn-dice.dice-rolling{animation:diceRoll 0.6s ease-out}
+    .btn-dice.dice-rolling .dice-icon{animation:diceSpin 0.6s ease-out}
+    @keyframes diceRoll{
+      0%{transform:scale(1)}
+      15%{transform:scale(0.85) rotate(-8deg)}
+      30%{transform:scale(1.15) rotate(5deg)}
+      50%{transform:scale(0.95) rotate(-3deg)}
+      70%{transform:scale(1.05)}
+      100%{transform:scale(1)}
+    }
+    @keyframes diceSpin{
+      0%{transform:rotate(0deg)}
+      25%{transform:rotate(90deg)}
+      50%{transform:rotate(180deg)}
+      75%{transform:rotate(270deg)}
+      100%{transform:rotate(360deg)}
+    }
     .btn-dice .dice-icon{font-size:48px;line-height:1}
     .dir-btn{padding:8px 14px;border-radius:12px;border:none;
       background:rgba(16,185,129,0.2);backdrop-filter:blur(8px);
@@ -120,6 +137,24 @@
       animation:idleFadeIn 0.3s ease-out}
     #idle-reminder.show{display:block}
     @keyframes idleFadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+    @keyframes toastIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+    @keyframes toastOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(0.85)}}
+    /* Bank modal */
+    #bank-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center}
+    #bank-modal.show{display:flex}
+    .bank-content{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;
+      width:min(400px, calc(100vw - 32px));max-height:80vh;overflow-y:auto}
+    .bank-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px}
+    .bank-card-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+    .bank-stat{font-size:10px;color:var(--text2);display:flex;justify-content:space-between;padding:2px 0}
+    .bank-rate{font-weight:700;color:var(--yellow)}
+    .bank-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .bank-btn{padding:5px 12px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s}
+    .bank-btn:hover{transform:translateY(-1px)}
+    .bank-btn-deposit{background:rgba(16,185,129,0.2);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
+    .bank-btn-loan{background:rgba(251,146,60,0.2);color:#fdba74;border:1px solid rgba(251,146,60,0.3)}
+    .bank-btn-repay{background:rgba(59,130,246,0.2);color:var(--accent);border:1px solid rgba(59,130,246,0.3)}
+    .bank-risk{font-size:9px;color:var(--red);background:rgba(239,68,68,0.1);padding:4px 8px;border-radius:6px;margin-top:6px;line-height:1.5}
     .ctx-placeholder{width:42px;height:38px;display:inline-block}
     .ctx-btn{min-width:40px;height:40px;padding:0 8px;display:none;align-items:center;justify-content:center;gap:2px;border-radius:12px;backdrop-filter:blur(8px)}
     .ctx-btn:hover{transform:translateY(-2px) scale(1.05)}
@@ -350,6 +385,7 @@
     <button class="dir-btn ctx-btn" id="btn-build" style="display:none;background:rgba(168,85,247,0.2);box-shadow:inset 0 0 0 1.5px rgba(168,85,247,0.4)" onclick="openBuildModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V10l7-5 7 5v10"/><path d="M9 20v-4h6v4"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-sell" style="display:none;background:rgba(16,185,129,0.2);box-shadow:inset 0 0 0 1.5px rgba(16,185,129,0.4)" onclick="openTradeListModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="#6ee7b7"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-trade" style="display:none;background:rgba(56,189,248,0.2);box-shadow:inset 0 0 0 1.5px rgba(56,189,248,0.4)" onclick="openTradeOfferModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></button>
+    <button class="dir-btn ctx-btn" id="btn-bank" style="display:none;background:rgba(251,191,36,0.15);box-shadow:inset 0 0 0 1.5px rgba(251,191,36,0.35)" onclick="openBankModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M12 3l9 7H3z"/><path d="M5 10v11"/><path d="M19 10v11"/><path d="M9 10v11"/><path d="M15 10v11"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-demolish" style="display:none;background:rgba(239,68,68,0.15);box-shadow:inset 0 0 0 1.5px rgba(239,68,68,0.35)" onclick="demolishBuilding()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
     <button class="dir-btn ctx-btn" id="btn-extra-action" style="display:none;background:rgba(239,68,68,0.15);box-shadow:inset 0 0 0 1.5px rgba(239,68,68,0.35)" onclick="buyExtraAction()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
   </div>
@@ -492,12 +528,19 @@
   <div class="modal-content">
     <button class="btn-close-modal" onclick="closeBuildModal()">&times;</button>
     <div class="modal-title" data-i18n="choose_build">选择建筑类型</div>
-    <div id="build-list"></div>
-    <div style="margin-top:10px">
-      <label style="font-size:11px;color:var(--text2)" data-i18n="custom_name">自定义名称 (可选)</label>
-      <input id="build-custom-name" type="text" data-i18n="custom_hint" placeholder="留空使用默认名" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;margin-top:4px">
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:6px;background:var(--bg3);border-radius:8px;padding:6px 10px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      <input id="build-custom-name" type="text" placeholder="输入自定义名称（可选）" style="flex:1;padding:4px 0;border:none;background:transparent;color:var(--text);font-size:12px;outline:none">
     </div>
+    <div id="build-list"></div>
   </div>
+</div>
+
+<!-- Build Toast (floating error/success message) -->
+<div id="build-toast" style="display:none;position:fixed;z-index:200;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(15,23,42,0.92);border:1px solid var(--border);border-radius:12px;padding:12px 20px;
+  text-align:center;backdrop-filter:blur(12px);box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  font-size:13px;font-weight:600;max-width:280px;animation:toastIn 0.25s ease-out">
 </div>
 
 <!-- Wealth Page Modal -->
@@ -579,9 +622,23 @@
   </div>
 </div>
 
+<!-- Bank Modal -->
+<div id="bank-modal">
+  <div class="bank-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="modal-title" style="margin:0" id="bank-modal-title">🏦 银行服务</div>
+      <button class="btn-close-modal" onclick="closeBankModal()">&times;</button>
+    </div>
+    <div class="bank-risk" id="bank-risk-warning">
+      ⚠️ 金融风险提示：贷款按日计息，利率由各银行自行设定。请量力借贷，及时还款，避免债务滚雪球。
+    </div>
+    <div id="bank-list" style="margin-top:8px"></div>
+  </div>
+</div>
+
 <!-- Idle reminder popup -->
 <div id="idle-reminder">
-  <div style="font-size:28px;margin-bottom:8px">🎮</div>
+  <div style="margin-bottom:8px"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
   <div id="idle-msg" style="font-size:14px;font-weight:700;margin-bottom:6px"></div>
   <div id="idle-hint" style="font-size:11px;color:var(--text2);margin-bottom:14px"></div>
   <button onclick="dismissIdleReminder()" style="padding:8px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer">OK</button>
@@ -1558,18 +1615,27 @@ window.resolveConsumePrompt = function(doConsume) {
 };
 
 /** 显示路过消费提示，3秒后自动跳过，返回 Promise<boolean> */
+function getBuildingEffectDesc(tpl, b) {
+  const eMult = 1 + (b.level - 1) * 0.2;
+  const bType = tpl?.type;
+  if (bType === 'food_stand') return `🍔+30~${Math.floor(50 * eMult)}`;
+  if (bType === 'water_station') return `🍔+5~${Math.floor(15 * eMult)} ⚡+${Math.floor(5 * eMult)}`;
+  if (bType === 'restaurant') return `🍔+50~${Math.floor(100 * eMult)} 😊+${Math.floor(15 * eMult)}`;
+  if (bType === 'hotel') return `⚡→100 😊+${Math.floor(20 * eMult)}`;
+  if (bType === 'shelter') return '⚡→100';
+  if (tpl?.isBank) return currentLang === 'zh' ? '💰 金融服务' : '💰 Banking';
+  const effectNames = { hunger: '🍔', energy: '⚡', happiness: '😊' };
+  return Object.entries(tpl?.effects || {}).map(([k,v]) => `${effectNames[k]||k}+${Math.floor(v * eMult)}`).join(' ');
+}
+
 function showConsumePrompt(pb) {
   return new Promise(resolve => {
     _consumeResolve = resolve;
     const tpl = pb.template;
     const b = pb.building;
-    const effectNames = { hunger: '🍔', energy: '⚡', happiness: '😊' };
     document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} Lv.${b.level}`;
     document.getElementById('cp-owner').textContent = `${b.ownerName}${t('facility')}`;
-    document.getElementById('cp-effects').innerHTML = Object.entries(tpl?.effects || {}).map(([k,v]) => {
-      const eMult = 1 + (b.level - 1) * 0.2;
-      return `<span style="margin:0 4px">${effectNames[k]||k} +${Math.floor(v * eMult)}</span>`;
-    }).join('');
+    document.getElementById('cp-effects').innerHTML = `<span style="font-size:13px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
     document.getElementById('cp-fee').textContent = pb.fee;
     document.getElementById('consume-prompt').style.display = 'block';
 
@@ -1808,12 +1874,7 @@ function showBuildingOverlay(node) {
   document.getElementById('bo-title').textContent = `${tpl.icon} ${bldgName(tpl)} (Lv.${b.level}) - ${b.ownerName}`;
   const listingStr = b.listingPrice ? ` | ${currentLang === 'zh' ? '售价' : 'Price'}: ${b.listingPrice} CC` : '';
   document.getElementById('bo-desc').textContent = `${bldgDesc(tpl)} | ${t('use_fee')}: ${fee} CC${listingStr}`;
-  const effectsHtml = Object.entries(tpl.effects).map(([k, v]) => {
-    const eMult = 1 + (b.level - 1) * 0.2;
-    const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
-    return `<span class="eff">${names[k] || k} +${Math.floor(v * eMult)}</span>`;
-  }).join('');
-  document.getElementById('bo-effects').innerHTML = effectsHtml;
+  document.getElementById('bo-effects').innerHTML = `<span class="eff">${getBuildingEffectDesc(tpl, b)}</span>`;
   // Show buy button for other players' buildings
   document.getElementById('bo-buy-btn').style.display = 'inline-block';
   document.getElementById('building-overlay').classList.add('show');
@@ -1853,24 +1914,31 @@ async function fetchMe() {
     }
 
     // Current tile context actions
-    const ctxBtns = ['btn-consume','btn-build','btn-sell','btn-trade','btn-demolish'];
+    const ctxBtns = ['btn-consume','btn-build','btn-sell','btn-trade','btn-demolish','btn-bank'];
     ctxBtns.forEach(id => document.getElementById(id).style.display = 'none');
     let hasCtx = false;
     const curNode = meData.node;
     if (curNode?.building) {
+      const tpl = buildingCatalog.find(t => t.type === curNode.building.templateType);
+      const isBank = tpl?.isBank ?? false;
       if (curNode.building.ownerId === currentUser.entityId) {
         // Own building → sell + demolish
         document.getElementById('btn-sell').style.display = 'inline-flex';
         document.getElementById('btn-demolish').style.display = 'inline-flex';
+        if (isBank) document.getElementById('btn-bank').style.display = 'inline-flex';
         hasCtx = true;
       } else {
         // Other's building → consume + trade
         showBuildingOverlay(curNode);
-        const tpl = buildingCatalog.find(t => t.type === curNode.building.templateType);
         const lvMult = 1 + (curNode.building.level - 1) * 0.3;
         const fee = Math.floor((tpl?.baseFee || 0) * lvMult);
-        document.getElementById('btn-consume').style.display = 'inline-flex';
-        document.getElementById('btn-consume').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg><span style="font-size:10px;margin-left:2px">${fee}</span>`;
+        if (isBank) {
+          // Bank building → show bank button instead of consume
+          document.getElementById('btn-bank').style.display = 'inline-flex';
+        } else {
+          document.getElementById('btn-consume').style.display = 'inline-flex';
+          document.getElementById('btn-consume').innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M6 12h12"/></svg><span style="font-size:10px;margin-left:2px">${fee}</span>`;
+        }
         document.getElementById('btn-trade').style.display = 'inline-flex';
         hasCtx = true;
       }
@@ -1931,11 +1999,13 @@ function showDirButtons(directions) {
     const cwDir = directions.find(d => d.label.includes('顺')) || directions[0];
     const ccwDir = directions.find(d => d.label.includes('逆')) || directions[1];
     btnLeft.style.display = 'inline-flex';
-    btnLeft.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.22-8.56"/><polyline points="21 3 21 8.5 15.5 8.5"/></svg>';
+    // CW: clockwise arrow (blue) - arc curving right with arrowhead
+    btnLeft.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.5 8A10 10 0 1 0 18.36 18.36"/></svg>';
     btnLeft.className = 'dir-btn dir-cw dir-pulse';
     btnLeft.onclick = () => { clearIdleTimer(); chooseDirection(cwDir.nodeId); };
     btnRight.style.display = 'inline-flex';
-    btnRight.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 116.22-8.56"/><polyline points="3 3 3 8.5 8.5 8.5"/></svg>';
+    // CCW: counter-clockwise arrow (orange) - arc curving left with arrowhead
+    btnRight.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2v6h6"/><path d="M2.5 8A10 10 0 1 1 5.64 18.36"/></svg>';
     btnRight.className = 'dir-btn dir-ccw dir-pulse';
     btnRight.onclick = () => { clearIdleTimer(); chooseDirection(ccwDir.nodeId); };
   }
@@ -1954,22 +2024,39 @@ function hideDirButtons() {
 
 window.rollDice = async function() {
   if (isAnimating) return;
+  const btn = document.getElementById('btn-roll');
+  // Start rolling animation immediately
+  btn.classList.add('dice-rolling');
+  btn.disabled = true;
+  // Show random numbers cycling during API call
+  const diceChars = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  let animFrame = 0;
+  const rollAnim = setInterval(() => {
+    btn.innerHTML = `<span class="dice-icon">${diceChars[animFrame % 6]}</span>`;
+    animFrame++;
+  }, 80);
   try {
     const res = await fetch(API + '/api/world/roll', { method: 'POST', headers: authHeaders() });
-    if (!res.ok) { const err = await res.json(); addLog(err.error, 'warn'); return; }
+    clearInterval(rollAnim);
+    if (!res.ok) {
+      const err = await res.json(); addLog(err.error, 'warn');
+      btn.innerHTML = '<span class="dice-icon">🎲</span>';
+      btn.disabled = false; btn.classList.remove('dice-rolling');
+      return;
+    }
     const data = await res.json();
 
     addLog(`${t('rolled')} ${data.roll}`, 'good');
 
     // Show dice number on button and in top bar
-    const btn = document.getElementById('btn-roll');
     btn.innerHTML = `<span class="dice-num">${data.roll}</span>`;
-    btn.disabled = true;
+    setTimeout(() => btn.classList.remove('dice-rolling'), 600);
     document.getElementById('dice-info').textContent = `🎲 ${data.roll} ${t('steps')}`;
 
-    // Hide build/consume during movement
+    // Hide build/consume/bank during movement
     document.getElementById('btn-build').style.display = 'none';
     document.getElementById('btn-consume').style.display = 'none';
+    document.getElementById('btn-bank').style.display = 'none';
     closeBuildingOverlay();
 
     // Auto-move if only 1 direction (no real choice), otherwise show buttons
@@ -2241,6 +2328,9 @@ async function confirmDemolish() {
 window.openBuildModal = function() {
   const modal = document.getElementById('build-modal');
   const list = document.getElementById('build-list');
+  const nameInput = document.getElementById('build-custom-name');
+  nameInput.value = '';
+  nameInput.placeholder = currentLang === 'zh' ? '输入自定义名称（可选）' : 'Custom name (optional)';
   const groups = {};
   const levelNames = { 1: t('ml1'), 2: t('ml2'), 3: t('ml3'), 4: t('ml4'), 5: t('ml5') };
   const levelColors = { 1: '#4ade80', 2: '#60a5fa', 3: '#fbbf24', 4: '#f97316', 5: '#a855f7' };
@@ -2258,21 +2348,23 @@ window.openBuildModal = function() {
     for (const b of items) {
       const opt = document.createElement('div');
       opt.className = 'build-option';
-      // 构造消费效果描述
       const statIcons = { hunger: '🍔', energy: '⚡', happiness: '😊' };
       let effectStr = '';
-      if (b.type === 'food_stand' || b.type === 'water_station') {
+      if (b.type === 'food_stand') {
         effectStr = '🍔+30~50';
-        if (b.type === 'water_station') effectStr += ' ⚡+5';
+      } else if (b.type === 'water_station') {
+        effectStr = '🍔+5~15 ⚡+5';
       } else if (b.type === 'restaurant') {
         effectStr = '🍔+50~100 😊+15';
       } else if (b.type === 'hotel' || b.type === 'shelter') {
         effectStr = '⚡→100';
         if (b.type === 'hotel') effectStr += ' 😊+20';
+      } else if (b.isBank) {
+        effectStr = currentLang === 'zh' ? '💰存款/贷款' : '💰Deposit/Loan';
       } else {
         effectStr = Object.entries(b.effects).map(([k,v]) => `${statIcons[k]||k}+${v}`).join(' ');
       }
-      const feeStr = b.baseFee > 0 ? `${b.baseFee} CC` : '-';
+      const feeStr = b.baseFee > 0 ? `${b.baseFee} CC` : (b.isBank ? (currentLang === 'zh' ? '金融服务' : 'Finance') : '-');
       opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${bldgName(b)}</div><div class="desc">${bldgDesc(b)}</div><div style="font-size:9px;margin-top:2px;display:flex;gap:8px;flex-wrap:wrap"><span style="color:var(--yellow)">💰${currentLang==='zh'?'消费':'Fee'}: ${feeStr}</span><span style="color:var(--green)">${effectStr}</span></div></div><span class="bo-cost" style="text-align:right"><div>${b.cost} CC</div><div style="font-size:8px;color:var(--text2)">${currentLang==='zh'?'投资':'Invest'}</div></span>`;
       opt.onclick = () => doBuild(b.type);
       group.appendChild(opt);
@@ -2286,13 +2378,28 @@ window.closeBuildModal = function() {
   document.getElementById('build-modal').classList.remove('show');
 };
 
+let _toastTimer = null;
+function showBuildToast(msg, type = 'warn') {
+  const el = document.getElementById('build-toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.color = type === 'warn' ? 'var(--red)' : type === 'good' ? 'var(--green)' : 'var(--text)';
+  el.style.borderColor = type === 'warn' ? 'var(--red)' : type === 'good' ? 'var(--green)' : 'var(--border)';
+  el.style.animation = 'toastIn 0.25s ease-out';
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    el.style.animation = 'toastOut 0.2s ease-in forwards';
+    setTimeout(() => { el.style.display = 'none'; }, 200);
+  }, 2500);
+}
+
 async function doBuild(templateType) {
   try {
-    // Build on current node only
     const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
     const meData = await meRes.json();
     const curNode = meData.node;
     if (!curNode || curNode.building || !['road', 'intersection'].includes(curNode.type)) {
+      showBuildToast(t('no_lots'), 'warn');
       addLog(t('no_lots'), 'warn'); return;
     }
     const nodeId = curNode.id;
@@ -2302,9 +2409,10 @@ async function doBuild(templateType) {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ nodeId, templateType, customName }),
     });
-    if (!res.ok) { const err = await res.json(); addLog(err.error || t('build_fail'), 'warn'); return; }
+    if (!res.ok) { const err = await res.json(); const errMsg = err.error || t('build_fail'); showBuildToast(errMsg, 'warn'); addLog(errMsg, 'warn'); return; }
     const data = await res.json();
 
+    showBuildToast(data.message, 'good');
     addLog(data.message, 'good');
     updateMoney(data.entity);
     closeBuildModal();
@@ -2312,8 +2420,149 @@ async function doBuild(templateType) {
     await fetchMe();
 
   } catch (e) {
+    showBuildToast(t('build_fail'), 'warn');
     addLog(t('build_fail'), 'danger');
   }
+}
+
+/** 打开银行服务弹窗 */
+window.openBankModal = async function() {
+  const modal = document.getElementById('bank-modal');
+  const list = document.getElementById('bank-list');
+  const zh = currentLang === 'zh';
+  document.getElementById('bank-modal-title').textContent = zh ? '🏦 银行服务' : '🏦 Banking';
+  document.getElementById('bank-risk-warning').textContent = zh
+    ? '⚠️ 金融风险提示：贷款按日计息，利率由各银行自行设定。请量力借贷，及时还款，避免债务滚雪球。'
+    : '⚠️ Financial Risk: Loans accrue daily interest. Rates set by each bank. Borrow responsibly.';
+  list.innerHTML = '<div style="text-align:center;padding:10px;color:var(--text2);font-size:11px">' + (zh ? '加载中...' : 'Loading...') + '</div>';
+  modal.classList.add('show');
+  try {
+    const res = await fetch(API + '/api/world/banks', { headers: authHeaders() });
+    const banks = await res.json();
+    if (!banks.length) {
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px">' + (zh ? '目前世界上没有银行建筑' : 'No banks exist yet') + '</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const b of banks) {
+      const card = document.createElement('div');
+      card.className = 'bank-card';
+      const isMine = myEntity && b.owner === myEntity.name;
+      const typeIcon = b.type === 'savings' ? '🏧' : '🏦';
+      const typeName = b.type === 'savings' ? (zh ? '储蓄所' : 'Savings') : (zh ? '银行' : 'Bank');
+      const limitBase = b.type === 'savings' ? 2000 : 10000;
+      const isPaid = currentUser?.hasRecharged ?? false;
+      const myLimit = isPaid ? limitBase * 3 : limitBase;
+      card.innerHTML = `
+        <div class="bank-card-title">${typeIcon} ${b.name} <span style="font-size:9px;color:var(--text2)">(${typeName} Lv.${b.level})</span></div>
+        <div class="bank-stat"><span>${zh ? '业主' : 'Owner'}</span><span>${b.owner}${isMine ? (zh ? ' (我)' : ' (Me)') : ''}</span></div>
+        <div class="bank-stat"><span>${zh ? '存款日利率' : 'Deposit Rate'}</span><span class="bank-rate" style="color:var(--green)">${(b.depositRate * 100).toFixed(1)}%</span></div>
+        <div class="bank-stat"><span>${zh ? '贷款日利率' : 'Loan Rate'}</span><span class="bank-rate" style="color:var(--red)">${(b.loanRate * 100).toFixed(1)}%</span></div>
+        <div class="bank-stat"><span>${zh ? '可贷资金' : 'Loan Pool'}</span><span>${b.loanPool.toFixed(0)} CC</span></div>
+        <div class="bank-stat"><span>${zh ? '贷款额度' : 'Loan Limit'}</span><span>${myLimit} CC ${isPaid ? '(VIP)' : ''}</span></div>
+        <div class="bank-actions">
+          <button class="bank-btn bank-btn-deposit" onclick="doBankDeposit(${b.nodeId})">${zh ? '存款' : 'Deposit'}</button>
+          <button class="bank-btn bank-btn-loan" onclick="doBankLoan(${b.nodeId})">${zh ? '贷款' : 'Loan'}</button>
+          <button class="bank-btn bank-btn-repay" onclick="doBankRepay(${b.nodeId})">${zh ? '还款' : 'Repay'}</button>
+          ${isMine ? `<button class="bank-btn" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3)" onclick="setBankRates(${b.nodeId})">${zh ? '设置利率' : 'Set Rates'}</button>
+          <button class="bank-btn" style="background:rgba(251,191,36,0.15);color:var(--yellow);border:1px solid rgba(251,191,36,0.3)" onclick="fundBankPool(${b.nodeId})">${zh ? '注入资金' : 'Fund Pool'}</button>` : ''}
+        </div>
+      `;
+      list.appendChild(card);
+    }
+  } catch (e) {
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--red);font-size:12px">' + (zh ? '加载失败' : 'Load failed') + '</div>';
+  }
+};
+window.closeBankModal = function() {
+  document.getElementById('bank-modal').classList.remove('show');
+};
+
+async function doBankDeposit(nodeId) {
+  const zh = currentLang === 'zh';
+  const amount = parseFloat(prompt(zh ? '输入存款金额 (CC):' : 'Enter deposit amount (CC):'));
+  if (!amount || amount <= 0) return;
+  try {
+    const res = await fetch(API + '/api/world/bank/deposit', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ nodeId, amount }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
+    showBuildToast(data.message, 'good');
+    addLog(data.message, 'good');
+    if (data.entity) updateMoney(data.entity);
+    openBankModal(); // refresh
+  } catch (e) { showBuildToast(zh ? '存款失败' : 'Deposit failed', 'warn'); }
+}
+
+async function doBankLoan(nodeId) {
+  const zh = currentLang === 'zh';
+  const amount = parseFloat(prompt(zh ? '输入贷款金额 (CC):\n⚠️ 贷款按日计息，请谨慎借贷' : 'Enter loan amount (CC):\n⚠️ Daily interest applies. Borrow carefully.'));
+  if (!amount || amount <= 0) return;
+  try {
+    const res = await fetch(API + '/api/world/bank/loan', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ nodeId, amount }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
+    showBuildToast(data.message, 'good');
+    addLog(data.message, 'good');
+    if (data.riskWarning) addLog(data.riskWarning, 'warn');
+    if (data.entity) updateMoney(data.entity);
+    openBankModal();
+  } catch (e) { showBuildToast(zh ? '贷款失败' : 'Loan failed', 'warn'); }
+}
+
+async function doBankRepay(nodeId) {
+  const zh = currentLang === 'zh';
+  const amount = parseFloat(prompt(zh ? '输入还款金额 (CC):' : 'Enter repay amount (CC):'));
+  if (!amount || amount <= 0) return;
+  try {
+    const res = await fetch(API + '/api/game/repay', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ loanId: 'latest', amount }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
+    showBuildToast(data.message, 'good');
+    addLog(data.message, 'good');
+    if (data.entity) updateMoney(data.entity);
+    openBankModal();
+  } catch (e) { showBuildToast(zh ? '还款失败' : 'Repay failed', 'warn'); }
+}
+
+async function setBankRates(nodeId) {
+  const zh = currentLang === 'zh';
+  const dRate = parseFloat(prompt(zh ? '设置存款日利率 (%, 范围0~10):' : 'Set deposit daily rate (%, 0-10):'));
+  if (isNaN(dRate)) return;
+  const lRate = parseFloat(prompt(zh ? '设置贷款日利率 (%, 范围1~20):' : 'Set loan daily rate (%, 1-20):'));
+  if (isNaN(lRate)) return;
+  try {
+    const res = await fetch(API + '/api/world/bank/set-rates', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId, depositRate: dRate / 100, loanRate: lRate / 100 }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
+    showBuildToast(data.message, 'good');
+    openBankModal();
+  } catch (e) { showBuildToast(zh ? '设置失败' : 'Failed', 'warn'); }
+}
+
+async function fundBankPool(nodeId) {
+  const zh = currentLang === 'zh';
+  const amount = parseFloat(prompt(zh ? '输入注入资金池金额 (CC):' : 'Enter amount to fund pool (CC):'));
+  if (!amount || amount <= 0) return;
+  try {
+    const res = await fetch(API + '/api/world/bank/fund-pool', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ nodeId, amount }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showBuildToast(data.error, 'warn'); return; }
+    showBuildToast(data.message, 'good');
+    addLog(data.message, 'good');
+    if (data.entity) updateMoney(data.entity);
+    openBankModal();
+  } catch (e) { showBuildToast(zh ? '操作失败' : 'Failed', 'warn'); }
 }
 
 /** 确认死亡（不可复活） */
