@@ -1,6 +1,6 @@
 {
   "name": "echoworld",
-  "version": "0.1.0",
+  "version": "1.5.0",
   "description": "AI Agent Commerce World - A self-evolving simulation where AI agents and humans coexist in a commerce-driven world",
   "main": "dist/index.js",
   "scripts": {
