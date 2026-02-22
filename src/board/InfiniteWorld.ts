@@ -120,18 +120,39 @@ export interface MoveResult {
   passedBuildings: PassedBuilding[]; // 路过的可消费建筑
 }
 
+// ============ 资产交易 ============
+
+export interface TradeOffer {
+  id: string;
+  nodeId: number;
+  buildingName: string;
+  buyerId: string;
+  buyerName: string;
+  sellerId: string;
+  sellerName: string;
+  price: number;       // 买方出价 (含税)
+  tax: number;         // 交易税
+  netPrice: number;    // 卖方实收
+  createdAt: number;
+  status: 'pending' | 'accepted' | 'rejected' | 'expired';
+}
+
+const TRADE_TAX_RATE = 0.10; // 10% transaction tax
+
 // ============ 无限世界 ============
 
 const SPACING = 14;
-const INITIAL_BOUNDS = 100; // 初始世界范围 ±100
+const INITIAL_BOUNDS = 100;
 
 export class InfiniteWorld {
   nodes: Map<number, MapNode> = new Map();
   private coordIndex: Map<string, number> = new Map();
   players: Map<string, PlayerWorldState> = new Map();
+  tradeOffers: Map<string, TradeOffer> = new Map();
+  private tradeIdCounter = 0;
   private nextId = 0;
-  private generatedChunks: Set<string> = new Set(); // 已生成的区块
-  private worldBounds = INITIAL_BOUNDS; // 当前世界半径 (随玩家扩展)
+  private generatedChunks: Set<string> = new Set();
+  private worldBounds = INITIAL_BOUNDS;
 
   constructor() {
     // 预生成原点附近区域
@@ -680,5 +701,94 @@ export class InfiniteWorld {
     return this.getVisibleNodes(cx, cy, radius).filter(
       n => n.type === 'lot' && !n.building
     );
+  }
+
+  // ============ 资产交易 ============
+
+  /** 创建购买出价 */
+  createTradeOffer(buyerId: string, buyerName: string, nodeId: number, price: number): TradeOffer | null {
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return null;
+    if (node.building.ownerId === buyerId) return null; // 不能买自己的
+    if (price <= 0) return null;
+
+    // 检查是否已有pending offer for this node by this buyer
+    for (const offer of this.tradeOffers.values()) {
+      if (offer.nodeId === nodeId && offer.buyerId === buyerId && offer.status === 'pending') {
+        return null; // 已有待处理出价
+      }
+    }
+
+    const tax = Math.floor(price * TRADE_TAX_RATE);
+    const netPrice = price - tax;
+    const id = `trade_${++this.tradeIdCounter}_${Date.now()}`;
+
+    const offer: TradeOffer = {
+      id,
+      nodeId,
+      buildingName: node.building.name,
+      buyerId,
+      buyerName,
+      sellerId: node.building.ownerId,
+      sellerName: node.building.ownerName,
+      price,
+      tax,
+      netPrice,
+      createdAt: Date.now(),
+      status: 'pending',
+    };
+
+    this.tradeOffers.set(id, offer);
+    return offer;
+  }
+
+  /** 卖家接受出价 → 转移建筑所有权 */
+  acceptTradeOffer(offerId: string, sellerId: string): { offer: TradeOffer; building: WorldBuilding } | null {
+    const offer = this.tradeOffers.get(offerId);
+    if (!offer || offer.status !== 'pending') return null;
+    if (offer.sellerId !== sellerId) return null;
+
+    const node = this.nodes.get(offer.nodeId);
+    if (!node?.building || node.building.ownerId !== sellerId) return null;
+
+    // Transfer ownership
+    node.building.ownerId = offer.buyerId;
+    node.building.ownerName = offer.buyerName;
+    offer.status = 'accepted';
+
+    return { offer, building: node.building };
+  }
+
+  /** 拒绝出价 */
+  rejectTradeOffer(offerId: string, sellerId: string): boolean {
+    const offer = this.tradeOffers.get(offerId);
+    if (!offer || offer.status !== 'pending') return false;
+    if (offer.sellerId !== sellerId) return false;
+    offer.status = 'rejected';
+    return true;
+  }
+
+  /** 获取某用户收到的pending offers */
+  getPendingOffersForSeller(sellerId: string): TradeOffer[] {
+    return Array.from(this.tradeOffers.values()).filter(
+      o => o.sellerId === sellerId && o.status === 'pending'
+    );
+  }
+
+  /** 获取某用户发出的pending offers */
+  getPendingOffersFromBuyer(buyerId: string): TradeOffer[] {
+    return Array.from(this.tradeOffers.values()).filter(
+      o => o.buyerId === buyerId && o.status === 'pending'
+    );
+  }
+
+  /** 清理过期offers (>24h) */
+  cleanExpiredOffers(): void {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    for (const [id, offer] of this.tradeOffers) {
+      if (offer.createdAt < cutoff && offer.status === 'pending') {
+        offer.status = 'expired';
+      }
+    }
   }
 }

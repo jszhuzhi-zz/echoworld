@@ -28,6 +28,14 @@ const S_I18N: Record<string, Record<string, string>> = {
     not_dead: '角色尚未死亡', hunger_full: '饥饿值已满', no_nodeId: '缺少 nodeId',
     cant_consume: '无法消费该建筑', reset_ok: '所有玩家每日行动已重置',
     rech_range: '充值金额 1-100000 CC',
+    offer_sent: '出价 %s CC 购买 %s (含税 %s CC)，等待卖家确认',
+    offer_accepted: '交易完成！%s 已转让，支付 %s CC (税 %s CC)',
+    offer_rejected: '出价被拒绝', offer_invalid: '无效出价',
+    offer_no_fund: '资金不足', offer_exists: '已有待处理出价',
+    offer_not_found: '出价不存在', offer_not_yours: '无权操作此出价',
+    offer_received: '收到 %s 的出价 %s CC 购买你的 %s',
+    seller_accept: '%s 已出售给 %s，收入 %s CC (税后)',
+    offer_price_low: '出价须大于0',
   },
   en: {
     tax_paid: 'Tax paid %s CC', welfare: 'Welfare received 100 CC',
@@ -49,6 +57,14 @@ const S_I18N: Record<string, Record<string, string>> = {
     not_dead: 'Character not dead yet', hunger_full: 'Hunger is full', no_nodeId: 'Missing nodeId',
     cant_consume: 'Cannot consume this building', reset_ok: 'All daily actions reset',
     rech_range: 'Recharge 1-100000 CC',
+    offer_sent: 'Offered %s CC for %s (incl. tax %s CC), awaiting seller',
+    offer_accepted: 'Trade complete! %s transferred, paid %s CC (tax %s CC)',
+    offer_rejected: 'Offer rejected', offer_invalid: 'Invalid offer',
+    offer_no_fund: 'Insufficient funds', offer_exists: 'Pending offer exists',
+    offer_not_found: 'Offer not found', offer_not_yours: 'Not authorized',
+    offer_received: 'Received %s CC offer from %s for your %s',
+    seller_accept: '%s sold to %s, received %s CC (after tax)',
+    offer_price_low: 'Price must be > 0',
   },
 };
 function st(lang: string, key: string, ...args: (string|number)[]): string {
@@ -851,6 +867,91 @@ export function createServer(world: World, port = 3000): express.Application {
       stats: state ? { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive } : null,
       state,
     });
+  });
+
+  // ============ 资产交易 API ============
+
+  /** 出价购买建筑 */
+  app.post('/api/world/trade/offer', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+
+    const { nodeId, price } = req.body;
+    if (!price || price <= 0) return res.status(400).json({ error: st(lang, 'offer_price_low') });
+    if (entity.getSummary().currency < price) return res.status(400).json({ error: st(lang, 'offer_no_fund') });
+
+    const offer = infiniteWorld.createTradeOffer(user.entityId, entity.name, nodeId, price);
+    if (!offer) return res.status(400).json({ error: st(lang, 'offer_invalid') });
+
+    const node = infiniteWorld.nodes.get(nodeId);
+    const bName = node?.building?.name || '?';
+
+    res.json({
+      offer,
+      message: st(lang, 'offer_sent', price, bName, offer.tax),
+    });
+  });
+
+  /** 获取我的交易 (收到的 + 发出的) */
+  app.get('/api/world/trade/my-offers', authMiddleware, requireRole('investor'), (req, res) => {
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: 'no entity' });
+    infiniteWorld.cleanExpiredOffers();
+    const received = infiniteWorld.getPendingOffersForSeller(user.entityId);
+    const sent = infiniteWorld.getPendingOffersFromBuyer(user.entityId);
+    res.json({ received, sent });
+  });
+
+  /** 接受出价 */
+  app.post('/api/world/trade/accept', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+
+    const { offerId } = req.body;
+    const offer = infiniteWorld.tradeOffers.get(offerId);
+    if (!offer) return res.status(404).json({ error: st(lang, 'offer_not_found') });
+    if (offer.sellerId !== user.entityId) return res.status(403).json({ error: st(lang, 'offer_not_yours') });
+
+    // Check buyer has enough funds
+    const buyerEntity = world.entities.getEntity(offer.buyerId);
+    if (!buyerEntity || buyerEntity.getSummary().currency < offer.price) {
+      offer.status = 'rejected';
+      return res.status(400).json({ error: st(lang, 'offer_no_fund') });
+    }
+
+    // Execute trade
+    const result = infiniteWorld.acceptTradeOffer(offerId, user.entityId);
+    if (!result) return res.status(400).json({ error: st(lang, 'offer_invalid') });
+
+    // Transfer funds: buyer pays price, seller receives netPrice, tax to treasury
+    buyerEntity.pay(offer.price);
+    const sellerEntity = world.entities.getEntity(offer.sellerId);
+    if (sellerEntity) sellerEntity.receive(offer.netPrice);
+    const treasury = getTreasury();
+    if (treasury) treasury.receive(offer.tax);
+
+    res.json({
+      offer: result.offer,
+      building: result.building,
+      message: st(lang, 'seller_accept', result.building.name, offer.buyerName, offer.netPrice),
+    });
+  });
+
+  /** 拒绝出价 */
+  app.post('/api/world/trade/reject', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+
+    const { offerId } = req.body;
+    const ok = infiniteWorld.rejectTradeOffer(offerId, user.entityId);
+    if (!ok) return res.status(400).json({ error: st(lang, 'offer_not_found') });
+
+    res.json({ message: st(lang, 'offer_rejected') });
   });
 
   /** 管理员: 重置每日行动 */

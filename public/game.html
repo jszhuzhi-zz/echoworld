@@ -242,6 +242,7 @@
     <div class="money-badge" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">0 CC</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
     <button class="lang-toggle" id="lang-toggle" onclick="switchLang()">EN</button>
+    <button class="btn-sm btn-nav" id="btn-trade-inbox" onclick="openTradeInbox()" style="position:relative;display:none">📨 <span data-i18n="inbox_badge">收件箱</span><span id="trade-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;min-width:14px;height:14px;border-radius:7px;text-align:center;line-height:14px;font-weight:700"></span></button>
     <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout" data-i18n="logout">退出</button>
   </div>
 </div>
@@ -323,7 +324,35 @@
   <div class="bo-desc" id="bo-desc"></div>
   <div class="bo-effects" id="bo-effects"></div>
   <div style="display:flex;gap:10px">
+    <button class="btn-use btn-use-pay" id="bo-buy-btn" style="display:none" onclick="openTradeOfferModal()">🏷️ <span data-i18n="buy_asset">购买资产</span></button>
     <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()" data-i18n="got_it">知道了</button>
+  </div>
+</div>
+
+<!-- Trade Offer Modal -->
+<div id="trade-offer-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;width:min(340px,calc(100vw - 32px));text-align:center">
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px" data-i18n="make_offer">出价购买</div>
+    <div id="trade-bld-info" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
+    <div style="margin-bottom:12px">
+      <input id="trade-price" type="number" min="1" placeholder="CC" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;text-align:center">
+      <div id="trade-tax-hint" style="font-size:10px;color:var(--text2);margin-top:4px"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button onclick="submitTradeOffer()" style="padding:8px 24px;border-radius:8px;border:none;background:var(--accent);color:white;font-size:13px;font-weight:600;cursor:pointer" data-i18n="send_offer">提交出价</button>
+      <button onclick="closeTradeOfferModal()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text2);font-size:13px;cursor:pointer" data-i18n="cancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trade Inbox Modal -->
+<div id="trade-inbox-modal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.7);align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;width:min(400px,calc(100vw - 32px));max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:15px;font-weight:700" data-i18n="trade_inbox">交易收件箱</span>
+      <button class="btn-close-modal" onclick="closeTradeInbox()">&times;</button>
+    </div>
+    <div id="trade-inbox-list" style="font-size:12px"></div>
   </div>
 </div>
 
@@ -507,6 +536,15 @@ const I18N = {
     facility:'的设施',status:'当前状态',after:'兑换后',
     lang:'EN',need_req:'需要饥饿≥15且体力≥15',
     use_fee:'使用费',stam_gain:'行动 +1',total_income:'累计收入',
+    buy_asset:'购买资产',make_offer:'出价购买',send_offer:'提交出价',
+    trade_inbox:'交易收件箱',tax_hint:'含 %s CC 税费 (10%)',
+    offer_sent:'出价已发送',offer_accepted:'交易完成！',offer_rejected:'已拒绝',
+    no_offers:'暂无交易',accept:'接受',reject:'拒绝',
+    offer_from:'来自',offer_to:'出价给',offer_price:'出价',
+    offer_tax:'税费',offer_net:'卖方到手',offer_fail:'交易失败',
+    enter_price:'请输入出价金额',inbox_badge:'收件箱',
+    offer_for:'购买',you:'你',pending:'待处理',
+    sent_offers:'我发出的出价',received_offers:'收到的出价',
   },
   en: {
     home:'Home',logout:'Logout',loading:'Loading...',action:'Act',
@@ -547,6 +585,15 @@ const I18N = {
     facility:"'s facility",status:'Status',after:'After',
     lang:'中文',need_req:'Need Hunger≥15 & Energy≥15',
     use_fee:'Fee',stam_gain:'Action +1',total_income:'Total income',
+    buy_asset:'Buy Asset',make_offer:'Make Offer',send_offer:'Submit Offer',
+    trade_inbox:'Trade Inbox',tax_hint:'Incl. %s CC tax (10%)',
+    offer_sent:'Offer sent',offer_accepted:'Trade complete!',offer_rejected:'Rejected',
+    no_offers:'No trades',accept:'Accept',reject:'Reject',
+    offer_from:'From',offer_to:'Offer to',offer_price:'Price',
+    offer_tax:'Tax',offer_net:'Seller receives',offer_fail:'Trade failed',
+    enter_price:'Enter offer price',inbox_badge:'Inbox',
+    offer_for:'Buy',you:'You',pending:'Pending',
+    sent_offers:'Sent Offers',received_offers:'Received Offers',
   }
 };
 let currentLang = localStorage.getItem('echoworld_lang') || 'zh';
@@ -586,6 +633,8 @@ function parentCoord(x, y) {
 
 let currentUser = null, myState = null, myEntity = null, allNodes = [], allPlayers = [];
 let buildingCatalog = [], selectedBuildNodeId = null;
+let _overlayNode = null; // currently shown building node (for trade offers)
+let _tradeTargetNode = null; // node being traded (persists after overlay closes)
 let pendingDirections = null;
 let myPlayerMesh = null, myPlayerLabel = null;
 let isAnimating = false;
@@ -1452,6 +1501,7 @@ function updateMyBuildings(nodes) {
 function showBuildingOverlay(node) {
   const b = node.building;
   if (!b || b.ownerId === currentUser?.entityId) return;
+  _overlayNode = node;
   const tpl = buildingCatalog.find(t => t.type === b.templateType);
   if (!tpl) return;
   const lvMult = 1 + (b.level - 1) * 0.3;
@@ -1464,11 +1514,15 @@ function showBuildingOverlay(node) {
     return `<span class="eff">${names[k] || k} +${Math.floor(v * eMult)}</span>`;
   }).join('');
   document.getElementById('bo-effects').innerHTML = effectsHtml;
+  // Show buy button for other players' buildings
+  document.getElementById('bo-buy-btn').style.display = 'inline-block';
   document.getElementById('building-overlay').classList.add('show');
 }
 
 function closeBuildingOverlay() {
   document.getElementById('building-overlay').classList.remove('show');
+  document.getElementById('bo-buy-btn').style.display = 'none';
+  _overlayNode = null;
 }
 
 // ============ API CALLS ============
@@ -1967,6 +2021,164 @@ window.recoverHunger = async function() {
   }
 };
 
+// ============ TRADE SYSTEM ============
+
+/** Open trade offer modal for the building shown in overlay */
+window.openTradeOfferModal = function() {
+  if (!_overlayNode?.building) return;
+  _tradeTargetNode = _overlayNode;
+  const b = _tradeTargetNode.building;
+  const tpl = buildingCatalog.find(t => t.type === b.templateType);
+  const pc = parentCoord(_tradeTargetNode.x, _tradeTargetNode.y);
+  document.getElementById('trade-bld-info').textContent =
+    `${tpl?.icon || '🏗'} ${b.name} (Lv.${b.level}) - ${b.ownerName} · (${pc.x},${pc.y})`;
+  document.getElementById('trade-price').value = '';
+  document.getElementById('trade-tax-hint').textContent = '';
+  document.getElementById('trade-offer-modal').style.display = 'flex';
+  closeBuildingOverlay();
+};
+
+/** Real-time tax hint as price is typed */
+document.getElementById('trade-price').addEventListener('input', function() {
+  const price = parseFloat(this.value) || 0;
+  const tax = Math.floor(price * 0.10);
+  const hint = t('tax_hint').replace('%s', tax);
+  document.getElementById('trade-tax-hint').textContent = price > 0 ? hint : '';
+});
+
+window.closeTradeOfferModal = function() {
+  document.getElementById('trade-offer-modal').style.display = 'none';
+};
+
+/** Submit a trade offer */
+window.submitTradeOffer = async function() {
+  const price = parseInt(document.getElementById('trade-price').value);
+  if (!price || price <= 0) { addLog(t('enter_price'), 'warn'); return; }
+  if (!_tradeTargetNode?.id) return;
+  try {
+    const res = await fetch(API + '/api/world/trade/offer', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ nodeId: _tradeTargetNode.id, price }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('offer_fail'), 'warn'); return; }
+    addLog(t('offer_sent'), 'good');
+    closeTradeOfferModal();
+  } catch (e) {
+    addLog(t('offer_fail'), 'danger');
+  }
+};
+
+/** Open trade inbox */
+window.openTradeInbox = async function() {
+  const list = document.getElementById('trade-inbox-list');
+  list.innerHTML = `<div style="text-align:center;color:var(--text2);padding:12px">${t('loading')}</div>`;
+  document.getElementById('trade-inbox-modal').style.display = 'flex';
+  try {
+    const res = await fetch(API + '/api/world/trade/my-offers', { headers: authHeaders() });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const received = data.received || [];
+    const sent = data.sent || [];
+    let html = '';
+    if (received.length > 0) {
+      html += `<div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${t('received_offers')}</div>`;
+      for (const o of received) {
+        html += `<div style="background:var(--bg3);border-radius:8px;padding:8px;margin-bottom:6px">
+          <div style="font-weight:600">${o.buyerName} → ${t('offer_for')} ${o.buildingName || ''}</div>
+          <div style="font-size:11px;color:var(--text2);margin:4px 0">
+            ${t('offer_price')}: <span style="color:var(--yellow);font-weight:700">${o.price} CC</span>
+            · ${t('offer_tax')}: ${o.tax} CC
+            · ${t('offer_net')}: <span style="color:var(--green);font-weight:700">${o.netPrice} CC</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="acceptOffer('${o.id}')" style="flex:1;padding:5px;border-radius:6px;border:none;background:var(--green);color:#000;font-weight:700;font-size:11px;cursor:pointer">${t('accept')}</button>
+            <button onclick="rejectOffer('${o.id}')" style="flex:1;padding:5px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer">${t('reject')}</button>
+          </div>
+        </div>`;
+      }
+    }
+    if (sent.length > 0) {
+      html += `<div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin:8px 0 6px">${t('sent_offers')}</div>`;
+      for (const o of sent) {
+        const statusColor = o.status === 'pending' ? 'var(--yellow)' : o.status === 'accepted' ? 'var(--green)' : 'var(--red)';
+        const statusText = o.status === 'pending' ? t('pending') : o.status === 'accepted' ? t('offer_accepted') : t('offer_rejected');
+        html += `<div style="background:var(--bg3);border-radius:8px;padding:8px;margin-bottom:6px">
+          <div style="font-weight:600">${t('offer_for')} ${o.buildingName || ''} (${o.sellerName})</div>
+          <div style="font-size:11px;color:var(--text2);margin:4px 0">
+            ${t('offer_price')}: <span style="color:var(--yellow);font-weight:700">${o.price} CC</span>
+            · <span style="color:${statusColor};font-weight:600">${statusText}</span>
+          </div>
+        </div>`;
+      }
+    }
+    if (!received.length && !sent.length) {
+      html = `<div style="text-align:center;color:var(--text2);padding:20px">${t('no_offers')}</div>`;
+    }
+    list.innerHTML = html;
+  } catch (e) {
+    list.innerHTML = `<div style="text-align:center;color:var(--red);padding:12px">${t('offer_fail')}</div>`;
+  }
+};
+
+window.closeTradeInbox = function() {
+  document.getElementById('trade-inbox-modal').style.display = 'none';
+};
+
+window.acceptOffer = async function(offerId) {
+  try {
+    const res = await fetch(API + '/api/world/trade/accept', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ offerId }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('offer_fail'), 'warn'); return; }
+    const data = await res.json();
+    addLog(data.message || t('offer_accepted'), 'good');
+    await fetchMap();
+    await fetchMe();
+    openTradeInbox(); // refresh list
+  } catch (e) {
+    addLog(t('offer_fail'), 'danger');
+  }
+};
+
+window.rejectOffer = async function(offerId) {
+  try {
+    const res = await fetch(API + '/api/world/trade/reject', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ offerId }),
+    });
+    if (!res.ok) { const err = await res.json(); addLog(err.error || t('offer_fail'), 'warn'); return; }
+    addLog(t('offer_rejected'), 'good');
+    openTradeInbox(); // refresh list
+  } catch (e) {
+    addLog(t('offer_fail'), 'danger');
+  }
+};
+
+/** Periodically check for pending trade offers */
+let _lastTradeCount = 0;
+async function fetchTradeOffers() {
+  try {
+    const res = await fetch(API + '/api/world/trade/my-offers', { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    const pendingCount = (data.received || []).filter(o => o.status === 'pending').length;
+    const badge = document.getElementById('trade-badge');
+    const btn = document.getElementById('btn-trade-inbox');
+    btn.style.display = 'inline-block';
+    if (pendingCount > 0) {
+      badge.style.display = 'block';
+      badge.textContent = pendingCount;
+      if (pendingCount > _lastTradeCount) {
+        addLog(`📨 ${pendingCount} ${t('received_offers')}`, 'good');
+      }
+    } else {
+      badge.style.display = 'none';
+    }
+    _lastTradeCount = pendingCount;
+  } catch (e) { /* ignore */ }
+}
+
 // ============ CLICK HANDLER ============
 renderer.domElement.addEventListener('click', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -2056,12 +2268,14 @@ async function init() {
   }
 
   fetchWorldBroadcast();
+  fetchTradeOffers();
 
   // Auto refresh
   setInterval(async () => {
     await fetchMe();
     await fetchMap();
     await fetchEconomy();
+    await fetchTradeOffers();
   }, 10000);
   setInterval(fetchWorldBroadcast, 15000);
 }
