@@ -37,10 +37,9 @@
     .ms b{font-weight:700;min-width:14px;text-align:right}
     .pos-info{display:inline-block;font-size:11px;color:var(--text2);background:rgba(0,0,0,0.4);padding:3px 12px;border-radius:10px;white-space:nowrap}
     .top-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
-    .lang-toggle{padding:2px 6px;border:1px solid var(--border);border-radius:5px;font-size:9px;font-weight:700;
-      cursor:pointer;background:rgba(255,255,255,0.06);color:var(--text2);transition:all .2s}
-    .lang-toggle:hover{background:rgba(255,255,255,0.12);color:#fff}
-    .money-badge{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:3px 10px;border-radius:10px;font-weight:700;font-size:12px;white-space:nowrap}
+    .money-badge-bottom{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;padding:6px 18px;border-radius:12px;font-weight:800;font-size:16px;white-space:nowrap;text-align:center;min-width:120px;box-shadow:0 2px 12px rgba(245,158,11,0.35);transition:transform .2s}
+    .money-badge-bottom:hover{transform:scale(1.05)}
+    .settings-item:hover{background:rgba(255,255,255,0.08)!important}
     .action-badge{background:rgba(59,130,246,0.2);color:var(--accent);padding:3px 8px;border-radius:8px;font-size:10px;border:1px solid rgba(59,130,246,0.3);white-space:nowrap}
     .btn-sm{padding:3px 8px;border:none;border-radius:5px;font-size:10px;cursor:pointer;font-weight:600;transition:all .2s}
     .btn-nav{background:rgba(255,255,255,0.08);color:var(--text2);border:1px solid var(--border)}
@@ -210,6 +209,8 @@
       .dir-btn{padding:8px 14px;font-size:16px}
       #building-overlay{bottom:70px;min-width:200px;padding:10px 14px}
       .modal-content{width:calc(100vw - 16px);padding:12px}
+      .inbox-text{display:none}
+      .money-badge-bottom{font-size:13px;padding:5px 12px;min-width:90px}
     }
     @media(min-width:769px) and (max-width:1024px){
       #right-panel{width:170px}
@@ -239,11 +240,15 @@
     <div class="dice-info" id="dice-info">🎲 -</div>
   </div>
   <div class="top-right">
-    <div class="money-badge" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">0 CC</div>
     <div class="action-badge" id="action-badge">行动 0/8</div>
-    <button class="lang-toggle" id="lang-toggle" onclick="switchLang()">EN</button>
-    <button class="btn-sm btn-nav" id="btn-trade-inbox" onclick="openTradeInbox()" style="position:relative;display:none">📨 <span data-i18n="inbox_badge">收件箱</span><span id="trade-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;min-width:14px;height:14px;border-radius:7px;text-align:center;line-height:14px;font-weight:700"></span></button>
-    <button class="btn-sm btn-nav" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" id="btn-logout" data-i18n="logout">退出</button>
+    <button class="btn-sm btn-nav" id="btn-trade-inbox" onclick="openTradeInbox()" style="position:relative;display:none">📨 <span class="inbox-text" data-i18n="inbox_badge">收件箱</span><span id="trade-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:8px;min-width:14px;height:14px;border-radius:7px;text-align:center;line-height:14px;font-weight:700"></span></button>
+    <div class="settings-wrap" style="position:relative">
+      <button class="btn-sm btn-nav" id="btn-settings" onclick="toggleSettingsMenu()">⚙️</button>
+      <div id="settings-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;min-width:120px;overflow:hidden;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,0.5)">
+        <button class="settings-item" id="settings-lang" onclick="switchLang();toggleSettingsMenu()" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--text);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px">🌐 <span id="lang-label">English</span></button>
+        <button class="settings-item" onclick="localStorage.removeItem('echoworld_token');localStorage.removeItem('echoworld_user');location.href='/login'" style="width:100%;padding:8px 14px;border:none;background:none;color:var(--red);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px" data-i18n="logout">🚪 退出</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -254,6 +259,7 @@
     <button class="btn-dice" id="btn-roll" onclick="rollDice()"><span>🎲</span></button>
     <button class="dir-btn dir-ccw" id="btn-right" style="display:none">↺ 逆时针</button>
   </div>
+  <div class="money-badge-bottom" id="money-badge" onclick="openWealthPage()" style="cursor:pointer" title="点击查看财富详情">💰 0 CC</div>
   <div class="action-group">
     <button class="dir-btn" id="btn-build" style="display:none;border-color:var(--purple);background:rgba(168,85,247,0.15)" onclick="openBuildModal()" data-i18n="build">🔨</button>
     <button class="dir-btn" id="btn-consume" style="display:none;border-color:var(--orange);background:rgba(249,115,22,0.15)" onclick="useBuilding()">💰</button>
@@ -492,6 +498,37 @@ const API = location.origin;
 const token = localStorage.getItem('echoworld_token');
 if (!token) location.href = '/login';
 const MASLOW_COLORS = { 1: 0x4ade80, 2: 0x60a5fa, 3: 0xfbbf24, 4: 0xf97316, 5: 0xa855f7 };
+
+// Building name/description translations
+const BLDG_I18N = {
+  food_stand:    { en_name: 'Food Stand',      en_desc: 'Simple street food' },
+  water_station: { en_name: 'Water Station',   en_desc: 'Clean drinking water' },
+  shelter:       { en_name: 'Shelter',         en_desc: 'A roof over your head' },
+  clinic:        { en_name: 'Clinic',          en_desc: 'Basic medical care' },
+  pharmacy:      { en_name: 'Pharmacy',        en_desc: 'Medicine & supplements' },
+  savings:       { en_name: 'Savings Bank',    en_desc: 'Deposits & micro-loans' },
+  tea_house:     { en_name: 'Tea House',       en_desc: 'Socializing over tea' },
+  bar:           { en_name: 'Bar',             en_desc: 'Social entertainment' },
+  community:     { en_name: 'Community Center',en_desc: 'Community activities' },
+  restaurant:    { en_name: 'Fine Restaurant', en_desc: 'Exquisite dining' },
+  hotel:         { en_name: 'Boutique Hotel',  en_desc: 'Quality rest & lodging' },
+  bank:          { en_name: 'Bank',            en_desc: 'Full financial services' },
+  academy:       { en_name: 'Academy',         en_desc: 'Knowledge & skill growth' },
+  gallery:       { en_name: 'Art Gallery',     en_desc: 'Creativity & aesthetics' },
+  hub:           { en_name: 'Startup Hub',     en_desc: 'Dream incubator' },
+};
+/** Get localized building name */
+function bldgName(tpl) {
+  if (!tpl) return '?';
+  if (currentLang === 'en' && BLDG_I18N[tpl.type]) return BLDG_I18N[tpl.type].en_name;
+  return tpl.name;
+}
+/** Get localized building description */
+function bldgDesc(tpl) {
+  if (!tpl) return '';
+  if (currentLang === 'en' && BLDG_I18N[tpl.type]) return BLDG_I18N[tpl.type].en_desc;
+  return tpl.description;
+}
 const NODE_COLORS = { start: 0x10b981, tax: 0xef4444, welfare: 0x3b82f6, event: 0xfbbf24, intersection: 0x475569, road: 0x283040, lot: 0x1e293b };
 const PLAYER_COLORS = ['#22d3ee','#f472b6','#a78bfa','#fb923c','#4ade80','#e879f9','#fbbf24','#38bdf8'];
 
@@ -607,8 +644,9 @@ function applyI18n() {
     else if (el.dataset.i18nHtml !== undefined) el.innerHTML = t(k);
     else if (!el.querySelector('[data-i18n]')) el.textContent = t(k);
   });
-  // Lang toggle button
-  document.getElementById('lang-toggle').textContent = t('lang');
+  // Settings lang label
+  const langLabel = document.getElementById('lang-label');
+  if (langLabel) langLabel.textContent = currentLang === 'zh' ? 'English' : '中文';
   // HTML lang attr
   document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
 }
@@ -624,6 +662,17 @@ window.switchLang = function() {
   if (allPlayers.length) updateLeaderboard(allPlayers);
   if (allNodes.length) updateMyBuildings(allNodes);
 };
+
+window.toggleSettingsMenu = function() {
+  const menu = document.getElementById('settings-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+};
+// Close settings on outside click
+document.addEventListener('click', function(e) {
+  const wrap = document.querySelector('.settings-wrap');
+  const menu = document.getElementById('settings-menu');
+  if (wrap && menu && !wrap.contains(e.target)) menu.style.display = 'none';
+});
 
 /** Get parent intersection coordinate for a lot node */
 function parentCoord(x, y) {
@@ -761,12 +810,8 @@ function createBuilding3D(node, tpl) {
   const glow = levelGlow(level);
 
   const group = new THREE.Group();
-  // Shift building 30% toward parent intersection for tight road connection
-  const _SP = 14;
-  const _ix = Math.round(node.x / _SP) * _SP;
-  const _iy = Math.round(node.y / _SP) * _SP;
-  const _ox = node.x - _ix, _oy = node.y - _iy;
-  group.position.set(node.x - _ox * 0.3, 0, node.y - _oy * 0.3);
+  // Place building at exact lot coordinate
+  group.position.set(node.x, 0, node.y);
 
   const baseMat = new THREE.MeshStandardMaterial({
     color: baseColor, emissive: baseColor, emissiveIntensity: glow,
@@ -1081,24 +1126,23 @@ function renderMap(nodes) {
       const tpl = buildingCatalog.find(b => b.type === node.building.templateType);
       mesh = createBuilding3D(node, tpl);
       clickableMeshes.push(mesh);
-      // Building base tile shifted toward parent intersection
+      // Building base tile at exact lot coordinate
       const ml = tpl?.maslowLevel || 1;
       const lotColor = MASLOW_COLORS[ml] || 0x888888;
+      const lotGeo = new THREE.BoxGeometry(1.4, 0.06, 1.4);
+      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.45, emissive: lotColor, emissiveIntensity: 0.25 });
+      const lotBase = new THREE.Mesh(lotGeo, lotMat);
+      lotBase.position.set(node.x, 0.03, node.y);
+      mapMeshGroup.add(lotBase);
+      // Connecting strip from building to parent intersection
       const _SP = 14;
       const _ix = Math.round(node.x / _SP) * _SP;
       const _iy = Math.round(node.y / _SP) * _SP;
       const _ox = node.x - _ix, _oy = node.y - _iy;
-      const shiftX = node.x - _ox * 0.3, shiftZ = node.y - _oy * 0.3;
-      const lotGeo = new THREE.BoxGeometry(1.6, 0.06, 1.6);
-      const lotMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.45, emissive: lotColor, emissiveIntensity: 0.25 });
-      const lotBase = new THREE.Mesh(lotGeo, lotMat);
-      lotBase.position.set(shiftX, 0.03, shiftZ);
-      mapMeshGroup.add(lotBase);
-      // Connecting strip from building to parent intersection
       if (_ox !== 0 || _oy !== 0) {
         const midX = (node.x + _ix) / 2, midZ = (node.y + _iy) / 2;
         const dist = Math.sqrt(_ox * _ox + _oy * _oy);
-        const stripGeo = new THREE.BoxGeometry(0.6, 0.04, dist + 0.8);
+        const stripGeo = new THREE.BoxGeometry(0.5, 0.04, dist + 0.5);
         const stripMat = new THREE.MeshStandardMaterial({ color: lotColor, transparent: true, opacity: 0.3, emissive: lotColor, emissiveIntensity: 0.15 });
         const strip = new THREE.Mesh(stripGeo, stripMat);
         strip.position.set(midX, 0.02, midZ);
@@ -1280,7 +1324,7 @@ function showConsumePrompt(pb) {
     const tpl = pb.template;
     const b = pb.building;
     const effectNames = { hunger: '🍔', energy: '⚡', happiness: '😊' };
-    document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${b.name} Lv.${b.level}`;
+    document.getElementById('cp-title').textContent = `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} Lv.${b.level}`;
     document.getElementById('cp-owner').textContent = `${b.ownerName}${t('facility')}`;
     document.getElementById('cp-effects').innerHTML = Object.entries(tpl?.effects || {}).map(([k,v]) => {
       const eMult = 1 + (b.level - 1) * 0.2;
@@ -1450,7 +1494,7 @@ function updateStats(stats) {
 }
 
 function updateMoney(entity) {
-  document.getElementById('money-badge').textContent = (entity?.currency ?? 0).toFixed(0) + ' CC';
+  document.getElementById('money-badge').textContent = '💰 ' + (entity?.currency ?? 0).toFixed(0) + ' CC';
 }
 
 function updateActions(state) {
@@ -1494,7 +1538,7 @@ function updateMyBuildings(nodes) {
   document.getElementById('my-buildings').innerHTML = myBuildings.map(n => {
     const tpl = buildingCatalog.find(b => b.type === n.building.templateType);
     const pc = parentCoord(n.x, n.y);
-    return `<div class="building-item"><span class="b-icon">${tpl?.icon || '?'}</span><span class="b-name">${n.building.name}</span><span class="b-lv">Lv.${n.building.level}</span><span style="font-size:9px;color:var(--text2);margin-left:auto">(${pc.x},${pc.y})</span></div>`;
+    return `<div class="building-item"><span class="b-icon">${tpl?.icon || '?'}</span><span class="b-name">${bldgName(tpl) || n.building.name}</span><span class="b-lv">Lv.${n.building.level}</span><span style="font-size:9px;color:var(--text2);margin-left:auto">(${pc.x},${pc.y})</span></div>`;
   }).join('') || `<span style="font-size:11px;color:var(--text2)">${t('none')}</span>`;
 }
 
@@ -1506,8 +1550,8 @@ function showBuildingOverlay(node) {
   if (!tpl) return;
   const lvMult = 1 + (b.level - 1) * 0.3;
   const fee = Math.floor(tpl.baseFee * lvMult);
-  document.getElementById('bo-title').textContent = `${tpl.icon} ${b.name} (Lv.${b.level}) - ${b.ownerName}`;
-  document.getElementById('bo-desc').textContent = `${tpl.description} | ${t('use_fee')}: ${fee} CC`;
+  document.getElementById('bo-title').textContent = `${tpl.icon} ${bldgName(tpl)} (Lv.${b.level}) - ${b.ownerName}`;
+  document.getElementById('bo-desc').textContent = `${bldgDesc(tpl)} | ${t('use_fee')}: ${fee} CC`;
   const effectsHtml = Object.entries(tpl.effects).map(([k, v]) => {
     const eMult = 1 + (b.level - 1) * 0.2;
     const names = { hunger: '🍔', energy: '⚡', happiness: '😊' };
@@ -1783,7 +1827,7 @@ window.openBuildModal = function() {
     for (const b of items) {
       const opt = document.createElement('div');
       opt.className = 'build-option';
-      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${b.name}</div><div class="desc">${b.description}${b.baseFee > 0 ? ` | ${t('use_fee')}: ${b.baseFee} CC` : ''}</div></div><span class="bo-cost">${b.cost} CC</span>`;
+      opt.innerHTML = `<span class="bo-icon">${b.icon}</span><div class="bo-info"><div class="name">${bldgName(b)}</div><div class="desc">${bldgDesc(b)}${b.baseFee > 0 ? ` | ${t('use_fee')}: ${b.baseFee} CC` : ''}</div></div><span class="bo-cost">${b.cost} CC</span>`;
       opt.onclick = () => doBuild(b.type);
       group.appendChild(opt);
     }
@@ -1861,8 +1905,8 @@ window.openWealthPage = async function() {
       return `<div class="wealth-asset">
         <span class="wa-icon">${tpl?.icon || '🏗'}</span>
         <div class="wa-info">
-          <div class="wa-name">${b.name} (Lv.${b.level})</div>
-          <div class="wa-detail">${tpl?.name || b.templateType} · (${parentCoord(n.x,n.y).x},${parentCoord(n.x,n.y).y}) · ${t('use_label')} ${b.usageCount || 0}${t('times')}</div>
+          <div class="wa-name">${bldgName(tpl) || b.name} (Lv.${b.level})</div>
+          <div class="wa-detail">${bldgName(tpl) || b.templateType} · (${parentCoord(n.x,n.y).x},${parentCoord(n.x,n.y).y}) · ${t('use_label')} ${b.usageCount || 0}${t('times')}</div>
         </div>
         <div class="wa-val">
           <div class="wa-fee">${fee} CC/${t('times')}</div>
@@ -2031,7 +2075,7 @@ window.openTradeOfferModal = function() {
   const tpl = buildingCatalog.find(t => t.type === b.templateType);
   const pc = parentCoord(_tradeTargetNode.x, _tradeTargetNode.y);
   document.getElementById('trade-bld-info').textContent =
-    `${tpl?.icon || '🏗'} ${b.name} (Lv.${b.level}) - ${b.ownerName} · (${pc.x},${pc.y})`;
+    `${tpl?.icon || '🏗'} ${bldgName(tpl) || b.name} (Lv.${b.level}) - ${b.ownerName} · (${pc.x},${pc.y})`;
   document.getElementById('trade-price').value = '';
   document.getElementById('trade-tax-hint').textContent = '';
   document.getElementById('trade-offer-modal').style.display = 'flex';
