@@ -304,7 +304,7 @@ export class InfiniteWorld {
       happiness: 80,
       alive: true,
       actionsToday: 0,
-      maxActions: 8,
+      maxActions: 20,
       pendingRoll: null,
       turnsPlayed: 0,
       referralCount: 0,

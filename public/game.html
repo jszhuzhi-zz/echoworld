@@ -1635,10 +1635,11 @@ async function fetchMe() {
       document.getElementById('btn-consume').textContent = `💰 ${fee} CC`;
     }
 
-    // Show build button if current node is empty and buildable
+    // Show build button if current node is buildable OR nearby lots exist
     const curNode = meData.node;
-    const canBuild = curNode && !curNode.building && ['lot', 'intersection'].includes(curNode.type);
-    document.getElementById('btn-build').style.display = canBuild ? 'block' : 'none';
+    const onBuildable = curNode && !curNode.building && ['lot', 'intersection'].includes(curNode.type);
+    const hasNearbyLots = meData.nearbyLots && meData.nearbyLots.length > 0;
+    document.getElementById('btn-build').style.display = (onBuildable || hasNearbyLots) ? 'block' : 'none';
 
     return meData;
   } catch (e) {
@@ -1880,14 +1881,19 @@ window.closeBuildModal = function() {
 
 async function doBuild(templateType) {
   try {
-    // Build on current position (player's landing node)
+    // Build on current position or nearest empty lot
     const meRes = await fetch(API + '/api/world/me', { headers: authHeaders() });
     const meData = await meRes.json();
     const curNode = meData.node;
-    if (!curNode || curNode.building) {
+    let nodeId;
+    const onBuildable = curNode && !curNode.building && ['lot', 'intersection'].includes(curNode.type);
+    if (onBuildable) {
+      nodeId = curNode.id;
+    } else if (meData.nearbyLots && meData.nearbyLots.length > 0) {
+      nodeId = meData.nearbyLots[0].id;
+    } else {
       addLog(t('no_lots'), 'warn'); return;
     }
-    const nodeId = curNode.id;
     const customName = document.getElementById('build-custom-name').value.trim() || undefined;
 
     const res = await fetch(API + '/api/world/build', {
