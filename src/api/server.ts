@@ -51,6 +51,8 @@ const S_I18N: Record<string, Record<string, string>> = {
     death_confirm: '角色已永久死亡，剩余财富已转入世界国库',
     recharge_amt: '充值 %s CC', first_bonus: '🎉 首充赠送 %s CC！', received: '到账 %s CC',
     rec_hunger: '花费 %s CC 恢复饥饿 +%s',
+    rec_energy: '花费 %s CC 恢复体力 +%s',
+    energy_full: '体力已满',
     no_entity: '未绑定游戏角色', no_char: '角色不存在', dead: '角色已死亡',
     no_move: '行动次数已用完或角色已死亡', cant_move: '无法移动，请先掷骰子',
     no_fund: '资金不足，需要 %s CC', no_use: '无法使用该设施',
@@ -96,6 +98,8 @@ const S_I18N: Record<string, Record<string, string>> = {
     death_confirm: 'Character permanently dead, remaining wealth transferred to treasury',
     recharge_amt: 'Recharged %s CC', first_bonus: '🎉 First purchase bonus %s CC!', received: 'Received %s CC',
     rec_hunger: 'Spent %s CC, hunger +%s',
+    rec_energy: 'Spent %s CC, energy +%s',
+    energy_full: 'Energy is full',
     no_entity: 'No game character linked', no_char: 'Character not found', dead: 'Character is dead',
     no_move: 'No actions left or character dead', cant_move: 'Cannot move, roll dice first',
     no_fund: 'Insufficient funds, need %s CC', no_use: 'Cannot use this facility',
@@ -1307,6 +1311,38 @@ export function createServer(world: World, port = 3000): express.Application {
 
     res.json({
       message: st(lang, 'rec_hunger', cost, recovery),
+      stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
+      entity: entity.getSummary(),
+      state,
+    });
+  });
+
+  /** 花费CC恢复体力 (比建筑消费贵) */
+  app.post('/api/world/recover-energy', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (!state?.alive) return res.status(400).json({ error: st(lang, 'dead') });
+
+    const cost = 100;
+    const recovery = 25;
+    if (entity.getSummary().currency < cost) {
+      return res.status(400).json({ error: st(lang, 'no_fund', cost) });
+    }
+    if (state.energy >= 100) {
+      return res.status(400).json({ error: st(lang, 'energy_full') });
+    }
+
+    entity.pay(cost);
+    const treasury = getTreasury();
+    if (treasury) treasury.receive(cost);
+    state.energy = Math.min(100, state.energy + recovery);
+
+    res.json({
+      message: st(lang, 'rec_energy', cost, recovery),
       stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
       entity: entity.getSummary(),
       state,
