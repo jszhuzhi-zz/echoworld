@@ -1718,7 +1718,6 @@ function showConsumePrompt(pb) {
       ? (zh ? '🏠 你自己的设施' : '🏠 Your own facility')
       : `${b.ownerName}${t('facility')}`;
     document.getElementById('cp-effects').innerHTML = `<span style="font-size:14px;font-weight:700">${getBuildingEffectDesc(tpl, b)}</span>`;
-    document.getElementById('cp-fee').textContent = pb.fee;
 
     // 根据当前状态生成消费建议
     const stats = myState || {};
@@ -1731,8 +1730,8 @@ function showConsumePrompt(pb) {
     if (!benefits.length) benefits.push(zh ? '💡 消费促进经济流转，业主获得收益' : '💡 Spending drives the economy!');
     document.getElementById('cp-benefit').textContent = benefits[0];
 
-    // 消费按钮文字
-    document.getElementById('cp-consume-btn').innerHTML = `💰 ${zh ? '消费' : 'Use'} ${pb.fee} CC`;
+    // 消费按钮文字 (用 textContent 避免销毁内部 span)
+    document.getElementById('cp-consume-btn').textContent = `💰 ${zh ? '消费' : 'Use'} ${pb.fee} CC`;
 
     document.getElementById('consume-prompt').style.display = 'block';
 
@@ -1798,11 +1797,11 @@ async function animateSteps(pathPoints, passedBuildings) {
     for (const pb of pbList) {
       if (consumed.has(pb.nodeId)) continue;
       if (Math.abs(pb.x - to.x) <= 2 && Math.abs(pb.y - to.y) <= 2) {
-        // 弹出消费提示，等待3秒或玩家操作
-        const doConsume = await showConsumePrompt(pb);
-        consumed.add(pb.nodeId);
-        if (doConsume) {
-          try {
+        try {
+          // 弹出消费提示，等待8秒或玩家操作
+          const doConsume = await showConsumePrompt(pb);
+          consumed.add(pb.nodeId);
+          if (doConsume) {
             const res = await fetch(API + '/api/world/use-building-at', {
               method: 'POST', headers: authHeaders(),
               body: JSON.stringify({ nodeId: pb.nodeId }),
@@ -1816,7 +1815,10 @@ async function animateSteps(pathPoints, passedBuildings) {
               const err = await res.json();
               addLog(err.error || t('consume_fail'), 'warn');
             }
-          } catch (e) { addLog(t('consume_fail'), 'danger'); }
+          }
+        } catch (e) {
+          consumed.add(pb.nodeId);
+          // 消费提示出错不应中断移动动画
         }
       }
     }
