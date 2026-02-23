@@ -151,7 +151,7 @@ function getLang(req: express.Request): string {
  * 经济系统: 世界初始总财富=0，每新增用户+1100CC (用户1000+邀请奖励100)
  * 用户死亡不可复活，财富归管理者国库
  */
-export function createServer(world: World, port = 3000): express.Application {
+export function createServer(world: World, port = 3000) {
   const app = express();
   app.use(express.json());
 
@@ -215,13 +215,22 @@ export function createServer(world: World, port = 3000): express.Application {
     return world.entities.getEntity(treasuryEntityId);
   }
 
+  // 从磁盘加载世界状态 (建筑、玩家位置、交易、存贷款)
+  const worldLoaded = infiniteWorld.loadFromDisk();
+
   // 恢复所有用户的游戏实体 (服务器重启后重建)
   for (const user of userStore.getAllUsers()) {
     if (user.role === 'investor' && user.entityId) {
       world.entities.restoreEntity(user.entityId, EntityType.HUMAN_PLAYER, user.username);
-      infiniteWorld.initPlayer(user.entityId);
+      // 只有在世界状态未从磁盘恢复时才初始化玩家 (避免覆盖已恢复的位置和状态)
+      if (!worldLoaded) {
+        infiniteWorld.initPlayer(user.entityId);
+      }
     }
   }
+
+  // 从磁盘恢复实体经济数据 (货币、信用分等)
+  world.entities.loadFromDisk();
 
   // 确保预置投资者账号有对应的游戏实体
   const testUser = userStore.findByUsername('testplayer');
@@ -1902,5 +1911,5 @@ export function createServer(world: World, port = 3000): express.Application {
     });
   }
 
-  return app;
+  return { app, infiniteWorld };
 }

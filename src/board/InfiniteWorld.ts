@@ -8,6 +8,11 @@
  * - 不使用他人设施 → 生存指标下降 → 警报 → 死亡
  */
 
+import * as fs from 'fs';
+import { ensureDataDir, dataFile } from '../core/dataDir';
+
+const WORLD_STATE_FILE = dataFile('world-state.json');
+
 // ============ 马斯洛需求分级建筑目录 ============
 
 export interface BuildingTemplate {
@@ -359,6 +364,7 @@ export class InfiniteWorld {
 
     // 在扩展后的世界范围内选择出生点
     placeholder.nodeId = this.findRandomSpawnNode();
+    this.markDirty();
     return placeholder;
   }
 
@@ -634,6 +640,7 @@ export class InfiniteWorld {
       events.push('ENERGY_WARNING');
     }
 
+    this.markDirty();
     return {
       path,
       finalNode,
@@ -674,6 +681,7 @@ export class InfiniteWorld {
       referralCredits: 0,
     };
     node.building = building;
+    this.markDirty();
     return { building, template };
   }
 
@@ -763,6 +771,7 @@ export class InfiniteWorld {
       }
     }
 
+    this.markDirty();
     return { fee, effects, building, template, upgraded };
   }
 
@@ -775,6 +784,7 @@ export class InfiniteWorld {
     if (!template) return null;
     const refund = Math.floor(template.cost * 0.3);
     node.building = undefined;
+    this.markDirty();
     return { refund, template };
   }
 
@@ -841,6 +851,7 @@ export class InfiniteWorld {
       createdDay: 0, // 由外部设置
     };
     this.playerDeposits.push(deposit);
+    this.markDirty();
     return { depositRate: rate, amount, depositId: deposit.id };
   }
 
@@ -856,6 +867,7 @@ export class InfiniteWorld {
       node.building.totalDeposits = Math.max(0, (node.building.totalDeposits ?? 0) - deposit.amount);
     }
     this.playerDeposits.splice(idx, 1);
+    this.markDirty();
     return { total: Math.floor(total), interest: Math.floor(deposit.accumulatedInterest) };
   }
 
@@ -894,6 +906,7 @@ export class InfiniteWorld {
       status: 'active',
     };
     this.playerLoans.push(loan);
+    this.markDirty();
     return { loanRate: rate, amount, remaining: node.building.loanPool, loanId: loan.id };
   }
 
@@ -973,6 +986,7 @@ export class InfiniteWorld {
       }
     }
 
+    this.markDirty();
     return ownerIncome;
   }
 
@@ -997,6 +1011,7 @@ export class InfiniteWorld {
     state.energy -= 10;
     state.hunger -= 5;
     state.maxActions += 10;
+    this.markDirty();
     return {
       success: true,
       message: `消耗 10体力+5饥饿，行动次数+10 (${state.actionsToday}/${state.maxActions})`,
@@ -1014,6 +1029,7 @@ export class InfiniteWorld {
     state.energy = 50;
     state.happiness = 50;
     state.pendingRoll = null;
+    this.markDirty();
     return state;
   }
 
@@ -1054,6 +1070,7 @@ export class InfiniteWorld {
       state.actionsToday = 0;
       state.maxActions = 20;
     }
+    this.markDirty();
   }
 
   /**
@@ -1079,6 +1096,7 @@ export class InfiniteWorld {
         state.alive = false;
       }
     }
+    this.markDirty();
   }
 
   setMaxActions(limit: number): void {
@@ -1135,6 +1153,7 @@ export class InfiniteWorld {
     };
 
     this.tradeOffers.set(id, offer);
+    this.markDirty();
     return offer;
   }
 
@@ -1151,6 +1170,7 @@ export class InfiniteWorld {
     node.building.ownerId = offer.buyerId;
     node.building.ownerName = offer.buyerName;
     offer.status = 'accepted';
+    this.markDirty();
 
     return { offer, building: node.building };
   }
@@ -1161,6 +1181,7 @@ export class InfiniteWorld {
     if (!offer || offer.status !== 'pending') return false;
     if (offer.sellerId !== sellerId) return false;
     offer.status = 'rejected';
+    this.markDirty();
     return true;
   }
 
@@ -1185,6 +1206,144 @@ export class InfiniteWorld {
       if (offer.createdAt < cutoff && offer.status === 'pending') {
         offer.status = 'expired';
       }
+    }
+  }
+
+  // ── 持久化 ──
+
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private _dirty = false;
+
+  /** 标记数据已变更，延迟 10 秒写盘 */
+  markDirty(): void {
+    this._dirty = true;
+    if (this._saveTimer) return;
+    this._saveTimer = setTimeout(() => {
+      this._saveTimer = null;
+      if (!this._dirty) return;
+      this._dirty = false;
+      this._saveToDisk();
+    }, 10000);
+  }
+
+  /** 立即写盘 (用于优雅关闭) */
+  flushToDisk(): void {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    this._saveToDisk();
+  }
+
+  private _saveToDisk(): void {
+    try {
+      ensureDataDir();
+
+      // 收集所有有建筑的节点
+      const buildings: Array<{ nodeId: number; x: number; y: number; building: WorldBuilding }> = [];
+      for (const node of this.nodes.values()) {
+        if (node.building) {
+          buildings.push({ nodeId: node.id, x: node.x, y: node.y, building: node.building });
+        }
+      }
+
+      const state = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        worldBounds: this.worldBounds,
+        nextId: this.nextId,
+        depositIdCounter: this.depositIdCounter,
+        loanIdCounter: this.loanIdCounter,
+        tradeIdCounter: this.tradeIdCounter,
+        players: Array.from(this.players.values()),
+        buildings,
+        tradeOffers: Array.from(this.tradeOffers.values()),
+        playerDeposits: this.playerDeposits,
+        playerLoans: this.playerLoans,
+      };
+
+      fs.writeFileSync(WORLD_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+      console.log(`[InfiniteWorld] 已保存世界状态 (${this.players.size} 玩家, ${buildings.length} 建筑)`);
+    } catch (e) {
+      console.error('[InfiniteWorld] 保存世界状态失败:', e);
+    }
+  }
+
+  /** 从磁盘加载世界状态 (应在 constructor 之后、initPlayer 之前调用) */
+  loadFromDisk(): boolean {
+    try {
+      if (!fs.existsSync(WORLD_STATE_FILE)) return false;
+      const raw = fs.readFileSync(WORLD_STATE_FILE, 'utf-8');
+      const state = JSON.parse(raw);
+      if (!state || state.version !== 1) return false;
+
+      console.log(`[InfiniteWorld] 正在恢复世界状态...`);
+
+      // 恢复计数器
+      if (state.nextId) this.nextId = state.nextId;
+      if (state.depositIdCounter) this.depositIdCounter = state.depositIdCounter;
+      if (state.loanIdCounter) this.loanIdCounter = state.loanIdCounter;
+      if (state.tradeIdCounter) this.tradeIdCounter = state.tradeIdCounter;
+
+      // 恢复 worldBounds 并确保区域已生成
+      if (state.worldBounds) {
+        this.worldBounds = state.worldBounds;
+        this.ensureRegion(0, 0, this.worldBounds);
+      }
+
+      // 恢复建筑 (需要先确保对应节点的区域已生成)
+      let buildingCount = 0;
+      if (Array.isArray(state.buildings)) {
+        for (const b of state.buildings) {
+          // 确保建筑所在区域已生成
+          this.ensureRegion(b.x, b.y, SPACING);
+          // 通过坐标找到节点 (nodeId 可能因重新生成而不同)
+          const key = `${b.x},${b.y}`;
+          const realNodeId = this.coordIndex.get(key);
+          if (realNodeId !== undefined) {
+            const node = this.nodes.get(realNodeId);
+            if (node) {
+              node.building = b.building;
+              buildingCount++;
+            }
+          }
+        }
+      }
+
+      // 恢复玩家状态
+      let playerCount = 0;
+      if (Array.isArray(state.players)) {
+        for (const p of state.players) {
+          // 确保玩家所在节点区域已生成
+          const existingNode = this.nodes.get(p.nodeId);
+          if (existingNode) {
+            this.players.set(p.entityId, p);
+            playerCount++;
+          } else {
+            // 节点ID不存在（可能因 regeneration 变了），放到原点
+            p.nodeId = this.coordIndex.get('0,0') ?? 0;
+            this.players.set(p.entityId, p);
+            playerCount++;
+          }
+        }
+      }
+
+      // 恢复交易
+      if (Array.isArray(state.tradeOffers)) {
+        for (const t of state.tradeOffers) {
+          this.tradeOffers.set(t.id, t);
+        }
+      }
+
+      // 恢复存贷款
+      if (Array.isArray(state.playerDeposits)) this.playerDeposits = state.playerDeposits;
+      if (Array.isArray(state.playerLoans)) this.playerLoans = state.playerLoans;
+
+      console.log(`[InfiniteWorld] 已恢复: ${playerCount} 玩家, ${buildingCount} 建筑, ${this.tradeOffers.size} 交易`);
+      return true;
+    } catch (e) {
+      console.error('[InfiniteWorld] 加载世界状态失败:', e);
+      return false;
     }
   }
 }

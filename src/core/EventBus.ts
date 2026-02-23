@@ -1,10 +1,9 @@
 import EventEmitter from 'eventemitter3';
 import * as fs from 'fs';
-import * as path from 'path';
 import { WorldEvent, WorldEventType } from './types';
+import { DATA_DIR, ensureDataDir, dataFile } from './dataDir';
 
-const DATA_DIR = path.join(__dirname, '../../data');
-const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
+const EVENTS_FILE = dataFile('events.json');
 
 /**
  * 世界事件总线 - 所有世界事件的中央调度系统
@@ -26,9 +25,7 @@ export class EventBus {
   /** 从磁盘加载历史事件 */
   private _loadFromDisk(): void {
     try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
+      ensureDataDir();
       if (fs.existsSync(EVENTS_FILE)) {
         const raw = fs.readFileSync(EVENTS_FILE, 'utf-8');
         const arr = JSON.parse(raw);
@@ -148,9 +145,7 @@ export class EventBus {
       this._saveTimer = null;
     }
     try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
+      ensureDataDir();
       fs.writeFileSync(EVENTS_FILE, JSON.stringify(this.eventLog), 'utf-8');
       console.log(`[EventBus] 已保存 ${this.eventLog.length} 条事件到磁盘`);
     } catch (e) {

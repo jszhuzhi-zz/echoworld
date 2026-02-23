@@ -1,11 +1,16 @@
+import * as fs from 'fs';
 import {
   EntityType,
   EntityStatus,
   WorldEventType,
   Position,
+  ResourceType,
 } from '../core/types';
 import { WorldState } from '../core/WorldState';
 import { Entity } from './Entity';
+import { ensureDataDir, dataFile } from '../core/dataDir';
+
+const ENTITIES_FILE = dataFile('entities.json');
 
 /**
  * 实体管理器 - 管理世界中所有实体的生命周期
@@ -205,5 +210,70 @@ export class EntityManager {
     }
 
     return sumOfDiffs / (2 * n * totalWealth);
+  }
+
+  // ── 持久化 ──
+
+  /** 保存所有实体的关键状态到磁盘 */
+  saveToDisk(): void {
+    try {
+      ensureDataDir();
+      const data: Record<string, any> = {};
+      for (const entity of this.entities.values()) {
+        const inventoryObj: Record<string, number> = {};
+        for (const [k, v] of entity.inventory) {
+          inventoryObj[k] = v;
+        }
+        data[entity.id] = {
+          currency: entity.currency,
+          creditScore: entity.creditScore,
+          reputation: entity.reputation,
+          survivalDays: entity.survivalDays,
+          status: entity.status,
+          ownedBuildings: entity.ownedBuildings,
+          inventory: inventoryObj,
+          dailyIncome: entity.dailyIncome,
+          dailyExpense: entity.dailyExpense,
+        };
+      }
+      fs.writeFileSync(ENTITIES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+      console.log(`[EntityManager] 已保存 ${this.entities.size} 个实体状态`);
+    } catch (e) {
+      console.error('[EntityManager] 保存实体状态失败:', e);
+    }
+  }
+
+  /** 从磁盘恢复实体状态 (在 restoreEntity 之后调用) */
+  loadFromDisk(): void {
+    try {
+      if (!fs.existsSync(ENTITIES_FILE)) return;
+      const raw = fs.readFileSync(ENTITIES_FILE, 'utf-8');
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== 'object') return;
+
+      let restored = 0;
+      for (const [id, saved] of Object.entries(data) as [string, any][]) {
+        const entity = this.entities.get(id);
+        if (!entity) continue;
+        if (saved.currency !== undefined) entity.currency = saved.currency;
+        if (saved.creditScore !== undefined) entity.creditScore = saved.creditScore;
+        if (saved.reputation !== undefined) entity.reputation = saved.reputation;
+        if (saved.survivalDays !== undefined) entity.survivalDays = saved.survivalDays;
+        if (saved.status !== undefined) entity.status = saved.status;
+        if (Array.isArray(saved.ownedBuildings)) entity.ownedBuildings = saved.ownedBuildings;
+        if (saved.dailyIncome !== undefined) entity.dailyIncome = saved.dailyIncome;
+        if (saved.dailyExpense !== undefined) entity.dailyExpense = saved.dailyExpense;
+        if (saved.inventory && typeof saved.inventory === 'object') {
+          entity.inventory = new Map();
+          for (const [k, v] of Object.entries(saved.inventory)) {
+            entity.inventory.set(k as ResourceType, v as number);
+          }
+        }
+        restored++;
+      }
+      console.log(`[EntityManager] 已恢复 ${restored} 个实体状态`);
+    } catch (e) {
+      console.error('[EntityManager] 加载实体状态失败:', e);
+    }
   }
 }

@@ -2,7 +2,7 @@ import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
-import * as path from 'path';
+import { ensureDataDir, dataFile } from '../core/dataDir';
 
 export type UserRole = 'admin' | 'investor' | 'observer';
 
@@ -44,7 +44,7 @@ interface VerificationCode {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'echoworld-secret-key-2026';
-const DATA_FILE = path.join(process.cwd(), 'data', 'users.json');
+const DATA_FILE = dataFile('users.json');
 
 function generateReferralCode(): string {
   return uuidv4().slice(0, 8).toUpperCase();
@@ -127,8 +127,7 @@ class UserStore {
 
   save() {
     try {
-      const dir = path.dirname(DATA_FILE);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      ensureDataDir();
       fs.writeFileSync(DATA_FILE, JSON.stringify(Array.from(this.users.values()), null, 2));
     } catch {
       // Ignore save errors

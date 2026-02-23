@@ -82,25 +82,29 @@ function initWorld() {
 // 初始化世界和服务器
 const { world } = initWorld();
 const port = parseInt(process.env.PORT || '3000');
-const app = createServer(world, port);
+const { app, infiniteWorld } = createServer(world, port);
 
 // 启动世界模拟
 world.start();
 console.log('\n[启动] 世界已运转\n');
+console.log(`[数据目录] ${process.env.DATA_DIR || '(默认) ./data'}`);
+console.log('  提示: 设置 DATA_DIR 环境变量可将数据存到代码之外，升级代码不丢数据\n');
+
+// 定期自动保存 (每 5 分钟)
+setInterval(() => {
+  infiniteWorld.flushToDisk();
+  world.entities.saveToDisk();
+}, 5 * 60 * 1000);
 
 // 优雅关闭
 process.on('SIGINT', () => {
   console.log('\n[关闭] 正在停止世界...');
   world.stop();
-  // 持久化事件日志
+  // 持久化所有数据
   world.state.eventBus.flushToDisk();
-  const snapshot = world.getFullSnapshot();
-  console.log('\n最终世界状态:');
-  console.log(`  实体数: ${(snapshot.entities as unknown[]).length}`);
-  console.log(`  排行榜:`);
-  for (const entry of snapshot.leaderboard.slice(0, 10)) {
-    console.log(`    ${entry.name}: 净资产 ${entry.netWorth.toFixed(0)}, 建筑 ${entry.buildings}个`);
-  }
+  infiniteWorld.flushToDisk();
+  world.entities.saveToDisk();
+  console.log('[关闭] 所有数据已保存');
   process.exit(0);
 });
 
