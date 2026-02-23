@@ -488,7 +488,7 @@
   <div class="bo-effects" id="bo-effects"></div>
   <div style="display:flex;gap:10px">
     <button class="btn-use btn-use-pay" id="bo-buy-btn" style="display:none" onclick="openTradeOfferModal()">🏷️ <span data-i18n="buy_asset">购买资产</span></button>
-    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay()" data-i18n="got_it">知道了</button>
+    <button class="btn-use btn-use-skip" onclick="closeBuildingOverlay(true)" data-i18n="got_it">知道了</button>
   </div>
 </div>
 
@@ -2373,9 +2373,10 @@ function showBuildingOverlay(node, force) {
   document.getElementById('building-overlay').classList.add('show');
 }
 
-function closeBuildingOverlay() {
-  // 记录被手动关闭的 nodeId，防止 fetchMe 轮询重复弹出
-  if (_overlayNode) _dismissedOverlayNodeId = _overlayNode.id;
+function closeBuildingOverlay(userDismissed) {
+  // 仅当用户手动点击"知道了"时记录，防止 fetchMe 轮询重复弹出
+  // 程序性关闭（骰子/移动/消费后）不记录，避免误阻挡新位置的 overlay
+  if (userDismissed && _overlayNode) _dismissedOverlayNodeId = _overlayNode.id;
   document.getElementById('building-overlay').classList.remove('show');
   document.getElementById('bo-buy-btn').style.display = 'none';
   _overlayNode = null;
