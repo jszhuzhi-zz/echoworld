@@ -197,7 +197,7 @@
     .building-item .b-icon{font-size:14px}.building-item .b-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.building-item .b-lv{color:var(--accent);font-weight:700;font-size:9px}
 
     /* === Game Log (bottom-left, above action bar) === */
-    #game-log{position:fixed;z-index:12;bottom:130px;left:12px;width:280px;max-height:150px;
+    #game-log{position:fixed;z-index:12;bottom:160px;left:12px;width:280px;max-height:150px;
       overflow-y:auto;display:flex;flex-direction:column;gap:2px;pointer-events:auto}
     .log-item{font-size:9px;color:var(--text2);background:rgba(0,0,0,0.55);padding:2px 6px;border-radius:4px;backdrop-filter:blur(4px)}
     .log-item.warn{color:var(--yellow);border-left:2px solid var(--yellow)}
@@ -449,11 +449,10 @@
     <div id="my-buildings"><span style="font-size:11px;color:var(--text2)" data-i18n="none">暂无</span></div>
   </div>
   <div class="panel-card">
-    <div class="panel-title" data-i18n="world_eco">世界经济</div>
+    <div class="panel-title">在线玩家</div>
     <div id="economy-panel" style="font-size:10px;line-height:1.8;color:var(--text2)">
-      <div><span data-i18n="total_wealth">总财富</span>: <span id="eco-total" style="color:var(--yellow);font-weight:700">0</span> CC</div>
-      <div><span data-i18n="players">玩家数</span>: <span id="eco-players" style="color:var(--accent)">0</span></div>
       <div>🟢 在线: <span id="eco-online" style="color:var(--green);font-weight:700">0</span></div>
+      <div id="online-player-list" style="margin-top:4px"></div>
     </div>
   </div>
   <div class="panel-card">
@@ -462,16 +461,6 @@
       <div id="my-referral-code" style="font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;cursor:pointer" onclick="copyReferralCode()" title="点击复制">-</div>
       <div><span data-i18n="ref_share">分享邀请码，好友注册后你获得</span> <span style="color:var(--yellow)">100 CC</span></div>
       <div style="margin-top:4px"><button class="btn-sm btn-nav" onclick="copyInviteLink()" style="font-size:9px" data-i18n="copy_link">📎 复制邀请链接</button></div>
-    </div>
-  </div>
-  <div class="panel-card">
-    <div class="panel-title" data-i18n="maslow">马斯洛需求层次</div>
-    <div style="font-size:10px;line-height:1.6;color:var(--text2)">
-      <div><span style="color:#4ade80" data-i18n="l1">L1 生理</span> <span data-i18n="l1d">食物/水/住所</span></div>
-      <div><span style="color:#60a5fa" data-i18n="l2">L2 安全</span> <span data-i18n="l2d">医疗/药品/储蓄</span></div>
-      <div><span style="color:#fbbf24" data-i18n="l3">L3 社交</span> <span data-i18n="l3d">茶馆/酒吧/社区</span></div>
-      <div><span style="color:#f97316" data-i18n="l4">L4 尊重</span> <span data-i18n="l4d">餐厅/酒店/银行</span></div>
-      <div><span style="color:#a855f7" data-i18n="l5">L5 实现</span> <span data-i18n="l5d">学院/艺术馆/创业</span></div>
     </div>
   </div>
 </div>
@@ -1166,9 +1155,25 @@ function _mergeOnlinePlayers() {
   const onlineEl = document.getElementById('eco-online');
   if (onlineEl) onlineEl.textContent = String(_onlinePlayers.size);
 
+  // 更新在线玩家列表
+  const listEl = document.getElementById('online-player-list');
+  if (listEl) {
+    const items = [];
+    for (const [eid, op] of _onlinePlayers) {
+      const isMe = eid === currentUser?.entityId;
+      items.push(`<div style="display:flex;align-items:center;gap:4px;padding:2px 0">
+        <span style="color:var(--green);font-size:8px">●</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap${isMe ? ';color:var(--accent);font-weight:600' : ''}">${op.name || '???'}${isMe ? ' (我)' : ''}</span>
+        <span style="color:var(--yellow);font-size:9px;font-weight:600">${(op.money || 0).toFixed(0)} CC</span>
+      </div>`);
+    }
+    listEl.innerHTML = items.join('') || '<span style="color:var(--text2)">暂无</span>';
+  }
+
   if (!allNodes.length) return;
+  // 动画中不要重新渲染玩家 (会导致 myPlayerMesh 被销毁)
+  if (isAnimating) return;
   // 更新 allPlayers 中在线玩家的位置
-  const nodeMap = new Map(allNodes.map(n => [n.id, n]));
   for (const [eid, op] of _onlinePlayers) {
     const idx = allPlayers.findIndex(p => p.entityId === eid);
     if (idx >= 0) {
@@ -1967,6 +1972,19 @@ async function animateSteps(pathPoints, passedBuildings) {
     pathMeshGroup.remove(m);
   }
 
+  // 确保玩家棋子在路径起点位置（消除第一帧跳变）
+  if (myPlayerMesh && pathPoints.length > 0) {
+    const start = pathPoints[0];
+    myPlayerMesh.position.x = start.x;
+    myPlayerMesh.position.z = start.y;
+    if (myPlayerLabel) {
+      myPlayerLabel.position.x = start.x;
+      myPlayerLabel.position.z = start.y;
+    }
+    // 镜头先对准起点
+    controls.target.set(start.x, 0, start.y);
+  }
+
   // 按路径点索引构建可消费建筑映射 (路径点坐标附近的建筑)
   const pbList = passedBuildings || [];
   const consumed = new Set();
@@ -2437,7 +2455,10 @@ async function fetchMap() {
     allNodes = data.nodes;
     allPlayers = data.players;
     renderMap(allNodes);
-    renderPlayers(allPlayers);
+    // 动画中不要重新渲染玩家 (会销毁 myPlayerMesh 导致动画断裂)
+    if (!isAnimating) {
+      renderPlayers(allPlayers);
+    }
     updateLeaderboard(allPlayers);
     updateMyBuildings(allNodes);
   } catch (e) {
@@ -3335,13 +3356,7 @@ window.copyInviteLink = function() {
 
 /** 获取并显示世界经济数据 */
 async function fetchEconomy() {
-  try {
-    const res = await fetch(API + '/api/world/economy');
-    if (!res.ok) return;
-    const data = await res.json();
-    document.getElementById('eco-total').textContent = data.totalWorldWealth?.toFixed(0) ?? '0';
-    document.getElementById('eco-players').textContent = data.playerCount ?? '0';
-  } catch (e) { /* ignore */ }
+  // 经济面板已移除，此函数保留为空以避免调用报错
 }
 
 /** 事件优先级 (越高越重要) */
