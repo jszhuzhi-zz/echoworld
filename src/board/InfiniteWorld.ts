@@ -172,7 +172,10 @@ const TRADE_TAX_RATE = 0.10; // 10% transaction tax
 // ============ 无限世界 ============
 
 const SPACING = 14;
-const INITIAL_BOUNDS = 100;
+/** 每个方格（intersection 围成的区域）期望容纳的玩家数 */
+const PLAYERS_PER_BLOCK = 5;
+/** 最小世界半径 = 1 个方格 */
+const MIN_BOUNDS = SPACING;
 
 export class InfiniteWorld {
   nodes: Map<number, MapNode> = new Map();
@@ -186,11 +189,11 @@ export class InfiniteWorld {
   private tradeIdCounter = 0;
   private nextId = 0;
   private generatedChunks: Set<string> = new Set();
-  private worldBounds = INITIAL_BOUNDS;
+  private worldBounds = MIN_BOUNDS;
 
   constructor() {
-    // 预生成原点附近区域
-    this.ensureRegion(0, 0, INITIAL_BOUNDS);
+    // 预生成原点附近的最小区域 (1个方格)
+    this.ensureRegion(0, 0, MIN_BOUNDS);
   }
 
   // ── 世界边界追踪 ──
@@ -198,16 +201,25 @@ export class InfiniteWorld {
   /** 获取当前世界半径 */
   getWorldBounds(): number { return this.worldBounds; }
 
-  /** 根据所有玩家位置更新世界边界 */
+  /**
+   * 根据玩家人数动态计算世界边界。
+   * 每个 SPACING×SPACING 方格期望容纳 ~PLAYERS_PER_BLOCK 个玩家,
+   * 人少时世界很小（容易遇到彼此），人多时自动扩大。
+   */
   private updateBounds(): void {
-    let maxCoord = INITIAL_BOUNDS;
-    for (const state of this.players.values()) {
-      const node = this.nodes.get(state.nodeId);
-      if (node) {
-        maxCoord = Math.max(maxCoord, Math.abs(node.x), Math.abs(node.y));
-      }
+    const playerCount = this.players.size;
+    // 需要的方格数
+    const blocksNeeded = Math.max(1, Math.ceil(playerCount / PLAYERS_PER_BLOCK));
+    // 方形排列：边长 = ceil(sqrt(blocksNeeded))
+    const gridSide = Math.ceil(Math.sqrt(blocksNeeded));
+    // 世界半径 = 方格数 × 间距 (从原点向四周扩展，所以半径 = ceil(gridSide/2) * SPACING)
+    const newBounds = Math.max(MIN_BOUNDS, Math.ceil(gridSide / 2) * SPACING);
+
+    if (newBounds > this.worldBounds) {
+      this.worldBounds = newBounds;
+      // 扩大时预生成新区域
+      this.ensureRegion(0, 0, this.worldBounds);
     }
-    this.worldBounds = maxCoord;
   }
 
   // ── 懒加载地图生成 ──
@@ -327,12 +339,11 @@ export class InfiniteWorld {
   initPlayer(entityId: string): PlayerWorldState {
     if (this.players.has(entityId)) return this.players.get(entityId)!;
 
-    // 随机出生点: 在当前世界范围内随机选择一个 road/intersection 节点
-    const spawnNode = this.findRandomSpawnNode();
-
-    const state: PlayerWorldState = {
+    // 先临时注册，让 updateBounds 计算包含新玩家的边界，
+    // 确保世界扩大后再选出生点（新玩家可以出生在新扩展区域）
+    const placeholder: PlayerWorldState = {
       entityId,
-      nodeId: spawnNode,
+      nodeId: 0,
       hunger: 80,
       energy: 80,
       happiness: 80,
@@ -343,9 +354,12 @@ export class InfiniteWorld {
       turnsPlayed: 0,
       referralCount: 0,
     };
-    this.players.set(entityId, state);
+    this.players.set(entityId, placeholder);
     this.updateBounds();
-    return state;
+
+    // 在扩展后的世界范围内选择出生点
+    placeholder.nodeId = this.findRandomSpawnNode();
+    return placeholder;
   }
 
   /** 在当前世界范围内找到一个随机可行走节点作为出生点 */
