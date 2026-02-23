@@ -1,6 +1,7 @@
 import { World } from './core/World';
 import { WORLD_1_CONFIG, AGENT_PERSONALITIES, AGENT_NAMES } from './config/default';
 import { createServer } from './api/server';
+import { closeDB } from './core/Database';
 
 /**
  * EchoWorld - AI智能体商业世界
@@ -88,6 +89,7 @@ const { app, infiniteWorld } = createServer(world, port);
 world.start();
 console.log('\n[启动] 世界已运转\n');
 console.log(`[数据目录] ${process.env.DATA_DIR || '(默认) ./data'}`);
+console.log('  数据库: echoworld.db (SQLite WAL模式)');
 console.log('  提示: 设置 DATA_DIR 环境变量可将数据存到代码之外，升级代码不丢数据\n');
 
 // 定期自动保存 (每 5 分钟)
@@ -104,6 +106,7 @@ process.on('SIGINT', () => {
   world.state.eventBus.flushToDisk();
   infiniteWorld.flushToDisk();
   world.entities.saveToDisk();
+  closeDB();
   console.log('[关闭] 所有数据已保存');
   process.exit(0);
 });

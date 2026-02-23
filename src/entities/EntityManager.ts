@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import {
   EntityType,
   EntityStatus,
@@ -8,9 +7,7 @@ import {
 } from '../core/types';
 import { WorldState } from '../core/WorldState';
 import { Entity } from './Entity';
-import { ensureDataDir, dataFile } from '../core/dataDir';
-
-const ENTITIES_FILE = dataFile('entities.json');
+import { getDB } from '../core/Database';
 
 /**
  * 实体管理器 - 管理世界中所有实体的生命周期
@@ -212,68 +209,78 @@ export class EntityManager {
     return sumOfDiffs / (2 * n * totalWealth);
   }
 
-  // ── 持久化 ──
+  // ── 持久化 (SQLite) ──
 
-  /** 保存所有实体的关键状态到磁盘 */
+  /** 保存所有实体的关键状态到数据库 */
   saveToDisk(): void {
     try {
-      ensureDataDir();
-      const data: Record<string, any> = {};
-      for (const entity of this.entities.values()) {
-        const inventoryObj: Record<string, number> = {};
-        for (const [k, v] of entity.inventory) {
-          inventoryObj[k] = v;
+      const db = getDB();
+      const saveAll = db.transaction(() => {
+        const upsert = db.prepare(
+          `INSERT OR REPLACE INTO entities(id,currency,creditScore,reputation,survivalDays,status,ownedBuildings,inventory,dailyIncome,dailyExpense)
+           VALUES(@id,@currency,@creditScore,@reputation,@survivalDays,@status,@ownedBuildings,@inventory,@dailyIncome,@dailyExpense)`
+        );
+        for (const entity of this.entities.values()) {
+          const inventoryObj: Record<string, number> = {};
+          for (const [k, v] of entity.inventory) {
+            inventoryObj[k] = v;
+          }
+          upsert.run({
+            id: entity.id,
+            currency: entity.currency,
+            creditScore: entity.creditScore,
+            reputation: entity.reputation,
+            survivalDays: entity.survivalDays,
+            status: entity.status,
+            ownedBuildings: JSON.stringify(entity.ownedBuildings),
+            inventory: JSON.stringify(inventoryObj),
+            dailyIncome: entity.dailyIncome,
+            dailyExpense: entity.dailyExpense,
+          });
         }
-        data[entity.id] = {
-          currency: entity.currency,
-          creditScore: entity.creditScore,
-          reputation: entity.reputation,
-          survivalDays: entity.survivalDays,
-          status: entity.status,
-          ownedBuildings: entity.ownedBuildings,
-          inventory: inventoryObj,
-          dailyIncome: entity.dailyIncome,
-          dailyExpense: entity.dailyExpense,
-        };
-      }
-      fs.writeFileSync(ENTITIES_FILE, JSON.stringify(data, null, 2), 'utf-8');
-      console.log(`[EntityManager] 已保存 ${this.entities.size} 个实体状态`);
+      });
+      saveAll();
+      console.log(`[EntityManager] DB已保存 ${this.entities.size} 个实体`);
     } catch (e) {
-      console.error('[EntityManager] 保存实体状态失败:', e);
+      console.error('[EntityManager] DB保存失败:', e);
     }
   }
 
-  /** 从磁盘恢复实体状态 (在 restoreEntity 之后调用) */
+  /** 从数据库恢复实体状态 (在 restoreEntity 之后调用) */
   loadFromDisk(): void {
     try {
-      if (!fs.existsSync(ENTITIES_FILE)) return;
-      const raw = fs.readFileSync(ENTITIES_FILE, 'utf-8');
-      const data = JSON.parse(raw);
-      if (!data || typeof data !== 'object') return;
+      const db = getDB();
+      const rows = db.prepare('SELECT * FROM entities').all() as any[];
+      if (rows.length === 0) return;
 
       let restored = 0;
-      for (const [id, saved] of Object.entries(data) as [string, any][]) {
-        const entity = this.entities.get(id);
+      for (const saved of rows) {
+        const entity = this.entities.get(saved.id);
         if (!entity) continue;
-        if (saved.currency !== undefined) entity.currency = saved.currency;
-        if (saved.creditScore !== undefined) entity.creditScore = saved.creditScore;
-        if (saved.reputation !== undefined) entity.reputation = saved.reputation;
-        if (saved.survivalDays !== undefined) entity.survivalDays = saved.survivalDays;
-        if (saved.status !== undefined) entity.status = saved.status;
-        if (Array.isArray(saved.ownedBuildings)) entity.ownedBuildings = saved.ownedBuildings;
-        if (saved.dailyIncome !== undefined) entity.dailyIncome = saved.dailyIncome;
-        if (saved.dailyExpense !== undefined) entity.dailyExpense = saved.dailyExpense;
-        if (saved.inventory && typeof saved.inventory === 'object') {
+
+        entity.currency = saved.currency;
+        entity.creditScore = saved.creditScore;
+        entity.reputation = saved.reputation;
+        entity.survivalDays = saved.survivalDays;
+        entity.status = saved.status;
+        entity.dailyIncome = saved.dailyIncome;
+        entity.dailyExpense = saved.dailyExpense;
+
+        try { entity.ownedBuildings = JSON.parse(saved.ownedBuildings); } catch { /* keep default */ }
+
+        try {
+          const inv = JSON.parse(saved.inventory);
           entity.inventory = new Map();
-          for (const [k, v] of Object.entries(saved.inventory)) {
+          for (const [k, v] of Object.entries(inv)) {
             entity.inventory.set(k as ResourceType, v as number);
           }
-        }
+        } catch { /* keep default */ }
+
         restored++;
       }
-      console.log(`[EntityManager] 已恢复 ${restored} 个实体状态`);
+      console.log(`[EntityManager] 已从DB恢复 ${restored} 个实体`);
     } catch (e) {
-      console.error('[EntityManager] 加载实体状态失败:', e);
+      console.error('[EntityManager] DB加载失败:', e);
     }
   }
 }

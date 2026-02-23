@@ -8,10 +8,7 @@
  * - 不使用他人设施 → 生存指标下降 → 警报 → 死亡
  */
 
-import * as fs from 'fs';
-import { ensureDataDir, dataFile } from '../core/dataDir';
-
-const WORLD_STATE_FILE = dataFile('world-state.json');
+import { getDB } from '../core/Database';
 
 // ============ 马斯洛需求分级建筑目录 ============
 
@@ -1209,7 +1206,7 @@ export class InfiniteWorld {
     }
   }
 
-  // ── 持久化 ──
+  // ── 持久化 (SQLite) ──
 
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _dirty = false;
@@ -1222,7 +1219,7 @@ export class InfiniteWorld {
       this._saveTimer = null;
       if (!this._dirty) return;
       this._dirty = false;
-      this._saveToDisk();
+      this._saveToDB();
     }, 10000);
   }
 
@@ -1232,117 +1229,212 @@ export class InfiniteWorld {
       clearTimeout(this._saveTimer);
       this._saveTimer = null;
     }
-    this._saveToDisk();
+    this._saveToDB();
   }
 
-  private _saveToDisk(): void {
+  private _saveToDB(): void {
     try {
-      ensureDataDir();
+      const db = getDB();
+      const saveAll = db.transaction(() => {
+        // ── 世界元数据 ──
+        const upsertMeta = db.prepare('INSERT OR REPLACE INTO world_meta(key, value) VALUES(?, ?)');
+        upsertMeta.run('worldBounds', String(this.worldBounds));
+        upsertMeta.run('nextId', String(this.nextId));
+        upsertMeta.run('depositIdCounter', String(this.depositIdCounter));
+        upsertMeta.run('loanIdCounter', String(this.loanIdCounter));
+        upsertMeta.run('tradeIdCounter', String(this.tradeIdCounter));
 
-      // 收集所有有建筑的节点
-      const buildings: Array<{ nodeId: number; x: number; y: number; building: WorldBuilding }> = [];
-      for (const node of this.nodes.values()) {
-        if (node.building) {
-          buildings.push({ nodeId: node.id, x: node.x, y: node.y, building: node.building });
+        // ── 玩家 ──
+        db.prepare('DELETE FROM players').run();
+        const insertPlayer = db.prepare(
+          `INSERT INTO players(entityId,nodeId,hunger,energy,happiness,alive,actionsToday,maxActions,pendingRoll,turnsPlayed,referralCount)
+           VALUES(@entityId,@nodeId,@hunger,@energy,@happiness,@alive,@actionsToday,@maxActions,@pendingRoll,@turnsPlayed,@referralCount)`
+        );
+        for (const p of this.players.values()) {
+          insertPlayer.run({
+            entityId: p.entityId,
+            nodeId: p.nodeId,
+            hunger: p.hunger,
+            energy: p.energy,
+            happiness: p.happiness,
+            alive: p.alive ? 1 : 0,
+            actionsToday: p.actionsToday,
+            maxActions: p.maxActions,
+            pendingRoll: p.pendingRoll,
+            turnsPlayed: p.turnsPlayed,
+            referralCount: p.referralCount,
+          });
         }
-      }
 
-      const state = {
-        version: 1,
-        savedAt: new Date().toISOString(),
-        worldBounds: this.worldBounds,
-        nextId: this.nextId,
-        depositIdCounter: this.depositIdCounter,
-        loanIdCounter: this.loanIdCounter,
-        tradeIdCounter: this.tradeIdCounter,
-        players: Array.from(this.players.values()),
-        buildings,
-        tradeOffers: Array.from(this.tradeOffers.values()),
-        playerDeposits: this.playerDeposits,
-        playerLoans: this.playerLoans,
-      };
+        // ── 建筑 ──
+        db.prepare('DELETE FROM buildings').run();
+        const insertBuilding = db.prepare(
+          `INSERT INTO buildings(nodeId,x,y,templateType,ownerId,ownerName,name,level,usageCount,referralCredits,listingPrice,customDepositRate,customLoanRate,loanPool,totalDeposits,totalLoansOut)
+           VALUES(@nodeId,@x,@y,@templateType,@ownerId,@ownerName,@name,@level,@usageCount,@referralCredits,@listingPrice,@customDepositRate,@customLoanRate,@loanPool,@totalDeposits,@totalLoansOut)`
+        );
+        for (const node of this.nodes.values()) {
+          if (!node.building) continue;
+          const b = node.building;
+          insertBuilding.run({
+            nodeId: node.id,
+            x: node.x,
+            y: node.y,
+            templateType: b.templateType,
+            ownerId: b.ownerId,
+            ownerName: b.ownerName,
+            name: b.name,
+            level: b.level,
+            usageCount: b.usageCount,
+            referralCredits: b.referralCredits,
+            listingPrice: b.listingPrice ?? null,
+            customDepositRate: b.customDepositRate ?? null,
+            customLoanRate: b.customLoanRate ?? null,
+            loanPool: b.loanPool ?? null,
+            totalDeposits: b.totalDeposits ?? null,
+            totalLoansOut: b.totalLoansOut ?? null,
+          });
+        }
 
-      fs.writeFileSync(WORLD_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
-      console.log(`[InfiniteWorld] 已保存世界状态 (${this.players.size} 玩家, ${buildings.length} 建筑)`);
+        // ── 交易报价 ──
+        db.prepare('DELETE FROM trade_offers').run();
+        const insertTrade = db.prepare(
+          `INSERT INTO trade_offers(id,nodeId,buildingName,buyerId,buyerName,sellerId,sellerName,price,tax,netPrice,createdAt,status)
+           VALUES(@id,@nodeId,@buildingName,@buyerId,@buyerName,@sellerId,@sellerName,@price,@tax,@netPrice,@createdAt,@status)`
+        );
+        for (const t of this.tradeOffers.values()) {
+          insertTrade.run(t);
+        }
+
+        // ── 银行存款 ──
+        db.prepare('DELETE FROM player_deposits').run();
+        const insertDeposit = db.prepare(
+          `INSERT INTO player_deposits(id,entityId,nodeId,amount,interestRate,accumulatedInterest,createdDay)
+           VALUES(@id,@entityId,@nodeId,@amount,@interestRate,@accumulatedInterest,@createdDay)`
+        );
+        for (const d of this.playerDeposits) {
+          insertDeposit.run(d);
+        }
+
+        // ── 银行贷款 ──
+        db.prepare('DELETE FROM player_loans').run();
+        const insertLoan = db.prepare(
+          `INSERT INTO player_loans(id,entityId,nodeId,principal,remainingBalance,interestRate,createdDay,status)
+           VALUES(@id,@entityId,@nodeId,@principal,@remainingBalance,@interestRate,@createdDay,@status)`
+        );
+        for (const l of this.playerLoans) {
+          insertLoan.run(l);
+        }
+      });
+
+      saveAll();
+      console.log(`[InfiniteWorld] DB已保存 (${this.players.size} 玩家, ${this.countBuildings()} 建筑)`);
     } catch (e) {
-      console.error('[InfiniteWorld] 保存世界状态失败:', e);
+      console.error('[InfiniteWorld] DB保存失败:', e);
     }
   }
 
-  /** 从磁盘加载世界状态 (应在 constructor 之后、initPlayer 之前调用) */
+  private countBuildings(): number {
+    let count = 0;
+    for (const node of this.nodes.values()) {
+      if (node.building) count++;
+    }
+    return count;
+  }
+
+  /** 从数据库加载世界状态 (应在 constructor 之后、initPlayer 之前调用) */
   loadFromDisk(): boolean {
     try {
-      if (!fs.existsSync(WORLD_STATE_FILE)) return false;
-      const raw = fs.readFileSync(WORLD_STATE_FILE, 'utf-8');
-      const state = JSON.parse(raw);
-      if (!state || state.version !== 1) return false;
+      const db = getDB();
 
-      console.log(`[InfiniteWorld] 正在恢复世界状态...`);
+      // 检查是否有数据
+      const metaRow = db.prepare('SELECT value FROM world_meta WHERE key = ?').get('worldBounds') as { value: string } | undefined;
+      if (!metaRow) return false;
 
-      // 恢复计数器
-      if (state.nextId) this.nextId = state.nextId;
-      if (state.depositIdCounter) this.depositIdCounter = state.depositIdCounter;
-      if (state.loanIdCounter) this.loanIdCounter = state.loanIdCounter;
-      if (state.tradeIdCounter) this.tradeIdCounter = state.tradeIdCounter;
+      console.log(`[InfiniteWorld] 正在从数据库恢复世界状态...`);
+
+      // ── 恢复元数据 ──
+      const getMeta = (key: string): number => {
+        const row = db.prepare('SELECT value FROM world_meta WHERE key = ?').get(key) as { value: string } | undefined;
+        return row ? Number(row.value) : 0;
+      };
+      this.nextId = getMeta('nextId');
+      this.depositIdCounter = getMeta('depositIdCounter');
+      this.loanIdCounter = getMeta('loanIdCounter');
+      this.tradeIdCounter = getMeta('tradeIdCounter');
 
       // 恢复 worldBounds 并确保区域已生成
-      if (state.worldBounds) {
-        this.worldBounds = state.worldBounds;
-        this.ensureRegion(0, 0, this.worldBounds);
-      }
+      this.worldBounds = Number(metaRow.value) || MIN_BOUNDS;
+      this.ensureRegion(0, 0, this.worldBounds);
 
-      // 恢复建筑 (需要先确保对应节点的区域已生成)
+      // ── 恢复建筑 ──
       let buildingCount = 0;
-      if (Array.isArray(state.buildings)) {
-        for (const b of state.buildings) {
-          // 确保建筑所在区域已生成
-          this.ensureRegion(b.x, b.y, SPACING);
-          // 通过坐标找到节点 (nodeId 可能因重新生成而不同)
-          const key = `${b.x},${b.y}`;
-          const realNodeId = this.coordIndex.get(key);
-          if (realNodeId !== undefined) {
-            const node = this.nodes.get(realNodeId);
-            if (node) {
-              node.building = b.building;
-              buildingCount++;
-            }
+      const buildingRows = db.prepare('SELECT * FROM buildings').all() as any[];
+      for (const b of buildingRows) {
+        this.ensureRegion(b.x, b.y, SPACING);
+        const key = `${b.x},${b.y}`;
+        const realNodeId = this.coordIndex.get(key);
+        if (realNodeId !== undefined) {
+          const node = this.nodes.get(realNodeId);
+          if (node) {
+            node.building = {
+              templateType: b.templateType,
+              ownerId: b.ownerId,
+              ownerName: b.ownerName,
+              name: b.name,
+              level: b.level,
+              usageCount: b.usageCount,
+              referralCredits: b.referralCredits,
+              listingPrice: b.listingPrice ?? undefined,
+              customDepositRate: b.customDepositRate ?? undefined,
+              customLoanRate: b.customLoanRate ?? undefined,
+              loanPool: b.loanPool ?? undefined,
+              totalDeposits: b.totalDeposits ?? undefined,
+              totalLoansOut: b.totalLoansOut ?? undefined,
+            };
+            buildingCount++;
           }
         }
       }
 
-      // 恢复玩家状态
+      // ── 恢复玩家 ──
       let playerCount = 0;
-      if (Array.isArray(state.players)) {
-        for (const p of state.players) {
-          // 确保玩家所在节点区域已生成
-          const existingNode = this.nodes.get(p.nodeId);
-          if (existingNode) {
-            this.players.set(p.entityId, p);
-            playerCount++;
-          } else {
-            // 节点ID不存在（可能因 regeneration 变了），放到原点
-            p.nodeId = this.coordIndex.get('0,0') ?? 0;
-            this.players.set(p.entityId, p);
-            playerCount++;
-          }
+      const playerRows = db.prepare('SELECT * FROM players').all() as any[];
+      for (const p of playerRows) {
+        const state: PlayerWorldState = {
+          entityId: p.entityId,
+          nodeId: p.nodeId,
+          hunger: p.hunger,
+          energy: p.energy,
+          happiness: p.happiness,
+          alive: !!p.alive,
+          actionsToday: p.actionsToday,
+          maxActions: p.maxActions,
+          pendingRoll: p.pendingRoll,
+          turnsPlayed: p.turnsPlayed,
+          referralCount: p.referralCount,
+        };
+        const existingNode = this.nodes.get(state.nodeId);
+        if (!existingNode) {
+          state.nodeId = this.coordIndex.get('0,0') ?? 0;
         }
+        this.players.set(state.entityId, state);
+        playerCount++;
       }
 
-      // 恢复交易
-      if (Array.isArray(state.tradeOffers)) {
-        for (const t of state.tradeOffers) {
-          this.tradeOffers.set(t.id, t);
-        }
+      // ── 恢复交易 ──
+      const tradeRows = db.prepare('SELECT * FROM trade_offers').all() as any[];
+      for (const t of tradeRows) {
+        this.tradeOffers.set(t.id, t as TradeOffer);
       }
 
-      // 恢复存贷款
-      if (Array.isArray(state.playerDeposits)) this.playerDeposits = state.playerDeposits;
-      if (Array.isArray(state.playerLoans)) this.playerLoans = state.playerLoans;
+      // ── 恢复存贷款 ──
+      this.playerDeposits = db.prepare('SELECT * FROM player_deposits').all() as PlayerDeposit[];
+      this.playerLoans = db.prepare('SELECT * FROM player_loans').all() as PlayerLoan[];
 
-      console.log(`[InfiniteWorld] 已恢复: ${playerCount} 玩家, ${buildingCount} 建筑, ${this.tradeOffers.size} 交易`);
+      console.log(`[InfiniteWorld] 已恢复: ${playerCount} 玩家, ${buildingCount} 建筑, ${this.tradeOffers.size} 交易, ${this.playerDeposits.length} 存款, ${this.playerLoans.length} 贷款`);
       return true;
     } catch (e) {
-      console.error('[InfiniteWorld] 加载世界状态失败:', e);
+      console.error('[InfiniteWorld] DB加载失败:', e);
       return false;
     }
   }
