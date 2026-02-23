@@ -1748,23 +1748,25 @@ export function createServer(world: World, port = 3000): express.Application {
     const result: object[] = [];
     const seen = new Set<string>();
     for (const client of wsClients) {
-      if (!client.entityId || seen.has(client.entityId)) continue;
-      seen.add(client.entityId);
-      const state = infiniteWorld.getPlayer(client.entityId);
-      if (!state) continue;
-      const entity = world.entities.getEntity(client.entityId);
-      const node = infiniteWorld.nodes.get(state.nodeId);
+      // 只要有认证的 WS 连接（浏览器打开+登录）就算在线
+      const id = client.entityId || client.userId;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      const state = client.entityId ? infiniteWorld.getPlayer(client.entityId) : null;
+      const entity = client.entityId ? world.entities.getEntity(client.entityId) : null;
+      const user = client.userId ? userStore.findById(client.userId) : null;
+      const node = state ? infiniteWorld.nodes.get(state.nodeId) : null;
       result.push({
-        entityId: client.entityId,
-        nodeId: state.nodeId,
+        entityId: client.entityId || client.userId,
+        nodeId: state?.nodeId ?? null,
         x: node?.x ?? 0,
         y: node?.y ?? 0,
-        name: entity?.name || '???',
+        name: entity?.name || user?.nickname || '???',
         money: entity?.getSummary().currency ?? 0,
-        hunger: state.hunger,
-        energy: state.energy,
-        happiness: state.happiness,
-        alive: state.alive,
+        hunger: state?.hunger ?? 100,
+        energy: state?.energy ?? 100,
+        happiness: state?.happiness ?? 100,
+        alive: state?.alive ?? true,
         online: true,
       });
     }
@@ -1846,23 +1848,22 @@ export function createServer(world: World, port = 3000): express.Application {
                   entityId: user.entityId,
                   players: getAllOnlinePlayersState(),
                 }));
-                // 通知其他人有新玩家上线
-                if (user.entityId) {
-                  const state = infiniteWorld.getPlayer(user.entityId);
-                  const entity = world.entities.getEntity(user.entityId);
-                  const node = state ? infiniteWorld.nodes.get(state.nodeId) : null;
-                  wsBroadcast({
-                    type: 'player_online',
-                    player: {
-                      entityId: user.entityId,
-                      nodeId: state?.nodeId,
-                      x: node?.x ?? 0,
-                      y: node?.y ?? 0,
-                      name: entity?.name || user.nickname,
-                      online: true,
-                    },
-                  }, user.entityId);
-                }
+                // 通知其他人有新玩家上线 (浏览器打开+登录即为在线)
+                const onlineId = user.entityId || user.id;
+                const state = user.entityId ? infiniteWorld.getPlayer(user.entityId) : null;
+                const entity = user.entityId ? world.entities.getEntity(user.entityId) : null;
+                const node = state ? infiniteWorld.nodes.get(state.nodeId) : null;
+                wsBroadcast({
+                  type: 'player_online',
+                  player: {
+                    entityId: onlineId,
+                    nodeId: state?.nodeId ?? null,
+                    x: node?.x ?? 0,
+                    y: node?.y ?? 0,
+                    name: entity?.name || user.nickname,
+                    online: true,
+                  },
+                }, onlineId);
               }
             } catch (e) {
               ws.send(JSON.stringify({ type: 'auth_error', error: 'Invalid token' }));
@@ -1876,11 +1877,12 @@ export function createServer(world: World, port = 3000): express.Application {
       });
 
       ws.on('close', () => {
-        // 通知其他人该玩家下线
-        if (client.entityId) {
+        // 通知其他人该玩家下线 (浏览器关闭即为下线)
+        const offlineId = client.entityId || client.userId;
+        if (offlineId) {
           wsBroadcast({
             type: 'player_offline',
-            entityId: client.entityId,
+            entityId: offlineId,
           });
         }
         wsClients.delete(client);
