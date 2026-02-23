@@ -1,6 +1,6 @@
 ===== EchoWorld 部署信息 =====
-部署时间: 2026-02-23 02:04:31 UTC
-Commit: 83b42618f0f223fe6a5f42f3fa25be41a5d8aede
+部署时间: 2026-02-23 06:39:11 UTC
+Commit: b5d87cdd57863444ce667b3be3f493454b31579f
 部署目标: 轻量服务器 129.211.14.208:3000
 访问地址: http://129.211.14.208:3000
 部署状态: SUCCESS
@@ -35,7 +35,7 @@ Starting EchoWorld...
 ┌────┬──────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
 │ id │ name         │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
 ├────┼──────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 0  │ echoworld    │ default     │ 1.5.0   │ fork    │ 601541   │ 0s     │ 0    │ online    │ 0%       │ 16.5mb   │ root     │ disabled │
+│ 0  │ echoworld    │ default     │ 1.5.0   │ fork    │ 663903   │ 0s     │ 0    │ online    │ 0%       │ 16.6mb   │ root     │ disabled │
 └────┴──────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
 [PM2] Saving current process list...
 [PM2] Successfully saved in /root/.pm2/dump.pm2
@@ -83,10 +83,10 @@ $ pm2 unstartup systemd
 ┌────┬──────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
 │ id │ name         │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
 ├────┼──────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
-│ 0  │ echoworld    │ default     │ 1.5.0   │ fork    │ 601541   │ 1s     │ 0    │ online    │ 0%       │ 71.1mb   │ root     │ disabled │
+│ 0  │ echoworld    │ default     │ 1.5.0   │ fork    │ 663903   │ 1s     │ 0    │ online    │ 0%       │ 67.6mb   │ root     │ disabled │
 └────┴──────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
 API test:
-{"time":{"day":419,"hour":10,"tick":1},"formatted":"Day 419, 10:04","running":true,"realTime":"2026-02-23T02:04:20.913Z","realHour":10,"realMinute":4}
+{"time":{"day":419,"hour":14,"tick":1},"formatted":"Day 419, 14:39","running":true,"realTime":"2026-02-23T06:39:00.539Z","realHour":14,"realMinute":39}
 Deploy complete! URL: http://129.211.14.208:3000
 === SSH deploy finished ===
 
