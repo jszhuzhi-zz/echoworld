@@ -1024,6 +1024,7 @@ let currentUser = null, myState = null, myEntity = null, allNodes = [], allPlaye
 let buildingCatalog = [], selectedBuildNodeId = null;
 let _overlayNode = null; // currently shown building node (for trade offers)
 let _tradeTargetNode = null; // node being traded (persists after overlay closes)
+let _dismissedOverlayNodeId = null; // 用户手动关闭的 overlay 对应的 nodeId，防止轮询重复弹出
 let pendingDirections = null;
 let myPlayerMesh = null, myPlayerLabel = null;
 let isAnimating = false;
@@ -2353,9 +2354,11 @@ function updateMyBuildings(nodes) {
   }).join('') || `<span style="font-size:11px;color:var(--text2)">${t('none')}</span>`;
 }
 
-function showBuildingOverlay(node) {
+function showBuildingOverlay(node, force) {
   const b = node.building;
   if (!b || b.ownerId === currentUser?.entityId) return;
+  // 如果用户手动关闭了这个节点的 overlay，不再自动弹出（除非 force 或玩家移动到新位置）
+  if (!force && _dismissedOverlayNodeId === node.id) return;
   _overlayNode = node;
   const tpl = buildingCatalog.find(t => t.type === b.templateType);
   if (!tpl) return;
@@ -2371,6 +2374,8 @@ function showBuildingOverlay(node) {
 }
 
 function closeBuildingOverlay() {
+  // 记录被手动关闭的 nodeId，防止 fetchMe 轮询重复弹出
+  if (_overlayNode) _dismissedOverlayNodeId = _overlayNode.id;
   document.getElementById('building-overlay').classList.remove('show');
   document.getElementById('bo-buy-btn').style.display = 'none';
   _overlayNode = null;
@@ -2574,6 +2579,7 @@ window.rollDice = async function() {
 async function chooseDirection(directionNodeId) {
   try {
     hideDirButtons();
+    _dismissedOverlayNodeId = null; // 移动后允许新位置的建筑 overlay 弹出
 
     const res = await fetch(API + '/api/world/move', {
       method: 'POST', headers: authHeaders(),
@@ -3699,7 +3705,7 @@ renderer.domElement.addEventListener('click', (event) => {
       const node = obj.userData.node;
       updatePosInfo(node);
       if (node.building && node.building.ownerId !== currentUser?.entityId) {
-        showBuildingOverlay(node);
+        showBuildingOverlay(node, true); // force: 用户主动点击地图建筑
       }
     }
   }
