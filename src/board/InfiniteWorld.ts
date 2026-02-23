@@ -523,8 +523,8 @@ export class InfiniteWorld {
       }
     };
 
-    // 收集起始节点附近建筑
-    collectBuildings(state.nodeId);
+    // 起点所在建筑不算路过，从第一步开始收集
+    // collectBuildings(state.nodeId);  // 起点不计入
     collectBuildings(current);
 
     while (remaining > 0) {
