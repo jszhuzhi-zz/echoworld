@@ -92,6 +92,8 @@ console.log('\n[启动] 世界已运转\n');
 process.on('SIGINT', () => {
   console.log('\n[关闭] 正在停止世界...');
   world.stop();
+  // 持久化事件日志
+  world.state.eventBus.flushToDisk();
   const snapshot = world.getFullSnapshot();
   console.log('\n最终世界状态:');
   console.log(`  实体数: ${(snapshot.entities as unknown[]).length}`);

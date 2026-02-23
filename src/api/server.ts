@@ -1,8 +1,10 @@
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
+import http from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
 import { World } from '../core/World';
-import { BuildingType, ResourceType, EntityType, WorldEventType } from '../core/types';
+import { BuildingType, ResourceType, EntityType, WorldEventType, WorldEvent } from '../core/types';
 import { userStore } from '../auth/UserStore';
 import { authMiddleware, requireRole, optionalAuth } from '../auth/middleware';
 import { InfiniteWorld, MASLOW_BUILDINGS } from '../board/InfiniteWorld';
@@ -632,6 +634,22 @@ export function createServer(world: World, port = 3000): express.Application {
       })
       .slice(-count);
     res.json(events);
+  });
+
+  /** 分页事件查询 - 全量历史，不限条数 */
+  app.get('/api/events/paginated', (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize as string) || 50));
+    const type = req.query.type as string | undefined;
+    const validType = type && Object.values(WorldEventType).includes(type as WorldEventType) ? type as WorldEventType : undefined;
+
+    const result = world.state.eventBus.getEventsPaginated(page, pageSize, validType);
+    // 过滤国库相关事件
+    result.events = result.events.filter(e => {
+      const d = e.data;
+      return d.entityId !== treasuryEntityId && d.from !== treasuryEntityId && d.to !== treasuryEntityId;
+    });
+    res.json(result);
   });
 
   // ==================== 投资用户 API ====================
@@ -1685,10 +1703,198 @@ export function createServer(world: World, port = 3000): express.Application {
     res.sendFile(path.join(publicPath, 'api-docs.html'));
   });
 
+  // ==================== WebSocket 实时多人系统 ====================
+
+  // 连接追踪: wsClient → { entityId, lastPos }
+  interface WsClient {
+    ws: WebSocket;
+    entityId?: string;
+    userId?: string;
+    lastBroadcastPos?: { x: number; y: number };
+  }
+  const wsClients = new Set<WsClient>();
+
+  /** 向所有连接的 WebSocket 客户端广播消息 */
+  function wsBroadcast(msg: object, excludeEntityId?: string): void {
+    const payload = JSON.stringify(msg);
+    for (const client of wsClients) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        if (excludeEntityId && client.entityId === excludeEntityId) continue;
+        client.ws.send(payload);
+      }
+    }
+  }
+
+  /** 向附近玩家广播 (基于坐标距离) */
+  function wsBroadcastNearby(msg: object, centerX: number, centerY: number, radius: number, excludeEntityId?: string): void {
+    const payload = JSON.stringify(msg);
+    for (const client of wsClients) {
+      if (client.ws.readyState !== WebSocket.OPEN) continue;
+      if (excludeEntityId && client.entityId === excludeEntityId) continue;
+      if (!client.entityId) continue;
+      const state = infiniteWorld.getPlayer(client.entityId);
+      if (!state) continue;
+      const node = infiniteWorld.nodes.get(state.nodeId);
+      if (!node) continue;
+      const dx = node.x - centerX, dy = node.y - centerY;
+      if (dx * dx + dy * dy <= radius * radius) {
+        client.ws.send(payload);
+      }
+    }
+  }
+
+  /** 收集所有在线玩家的实时位置和状态 */
+  function getAllOnlinePlayersState(): object[] {
+    const result: object[] = [];
+    const seen = new Set<string>();
+    for (const client of wsClients) {
+      if (!client.entityId || seen.has(client.entityId)) continue;
+      seen.add(client.entityId);
+      const state = infiniteWorld.getPlayer(client.entityId);
+      if (!state) continue;
+      const entity = world.entities.getEntity(client.entityId);
+      const node = infiniteWorld.nodes.get(state.nodeId);
+      result.push({
+        entityId: client.entityId,
+        nodeId: state.nodeId,
+        x: node?.x ?? 0,
+        y: node?.y ?? 0,
+        name: entity?.name || '???',
+        money: entity?.getSummary().currency ?? 0,
+        hunger: state.hunger,
+        energy: state.energy,
+        happiness: state.happiness,
+        alive: state.alive,
+        online: true,
+      });
+    }
+    return result;
+  }
+
+  // 监听世界事件，通过 WebSocket 广播
+  world.state.eventBus.on('*', (event: WorldEvent) => {
+    // 过滤国库事件
+    const d = event.data;
+    if (d.entityId === treasuryEntityId || d.from === treasuryEntityId || d.to === treasuryEntityId) return;
+    // 跳过频繁的 tick 事件
+    if (event.type === WorldEventType.TICK) return;
+
+    // 广播世界事件给所有客户端
+    wsBroadcast({ type: 'world_event', event });
+
+    // 对于玩家行动事件，额外发送位置更新给附近玩家
+    if (event.type === WorldEventType.ENTITY_ACTION && d.entityId) {
+      const entityId = d.entityId as string;
+      const state = infiniteWorld.getPlayer(entityId);
+      if (state) {
+        const node = infiniteWorld.nodes.get(state.nodeId);
+        if (node) {
+          const entity = world.entities.getEntity(entityId);
+          wsBroadcast({
+            type: 'player_update',
+            player: {
+              entityId,
+              nodeId: state.nodeId,
+              x: node.x,
+              y: node.y,
+              name: entity?.name || '???',
+              money: entity?.getSummary().currency ?? 0,
+              hunger: state.hunger,
+              energy: state.energy,
+              happiness: state.happiness,
+              alive: state.alive,
+              action: d.action,
+            },
+          });
+        }
+      }
+    }
+  });
+
+  // 定期广播所有在线玩家位置 (每 2 秒)
+  setInterval(() => {
+    if (wsClients.size === 0) return;
+    const players = getAllOnlinePlayersState();
+    wsBroadcast({ type: 'players_sync', players });
+  }, 2000);
+
   // ==================== 启动 ====================
   if (!process.env.DEPLOY_ENV) {
-    app.listen(port, '0.0.0.0', () => {
+    const server = http.createServer(app);
+    const wss = new WebSocketServer({ server, path: '/ws' });
+
+    wss.on('connection', (ws, req) => {
+      const client: WsClient = { ws };
+      wsClients.add(client);
+      console.log(`[WS] 新连接，当前在线: ${wsClients.size}`);
+
+      ws.on('message', (raw) => {
+        try {
+          const msg = JSON.parse(raw.toString());
+          // 客户端发送认证信息
+          if (msg.type === 'auth' && msg.token) {
+            try {
+              const jwt = require('jsonwebtoken');
+              const decoded = jwt.verify(msg.token, process.env.JWT_SECRET || 'echoworld_secret_key_2024') as any;
+              const user = userStore.findById(decoded.userId);
+              if (user) {
+                client.userId = user.id;
+                client.entityId = user.entityId;
+                // 发送当前在线玩家状态
+                ws.send(JSON.stringify({
+                  type: 'auth_ok',
+                  entityId: user.entityId,
+                  players: getAllOnlinePlayersState(),
+                }));
+                // 通知其他人有新玩家上线
+                if (user.entityId) {
+                  const state = infiniteWorld.getPlayer(user.entityId);
+                  const entity = world.entities.getEntity(user.entityId);
+                  const node = state ? infiniteWorld.nodes.get(state.nodeId) : null;
+                  wsBroadcast({
+                    type: 'player_online',
+                    player: {
+                      entityId: user.entityId,
+                      nodeId: state?.nodeId,
+                      x: node?.x ?? 0,
+                      y: node?.y ?? 0,
+                      name: entity?.name || user.nickname,
+                      online: true,
+                    },
+                  }, user.entityId);
+                }
+              }
+            } catch (e) {
+              ws.send(JSON.stringify({ type: 'auth_error', error: 'Invalid token' }));
+            }
+          }
+          // 客户端 ping
+          if (msg.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong', time: Date.now() }));
+          }
+        } catch (e) { /* ignore invalid messages */ }
+      });
+
+      ws.on('close', () => {
+        // 通知其他人该玩家下线
+        if (client.entityId) {
+          wsBroadcast({
+            type: 'player_offline',
+            entityId: client.entityId,
+          });
+        }
+        wsClients.delete(client);
+        console.log(`[WS] 连接断开，当前在线: ${wsClients.size}`);
+      });
+
+      ws.on('error', () => {
+        wsClients.delete(client);
+      });
+    });
+
+    server.listen(port, '0.0.0.0', () => {
       console.log(`\n[EchoWorld] 服务器运行在 http://0.0.0.0:${port}`);
+      console.log(`[EchoWorld] WebSocket: ws://0.0.0.0:${port}/ws`);
       console.log(`[EchoWorld] 前端面板: http://localhost:${port}/`);
       console.log(`[EchoWorld] 默认管理员: 47939500@qq.com / admin888`);
     });

@@ -61,6 +61,11 @@
       font-size: 11px; padding: 2px 8px; border-radius: 10px;
       background: rgba(59,130,246,0.15); color: var(--accent);
     }
+    .ws-badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    }
+    .ws-badge.connected { background: rgba(16,185,129,0.15); color: var(--green); }
+    .ws-badge.disconnected { background: rgba(239,68,68,0.15); color: var(--red); }
 
     /* World info bar */
     .world-bar {
@@ -90,6 +95,8 @@
     .event-item.rule::before { background: var(--accent2); }
     .event-item.bank::before { background: var(--orange); }
     .event-item.agent::before { background: var(--red); }
+    .event-item.realtime { animation: newEventFlash 1s ease-out; }
+    @keyframes newEventFlash { 0% { background: rgba(59,130,246,0.15); } 100% { background: transparent; } }
 
     .event-time { font-size: 11px; color: var(--text2); margin-bottom: 2px; }
     .event-type {
@@ -129,7 +136,7 @@
     .price-change.up { color: var(--green); }
     .price-change.down { color: var(--red); }
 
-    .scroll-box { max-height: 600px; overflow-y: auto; }
+    .scroll-box { max-height: none; overflow-y: visible; }
     .scroll-box::-webkit-scrollbar { width: 4px; }
     .scroll-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
@@ -142,6 +149,25 @@
     .filter-btn:hover { border-color: var(--accent); }
 
     .empty-state { text-align: center; padding: 40px; color: var(--text2); font-size: 14px; }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 16px; padding: 12px 0; flex-wrap: wrap;
+    }
+    .page-btn {
+      padding: 6px 14px; border: 1px solid var(--border); background: var(--bg3);
+      border-radius: 6px; color: var(--text2); font-size: 12px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .page-btn.active { border-color: var(--accent); color: white; background: var(--accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-info { font-size: 12px; color: var(--text2); padding: 0 8px; }
+    .page-size-select {
+      padding: 4px 8px; border: 1px solid var(--border); background: var(--bg3);
+      border-radius: 6px; color: var(--text); font-size: 12px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -173,18 +199,24 @@
       <!-- Main: Events -->
       <div>
         <div class="card">
-          <div class="card-title">世界新闻 <span class="badge" id="eventCount">0</span></div>
+          <div class="card-title">
+            世界新闻
+            <span class="badge" id="eventCount">0</span>
+            <span class="ws-badge disconnected" id="wsStatus">离线</span>
+          </div>
           <div class="filter-bar">
-            <button class="filter-btn active" onclick="filterEvents('all')">全部</button>
-            <button class="filter-btn" onclick="filterEvents('trade')">交易</button>
-            <button class="filter-btn" onclick="filterEvents('build')">建筑</button>
-            <button class="filter-btn" onclick="filterEvents('rule')">规则</button>
-            <button class="filter-btn" onclick="filterEvents('bank')">银行</button>
-            <button class="filter-btn" onclick="filterEvents('agent')">智能体</button>
+            <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">全部</button>
+            <button class="filter-btn" data-filter="trade" onclick="setFilter('trade', this)">交易</button>
+            <button class="filter-btn" data-filter="build" onclick="setFilter('build', this)">建筑</button>
+            <button class="filter-btn" data-filter="rule" onclick="setFilter('rule', this)">规则</button>
+            <button class="filter-btn" data-filter="bank" onclick="setFilter('bank', this)">银行</button>
+            <button class="filter-btn" data-filter="agent" onclick="setFilter('agent', this)">智能体</button>
           </div>
           <div class="scroll-box" id="eventList">
             <div class="empty-state">加载中...</div>
           </div>
+          <!-- Pagination -->
+          <div class="pagination" id="pagination"></div>
         </div>
       </div>
 
@@ -216,8 +248,12 @@
     const API = '';
     let token = localStorage.getItem('echoworld_token');
     let currentUser = JSON.parse(localStorage.getItem('echoworld_user') || 'null');
-    let allEvents = [];
     let currentFilter = 'all';
+    let currentPage = 1;
+    let pageSize = 50;
+    let totalEvents = 0;
+    let totalPages = 1;
+    let displayedEvents = [];
 
     // Show user info if logged in
     if (token && currentUser) {
@@ -233,6 +269,72 @@
       localStorage.removeItem('echoworld_token');
       localStorage.removeItem('echoworld_user');
       window.location.reload();
+    }
+
+    // ========== WebSocket 实时新闻 ==========
+    let _ws = null;
+    let _wsConnected = false;
+
+    function wsConnect() {
+      if (_ws && (_ws.readyState === WebSocket.OPEN || _ws.readyState === WebSocket.CONNECTING)) return;
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      try {
+        _ws = new WebSocket(`${proto}//${location.host}/ws`);
+      } catch (e) {
+        setTimeout(wsConnect, 5000);
+        return;
+      }
+
+      _ws.onopen = () => {
+        _wsConnected = true;
+        updateWsStatus();
+        if (token) _ws.send(JSON.stringify({ type: 'auth', token }));
+      };
+
+      _ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'world_event' && msg.event) {
+            // 如果在第1页，实时插入新事件到顶部
+            if (currentPage === 1) {
+              const ev = msg.event;
+              const cat = categorizeEvent(ev);
+              if (currentFilter === 'all' || cat === currentFilter) {
+                displayedEvents.unshift(ev);
+                totalEvents++;
+                document.getElementById('eventCount').textContent = totalEvents;
+                prependEventToList(ev, true);
+              }
+            } else {
+              // 不在第1页，只更新计数
+              totalEvents++;
+              document.getElementById('eventCount').textContent = totalEvents;
+            }
+          }
+        } catch (e) { /* ignore */ }
+      };
+
+      _ws.onclose = () => {
+        _wsConnected = false;
+        updateWsStatus();
+        setTimeout(wsConnect, 3000);
+      };
+
+      _ws.onerror = () => {
+        _wsConnected = false;
+        updateWsStatus();
+      };
+    }
+
+    function updateWsStatus() {
+      const el = document.getElementById('wsStatus');
+      if (_wsConnected) {
+        el.className = 'ws-badge connected';
+        el.textContent = '实时';
+      } else {
+        el.className = 'ws-badge disconnected';
+        el.textContent = '离线';
+      }
     }
 
     // ========== World Status ==========
@@ -258,16 +360,36 @@
       } catch (e) { console.error(e); }
     }
 
-    // ========== Events ==========
-    async function loadEvents() {
+    // ========== Events (Paginated) ==========
+    async function loadEvents(page) {
+      if (page !== undefined) currentPage = page;
       try {
-        const res = await fetch(API + '/api/events?count=100');
-        allEvents = await res.json();
-        document.getElementById('eventCount').textContent = allEvents.length;
+        const typeParam = currentFilter !== 'all' ? `&type=${getApiTypeFilter(currentFilter)}` : '';
+        const res = await fetch(API + `/api/events/paginated?page=${currentPage}&pageSize=${pageSize}${typeParam}`);
+        const data = await res.json();
+        displayedEvents = data.events || [];
+        totalEvents = data.total || 0;
+        totalPages = data.totalPages || 1;
+        currentPage = data.page || 1;
+
+        document.getElementById('eventCount').textContent = totalEvents;
         renderEvents();
+        renderPagination();
       } catch (e) {
         document.getElementById('eventList').innerHTML = '<div class="empty-state">无法加载事件</div>';
       }
+    }
+
+    /** 将前端过滤类别映射到API的事件类型 */
+    function getApiTypeFilter(filter) {
+      const map = {
+        trade: 'transaction',
+        build: 'building_built',
+        rule: 'rule_evolved',
+        bank: '', // bank events don't have a single type, use frontend filter
+        agent: 'entity_action',
+      };
+      return map[filter] || '';
     }
 
     function categorizeEvent(event) {
@@ -280,11 +402,12 @@
       return 'other';
     }
 
-    function filterEvents(category) {
+    function setFilter(category, btn) {
       currentFilter = category;
+      currentPage = 1;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      renderEvents();
+      btn.classList.add('active');
+      loadEvents(1);
     }
 
     const EVENT_TYPE_LABELS = {
@@ -302,7 +425,6 @@
         const pad = n => String(n).padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
       }
-      // Fallback to game time
       const t = ev.timestamp;
       return t ? `Game Day ${t.day || '?'}, ${t.hour || '?'}:00` : '';
     }
@@ -356,7 +478,6 @@
         case 'day_end':
           return `第 ${d.day || ev.timestamp?.day || '?'} 天结束，日终结算完成`;
         default: {
-          // Generic fallback
           const parts = [];
           if (name) parts.push(`<strong>${name}</strong>`);
           if (d.action) parts.push(d.action);
@@ -370,30 +491,106 @@
       }
     }
 
+    function renderEventItem(ev, isRealtime) {
+      const cat = categorizeEvent(ev);
+      const timeStr = formatRealTime(ev);
+      const gameTime = ev.timestamp ? ` (Day ${ev.timestamp.day || '?'})` : '';
+      const typeLabel = EVENT_TYPE_LABELS[ev.type] || ev.type || 'event';
+      const desc = buildEventDesc(ev);
+      return `
+        <li class="event-item ${cat}${isRealtime ? ' realtime' : ''}">
+          <div class="event-time">${timeStr}<span style="color:var(--accent);margin-left:6px">${gameTime}</span></div>
+          <span class="event-type">${typeLabel}</span>
+          <span class="event-content">${desc}</span>
+        </li>
+      `;
+    }
+
     function renderEvents() {
-      const filtered = currentFilter === 'all' ? allEvents :
-        allEvents.filter(e => categorizeEvent(e) === currentFilter);
+      // 前端再次过滤（API可能不支持所有过滤类别如 bank）
+      const filtered = currentFilter === 'all' ? displayedEvents :
+        displayedEvents.filter(e => categorizeEvent(e) === currentFilter);
 
       if (filtered.length === 0) {
         document.getElementById('eventList').innerHTML = '<div class="empty-state">暂无此类事件</div>';
         return;
       }
 
-      document.getElementById('eventList').innerHTML = '<ul class="event-list">' +
-        filtered.slice(0, 100).map(ev => {
-          const cat = categorizeEvent(ev);
-          const timeStr = formatRealTime(ev);
-          const gameTime = ev.timestamp ? ` (Day ${ev.timestamp.day || '?'})` : '';
-          const typeLabel = EVENT_TYPE_LABELS[ev.type] || ev.type || 'event';
-          const desc = buildEventDesc(ev);
-          return `
-            <li class="event-item ${cat}">
-              <div class="event-time">${timeStr}<span style="color:var(--accent);margin-left:6px">${gameTime}</span></div>
-              <span class="event-type">${typeLabel}</span>
-              <span class="event-content">${desc}</span>
-            </li>
-          `;
-        }).join('') + '</ul>';
+      document.getElementById('eventList').innerHTML = '<ul class="event-list" id="eventUl">' +
+        filtered.map(ev => renderEventItem(ev, false)).join('') + '</ul>';
+    }
+
+    /** 实时将新事件插入到列表顶部 */
+    function prependEventToList(ev, isRealtime) {
+      const ul = document.getElementById('eventUl');
+      if (!ul) {
+        // 列表尚未渲染，直接 renderEvents
+        renderEvents();
+        return;
+      }
+      const html = renderEventItem(ev, isRealtime);
+      ul.insertAdjacentHTML('afterbegin', html);
+      // 保持列表不超过 pageSize * 2 条以防内存膨胀
+      while (ul.children.length > pageSize * 2) {
+        ul.removeChild(ul.lastChild);
+      }
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const el = document.getElementById('pagination');
+      if (totalPages <= 1) {
+        el.innerHTML = `<span class="page-info">共 ${totalEvents} 条记录</span>`;
+        return;
+      }
+
+      let html = '';
+      // 上一页
+      html += `<button class="page-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="loadEvents(${currentPage - 1})">上一页</button>`;
+
+      // 页码按钮 (显示最多 7 个页码)
+      const maxShow = 7;
+      let startPage = Math.max(1, currentPage - Math.floor(maxShow / 2));
+      let endPage = Math.min(totalPages, startPage + maxShow - 1);
+      if (endPage - startPage + 1 < maxShow) {
+        startPage = Math.max(1, endPage - maxShow + 1);
+      }
+
+      if (startPage > 1) {
+        html += `<button class="page-btn" onclick="loadEvents(1)">1</button>`;
+        if (startPage > 2) html += `<span class="page-info">...</span>`;
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="loadEvents(${i})">${i}</button>`;
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="page-info">...</span>`;
+        html += `<button class="page-btn" onclick="loadEvents(${totalPages})">${totalPages}</button>`;
+      }
+
+      // 下一页
+      html += `<button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="loadEvents(${currentPage + 1})">下一页</button>`;
+
+      // 信息
+      html += `<span class="page-info">共 ${totalEvents} 条 · 第 ${currentPage}/${totalPages} 页</span>`;
+
+      // 每页条数选择
+      html += `<select class="page-size-select" onchange="changePageSize(this.value)">
+        <option value="20" ${pageSize === 20 ? 'selected' : ''}>20条/页</option>
+        <option value="50" ${pageSize === 50 ? 'selected' : ''}>50条/页</option>
+        <option value="100" ${pageSize === 100 ? 'selected' : ''}>100条/页</option>
+        <option value="200" ${pageSize === 200 ? 'selected' : ''}>200条/页</option>
+      </select>`;
+
+      el.innerHTML = html;
+    }
+
+    function changePageSize(newSize) {
+      pageSize = parseInt(newSize) || 50;
+      currentPage = 1;
+      loadEvents(1);
     }
 
     // ========== Leaderboard ==========
@@ -446,14 +643,18 @@
     // ========== Init ==========
     function refreshAll() {
       loadWorldInfo();
-      loadEvents();
+      loadEvents(1);
       loadLeaderboard();
       loadMarketPrices();
       loadBankInfo();
     }
     refreshAll();
+    wsConnect();
     setInterval(loadWorldInfo, 5000);
-    setInterval(loadEvents, 10000);
+    // 如果 WS 连接正常则降低轮询频率
+    setInterval(() => {
+      if (!_wsConnected) loadEvents();
+    }, 15000);
     setInterval(() => { loadLeaderboard(); loadMarketPrices(); loadBankInfo(); }, 15000);
   </script>
 </body>

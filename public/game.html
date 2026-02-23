@@ -453,6 +453,7 @@
     <div id="economy-panel" style="font-size:10px;line-height:1.8;color:var(--text2)">
       <div><span data-i18n="total_wealth">总财富</span>: <span id="eco-total" style="color:var(--yellow);font-weight:700">0</span> CC</div>
       <div><span data-i18n="players">玩家数</span>: <span id="eco-players" style="color:var(--accent)">0</span></div>
+      <div>🟢 在线: <span id="eco-online" style="color:var(--green);font-weight:700">0</span></div>
     </div>
   </div>
   <div class="panel-card">
@@ -1039,6 +1040,193 @@ let myPlayerMesh = null, myPlayerLabel = null;
 let isAnimating = false;
 let myLastPos = { x: 0, y: 0 }; // 玩家最后已知坐标 (用于地图加载中心)
 const logs = [];
+
+// ============ WEBSOCKET 实时多人系统 ============
+let _ws = null;
+let _wsReconnectTimer = null;
+let _wsConnected = false;
+const _onlinePlayers = new Map(); // entityId → player data
+
+function wsConnect() {
+  if (_ws && (_ws.readyState === WebSocket.OPEN || _ws.readyState === WebSocket.CONNECTING)) return;
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${proto}//${location.host}/ws`;
+  try {
+    _ws = new WebSocket(wsUrl);
+  } catch (e) {
+    console.error('[WS] 连接失败:', e);
+    _scheduleReconnect();
+    return;
+  }
+
+  _ws.onopen = () => {
+    _wsConnected = true;
+    console.log('[WS] 已连接');
+    // 发送认证
+    if (token) {
+      _ws.send(JSON.stringify({ type: 'auth', token }));
+    }
+  };
+
+  _ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(evt.data);
+      _handleWsMessage(msg);
+    } catch (e) { /* ignore */ }
+  };
+
+  _ws.onclose = () => {
+    _wsConnected = false;
+    console.log('[WS] 断开');
+    _scheduleReconnect();
+  };
+
+  _ws.onerror = () => {
+    _wsConnected = false;
+  };
+}
+
+function _scheduleReconnect() {
+  if (_wsReconnectTimer) return;
+  _wsReconnectTimer = setTimeout(() => {
+    _wsReconnectTimer = null;
+    wsConnect();
+  }, 3000);
+}
+
+function _handleWsMessage(msg) {
+  switch (msg.type) {
+    case 'auth_ok':
+      // 初始化在线玩家列表
+      if (msg.players) {
+        for (const p of msg.players) {
+          _onlinePlayers.set(p.entityId, p);
+        }
+        _mergeOnlinePlayers();
+      }
+      break;
+
+    case 'players_sync':
+      // 定期全量同步在线玩家位置
+      if (msg.players) {
+        _onlinePlayers.clear();
+        for (const p of msg.players) {
+          _onlinePlayers.set(p.entityId, p);
+        }
+        _mergeOnlinePlayers();
+      }
+      break;
+
+    case 'player_update':
+      // 单个玩家位置/动作更新
+      if (msg.player) {
+        const p = msg.player;
+        _onlinePlayers.set(p.entityId, p);
+        _mergeOnlinePlayers();
+        // 如果是附近玩家的行动，显示在日志中
+        if (p.entityId !== currentUser?.entityId && p.action) {
+          const actionName = p.action === 'roll_dice' ? '🎲' : p.action === 'move' ? '🚶' : p.action === 'build' ? '🏗️' : p.action === 'use_building' ? '🏪' : '⚡';
+          addLog(`${actionName} ${p.name} ${p.action === 'move' ? '移动了' : p.action === 'roll_dice' ? '掷骰子' : p.action === 'build' ? '建造了建筑' : p.action === 'use_building' ? '消费了建筑' : '行动了'}`, 'broadcast');
+        }
+      }
+      break;
+
+    case 'player_online':
+      if (msg.player) {
+        _onlinePlayers.set(msg.player.entityId, msg.player);
+        _mergeOnlinePlayers();
+        addLog(`🟢 ${msg.player.name} 上线了`, 'broadcast');
+      }
+      break;
+
+    case 'player_offline':
+      if (msg.entityId) {
+        const offP = _onlinePlayers.get(msg.entityId);
+        _onlinePlayers.delete(msg.entityId);
+        _mergeOnlinePlayers();
+        if (offP) addLog(`🔴 ${offP.name} 下线了`, 'broadcast');
+      }
+      break;
+
+    case 'world_event':
+      // 实时世界事件 → 更新新闻滚动条
+      if (msg.event) {
+        _handleRealtimeEvent(msg.event);
+      }
+      break;
+
+    case 'pong':
+      break;
+  }
+}
+
+/** 将在线玩家数据合并到 allPlayers 中并重新渲染 */
+function _mergeOnlinePlayers() {
+  // 更新在线人数
+  const onlineEl = document.getElementById('eco-online');
+  if (onlineEl) onlineEl.textContent = String(_onlinePlayers.size);
+
+  if (!allNodes.length) return;
+  // 更新 allPlayers 中在线玩家的位置
+  const nodeMap = new Map(allNodes.map(n => [n.id, n]));
+  for (const [eid, op] of _onlinePlayers) {
+    const idx = allPlayers.findIndex(p => p.entityId === eid);
+    if (idx >= 0) {
+      // 更新已有玩家
+      if (op.nodeId !== undefined) allPlayers[idx].nodeId = op.nodeId;
+      if (op.money !== undefined) allPlayers[idx].money = op.money;
+      if (op.name) allPlayers[idx].name = op.name;
+    } else {
+      // 新玩家加入（可能不在初始地图范围内）
+      allPlayers.push({
+        entityId: eid,
+        nodeId: op.nodeId,
+        name: op.name || '???',
+        money: op.money || 0,
+        hunger: op.hunger || 50,
+        energy: op.energy || 50,
+        happiness: op.happiness || 50,
+        alive: op.alive !== false,
+      });
+    }
+  }
+  renderPlayers(allPlayers);
+  updateLeaderboard(allPlayers);
+}
+
+/** 处理实时推送的世界事件 */
+function _handleRealtimeEvent(event) {
+  // 更新新闻 ticker
+  const el = document.getElementById('gnt-content');
+  if (!el) return;
+  const PRIORITY = {
+    entity_bankrupt: 10, rule_evolved: 9, building_built: 7,
+    building_upgraded: 6, entity_created: 5, entity_action: 3,
+    transaction: 4, market_price_change: 2, day_start: 1, day_end: 1,
+  };
+  const pri = PRIORITY[event.type] || 0;
+  if (pri >= 3) {
+    const d = event.data || {};
+    const name = d.entityName || d.entity || '';
+    let text = '';
+    switch (event.type) {
+      case 'entity_action': text = `${name} ${d.action || ''}`; break;
+      case 'building_built': text = `${name} 建造了 ${d.buildingType || ''}`; break;
+      case 'entity_bankrupt': text = `💀 ${name} 破产了！`; break;
+      case 'entity_created': text = `🆕 ${name} 加入世界`; break;
+      default: text = `${event.type}: ${name}`;
+    }
+    // 追加到滚动条
+    el.textContent = el.textContent + '  ★  ' + text;
+  }
+}
+
+// WebSocket heartbeat
+setInterval(() => {
+  if (_ws && _ws.readyState === WebSocket.OPEN) {
+    _ws.send(JSON.stringify({ type: 'ping' }));
+  }
+}, 30000);
 
 function authHeaders() {
   return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'X-Lang': currentLang };
@@ -3565,15 +3753,18 @@ async function init() {
   fetchNewsTicker();
   fetchTradeOffers();
 
-  // Auto refresh
+  // 连接 WebSocket 实时通信
+  wsConnect();
+
+  // Auto refresh (降低轮询频率，WebSocket 已处理实时更新)
   setInterval(async () => {
     await fetchMe();
     await fetchMap();
     await fetchEconomy();
     await fetchTradeOffers();
-  }, 10000);
-  setInterval(fetchWorldBroadcast, 15000);
-  setInterval(fetchNewsTicker, 30000);
+  }, _wsConnected ? 30000 : 10000);
+  setInterval(fetchWorldBroadcast, _wsConnected ? 60000 : 15000);
+  setInterval(fetchNewsTicker, _wsConnected ? 60000 : 30000);
 }
 
 // ============ REAL-TIME CLOCK ============

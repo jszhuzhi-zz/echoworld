@@ -1,27 +1,71 @@
 import EventEmitter from 'eventemitter3';
+import * as fs from 'fs';
+import * as path from 'path';
 import { WorldEvent, WorldEventType } from './types';
+
+const DATA_DIR = path.join(__dirname, '../../data');
+const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
 
 /**
  * 世界事件总线 - 所有世界事件的中央调度系统
  * Central event dispatching system for all world events
+ *
+ * 全量持久化: 所有事件存储到文件，无条数上限，支持分页查询
  */
 export class EventBus {
   private emitter: EventEmitter;
   private eventLog: WorldEvent[] = [];
-  private maxLogSize: number;
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private _dirty = false;
 
-  constructor(maxLogSize = 10000) {
+  constructor() {
     this.emitter = new EventEmitter();
-    this.maxLogSize = maxLogSize;
+    this._loadFromDisk();
   }
 
-  /** 发布事件 (自动附加真实时间戳) */
+  /** 从磁盘加载历史事件 */
+  private _loadFromDisk(): void {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      if (fs.existsSync(EVENTS_FILE)) {
+        const raw = fs.readFileSync(EVENTS_FILE, 'utf-8');
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          this.eventLog = arr;
+          console.log(`[EventBus] 已加载 ${this.eventLog.length} 条历史事件`);
+        }
+      }
+    } catch (e) {
+      console.error('[EventBus] 加载事件文件失败:', e);
+    }
+  }
+
+  /** 异步写入磁盘 (防抖 5 秒) */
+  private _scheduleSave(): void {
+    this._dirty = true;
+    if (this._saveTimer) return;
+    this._saveTimer = setTimeout(() => {
+      this._saveTimer = null;
+      if (!this._dirty) return;
+      this._dirty = false;
+      try {
+        if (!fs.existsSync(DATA_DIR)) {
+          fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+        fs.writeFileSync(EVENTS_FILE, JSON.stringify(this.eventLog), 'utf-8');
+      } catch (e) {
+        console.error('[EventBus] 保存事件文件失败:', e);
+      }
+    }, 5000);
+  }
+
+  /** 发布事件 (自动附加真实时间戳, 无条数上限) */
   emit(event: WorldEvent): void {
     (event as any).realTime = new Date().toISOString();
     this.eventLog.push(event);
-    if (this.eventLog.length > this.maxLogSize) {
-      this.eventLog = this.eventLog.slice(-this.maxLogSize / 2);
-    }
+    this._scheduleSave();
     this.emitter.emit(event.type, event);
     this.emitter.emit('*', event);
   }
@@ -39,6 +83,39 @@ export class EventBus {
   /** 获取最近的事件日志 */
   getRecentEvents(count = 100): WorldEvent[] {
     return this.eventLog.slice(-count);
+  }
+
+  /** 获取事件总数 */
+  getTotalCount(): number {
+    return this.eventLog.length;
+  }
+
+  /**
+   * 分页获取事件 (从最新到最旧)
+   * @param page 页码 (从1开始)
+   * @param pageSize 每页条数
+   * @param type 可选事件类型过滤
+   * @returns { events, total, page, pageSize, totalPages }
+   */
+  getEventsPaginated(page = 1, pageSize = 50, type?: WorldEventType): {
+    events: WorldEvent[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  } {
+    let source = this.eventLog;
+    if (type) {
+      source = source.filter(e => e.type === type);
+    }
+    const total = source.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.max(1, Math.min(page, totalPages));
+    // 从最新到最旧: 最后一页是最旧的
+    const endIndex = total - (safePage - 1) * pageSize;
+    const startIndex = Math.max(0, endIndex - pageSize);
+    const events = source.slice(startIndex, endIndex).reverse(); // 最新在前
+    return { events, total, page: safePage, pageSize, totalPages };
   }
 
   /** 按类型获取事件 */
@@ -61,5 +138,23 @@ export class EventBus {
   /** 清空事件日志 */
   clearLog(): void {
     this.eventLog = [];
+    this._scheduleSave();
+  }
+
+  /** 立即持久化 (用于优雅关闭) */
+  flushToDisk(): void {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(EVENTS_FILE, JSON.stringify(this.eventLog), 'utf-8');
+      console.log(`[EventBus] 已保存 ${this.eventLog.length} 条事件到磁盘`);
+    } catch (e) {
+      console.error('[EventBus] 保存事件文件失败:', e);
+    }
   }
 }
