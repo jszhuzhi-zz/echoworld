@@ -77,6 +77,7 @@ export enum WorldEventType {
   RULE_EVOLVED = 'rule_evolved',
   ENTITY_BANKRUPT = 'entity_bankrupt',
   ENTITY_ACTION = 'entity_action',
+  ENTITY_WORK = 'entity_work',
 }
 
 /** 世界事件 */

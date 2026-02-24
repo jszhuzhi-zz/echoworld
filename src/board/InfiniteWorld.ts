@@ -100,6 +100,7 @@ export interface PlayerWorldState {
   pendingRoll: number | null;
   turnsPlayed: number;
   referralCount: number;
+  workedToday: number;  // 今日打工次数 (每日重置)
 }
 
 export interface DirectionOption {
@@ -186,6 +187,8 @@ export class InfiniteWorld {
   tradeOffers: Map<string, TradeOffer> = new Map();
   playerDeposits: PlayerDeposit[] = [];
   playerLoans: PlayerLoan[] = [];
+  /** 每个建筑今日被打工的次数 (每日重置) */
+  buildingWorkToday: Map<number, number> = new Map();
   private depositIdCounter = 0;
   private loanIdCounter = 0;
   private tradeIdCounter = 0;
@@ -355,6 +358,7 @@ export class InfiniteWorld {
       pendingRoll: null,
       turnsPlayed: 0,
       referralCount: 0,
+      workedToday: 0,
     };
     this.players.set(entityId, placeholder);
     this.updateBounds();
@@ -772,6 +776,91 @@ export class InfiniteWorld {
     return { fee, effects, building, template, upgraded };
   }
 
+  // ── 打工系统 ──
+
+  /** 每日打工次数上限 (每人) */
+  static readonly MAX_WORK_PER_PLAYER = 5;
+  /** 建筑每日可容纳的打工人次 = level * 3 */
+  static buildingWorkCapacity(level: number): number { return level * 3; }
+
+  /**
+   * 在其他玩家的建筑里打工
+   * @returns 打工结果或 null (失败)
+   */
+  workAtBuilding(
+    entityId: string,
+    nodeId: number,
+  ): {
+    wage: number;
+    ownerBonus: number;
+    building: WorldBuilding;
+    template: BuildingTemplate;
+    stats: { hunger: number; energy: number; happiness: number; alive: boolean };
+  } | null {
+    const state = this.players.get(entityId);
+    if (!state?.alive) return null;
+
+    const node = this.nodes.get(nodeId);
+    if (!node?.building) return null;
+
+    const building = node.building;
+    const template = MASLOW_BUILDINGS.find(b => b.type === building.templateType);
+    if (!template) return null;
+
+    // 不能在自己的建筑打工
+    if (building.ownerId === entityId) return null;
+
+    // 银行类建筑不支持打工
+    if (template.isBank) return null;
+
+    // 检查玩家每日打工上限
+    if (state.workedToday >= InfiniteWorld.MAX_WORK_PER_PLAYER) return null;
+
+    // 检查建筑每日容量
+    const capacity = InfiniteWorld.buildingWorkCapacity(building.level);
+    const currentWorkers = this.buildingWorkToday.get(nodeId) || 0;
+    if (currentWorkers >= capacity) return null;
+
+    // 检查体力和饥饿是否足够
+    if (state.energy < 15 || state.hunger < 8) return null;
+
+    // 检查行动次数
+    if (state.actionsToday >= state.maxActions) return null;
+
+    // 计算工资: 基础 5CC + 马斯洛层级加成 + 建筑等级加成 + 随机浮动
+    const baseWage = 5;
+    const levelBonus = (template.maslowLevel - 1) * 1;          // +0~4 按建筑档次
+    const buildingLevelBonus = (building.level - 1) * 0.5;      // +0~2 按建筑等级
+    const randomBonus = Math.random() * 2;                       // 0~2 随机
+    const wage = Math.floor(baseWage + levelBonus + buildingLevelBonus + randomBonus);
+
+    // 业主获得的额外收益 (系统发放，不从工人扣)
+    const ownerBonus = Math.floor(1 + building.level * 0.5);
+
+    // 扣减体力和饥饿
+    state.energy = Math.max(0, state.energy - 15);
+    state.hunger = Math.max(0, state.hunger - 8);
+    // 打工会轻微提升幸福感 (有事做比没事做好)
+    state.happiness = Math.min(100, state.happiness + 2);
+
+    // 消耗行动次数
+    state.actionsToday++;
+    state.workedToday++;
+
+    // 建筑使用计数 & 今日打工计数
+    building.usageCount++;
+    this.buildingWorkToday.set(nodeId, currentWorkers + 1);
+
+    this.markDirty();
+    return {
+      wage,
+      ownerBonus,
+      building,
+      template,
+      stats: { hunger: state.hunger, energy: state.energy, happiness: state.happiness, alive: state.alive },
+    };
+  }
+
   /** 拆除建筑 (仅建筑所有者可拆除，返还 30% 建设费用) */
   demolishBuilding(entityId: string, nodeId: number): { refund: number; template: BuildingTemplate } | null {
     const node = this.nodes.get(nodeId);
@@ -1026,6 +1115,7 @@ export class InfiniteWorld {
     state.energy = 50;
     state.happiness = 50;
     state.pendingRoll = null;
+    state.workedToday = 0;
     this.markDirty();
     return state;
   }
@@ -1058,6 +1148,7 @@ export class InfiniteWorld {
     state.happiness = 50;
     state.actionsToday = 0;
     state.pendingRoll = null;
+    state.workedToday = 0;
     return true;
   }
 
@@ -1066,7 +1157,9 @@ export class InfiniteWorld {
     for (const state of this.players.values()) {
       state.actionsToday = 0;
       state.maxActions = 20;
+      state.workedToday = 0;
     }
+    this.buildingWorkToday.clear();
     this.markDirty();
   }
 
@@ -1247,8 +1340,8 @@ export class InfiniteWorld {
         // ── 玩家 ──
         db.prepare('DELETE FROM players').run();
         const insertPlayer = db.prepare(
-          `INSERT INTO players(entityId,nodeId,hunger,energy,happiness,alive,actionsToday,maxActions,pendingRoll,turnsPlayed,referralCount)
-           VALUES(@entityId,@nodeId,@hunger,@energy,@happiness,@alive,@actionsToday,@maxActions,@pendingRoll,@turnsPlayed,@referralCount)`
+          `INSERT INTO players(entityId,nodeId,hunger,energy,happiness,alive,actionsToday,maxActions,pendingRoll,turnsPlayed,referralCount,workedToday)
+           VALUES(@entityId,@nodeId,@hunger,@energy,@happiness,@alive,@actionsToday,@maxActions,@pendingRoll,@turnsPlayed,@referralCount,@workedToday)`
         );
         for (const p of this.players.values()) {
           insertPlayer.run({
@@ -1263,6 +1356,7 @@ export class InfiniteWorld {
             pendingRoll: p.pendingRoll,
             turnsPlayed: p.turnsPlayed,
             referralCount: p.referralCount,
+            workedToday: p.workedToday,
           });
         }
 
@@ -1412,6 +1506,7 @@ export class InfiniteWorld {
           pendingRoll: p.pendingRoll,
           turnsPlayed: p.turnsPlayed,
           referralCount: p.referralCount,
+          workedToday: p.workedToday || 0,
         };
         const existingNode = this.nodes.get(state.nodeId);
         if (!existingNode) {

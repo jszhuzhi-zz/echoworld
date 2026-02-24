@@ -71,6 +71,13 @@ const S_I18N: Record<string, Record<string, string>> = {
     offer_received: '收到 %s 的出价 %s CC 购买你的 %s',
     seller_accept: '%s 已出售给 %s，收入 %s CC (税后)',
     offer_price_low: '出价须大于0',
+    work_ok: '在 %s 打工，赚取 %s CC (体力 -%s, 饱食 -%s)',
+    work_fail: '无法在此打工',
+    work_own: '不能在自己的建筑打工',
+    work_limit: '今日打工次数已达上限 (%s/%s)',
+    work_full: '该建筑今日工位已满',
+    work_tired: '体力或饥饿值不足 (需体力≥15, 饱食≥8)',
+    work_no_action: '行动次数不足',
     // Auth
     email_required: '请输入邮箱地址',
     email_invalid: '邮箱格式不正确',
@@ -118,6 +125,13 @@ const S_I18N: Record<string, Record<string, string>> = {
     offer_received: 'Received %s CC offer from %s for your %s',
     seller_accept: '%s sold to %s, received %s CC (after tax)',
     offer_price_low: 'Price must be > 0',
+    work_ok: 'Worked at %s, earned %s CC (energy -%s, hunger -%s)',
+    work_fail: 'Cannot work here',
+    work_own: 'Cannot work at your own building',
+    work_limit: 'Daily work limit reached (%s/%s)',
+    work_full: 'Building is fully staffed today',
+    work_tired: 'Not enough stamina (need energy≥15, hunger≥8)',
+    work_no_action: 'No actions left',
     // Auth
     email_required: 'Email is required',
     email_invalid: 'Invalid email format',
@@ -1116,6 +1130,75 @@ export function createServer(world: World, port = 3000) {
         happiness: state.happiness,
         alive: state.alive,
       },
+      entity: entity.getSummary(),
+    });
+  });
+
+  /** 打工 - 在其他玩家的建筑里打工赚取 CC */
+  app.post('/api/world/work', authMiddleware, requireRole('investor'), (req, res) => {
+    const lang = getLang(req);
+    const user = userStore.findById(req.user!.userId);
+    if (!user?.entityId) return res.status(400).json({ error: st(lang, 'no_entity') });
+    const entity = world.entities.getEntity(user.entityId);
+    if (!entity) return res.status(404).json({ error: st(lang, 'no_char') });
+
+    const state = infiniteWorld.getPlayer(user.entityId);
+    if (!state) return res.status(400).json({ error: st(lang, 'no_entity') });
+    if (!state.alive) return res.status(400).json({ error: st(lang, 'dead') });
+
+    // 提供更精确的错误信息
+    const nodeId = typeof req.body.nodeId === 'number' ? req.body.nodeId : state.nodeId;
+    const node = infiniteWorld.nodes.get(nodeId);
+    if (!node?.building) return res.status(400).json({ error: st(lang, 'work_fail') });
+    if (node.building.ownerId === user.entityId) return res.status(400).json({ error: st(lang, 'work_own') });
+    if (state.actionsToday >= state.maxActions) return res.status(400).json({ error: st(lang, 'work_no_action') });
+    if (state.energy < 15 || state.hunger < 8) return res.status(400).json({ error: st(lang, 'work_tired') });
+    if (state.workedToday >= InfiniteWorld.MAX_WORK_PER_PLAYER) {
+      return res.status(400).json({ error: st(lang, 'work_limit', state.workedToday, InfiniteWorld.MAX_WORK_PER_PLAYER) });
+    }
+    const template = MASLOW_BUILDINGS.find(b => b.type === node.building!.templateType);
+    const capacity = InfiniteWorld.buildingWorkCapacity(node.building.level);
+    const currentWorkers = infiniteWorld.buildingWorkToday.get(nodeId) || 0;
+    if (currentWorkers >= capacity) return res.status(400).json({ error: st(lang, 'work_full') });
+
+    const result = infiniteWorld.workAtBuilding(user.entityId, nodeId);
+    if (!result) return res.status(400).json({ error: st(lang, 'work_fail') });
+
+    // 工人获得工资 (系统发放)
+    entity.receive(result.wage);
+
+    // 业主获得额外收益 (系统发放)
+    const owner = world.entities.getEntity(result.building.ownerId);
+    if (owner) owner.receive(result.ownerBonus);
+
+    const energyCost = 15;
+    const hungerCost = 8;
+    const messages = [st(lang, 'work_ok', result.building.name, result.wage, energyCost, hungerCost)];
+
+    world.state.eventBus.emit({
+      type: WorldEventType.ENTITY_WORK,
+      data: {
+        entityId: user.entityId,
+        entityName: user.nickname,
+        buildingName: result.building.name,
+        buildingOwner: result.building.ownerName,
+        nodeId,
+        wage: result.wage,
+        ownerBonus: result.ownerBonus,
+      },
+      timestamp: world.state.getTime(),
+    });
+
+    res.json({
+      messages,
+      wage: result.wage,
+      ownerBonus: result.ownerBonus,
+      building: result.building,
+      workedToday: state.workedToday,
+      maxWorkPerDay: InfiniteWorld.MAX_WORK_PER_PLAYER,
+      buildingWorkersToday: (infiniteWorld.buildingWorkToday.get(nodeId) || 0),
+      buildingCapacity: capacity,
+      stats: result.stats,
       entity: entity.getSummary(),
     });
   });

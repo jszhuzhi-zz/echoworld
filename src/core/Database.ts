@@ -48,7 +48,8 @@ function initTables(db: Database.Database): void {
       maxActions  INTEGER NOT NULL DEFAULT 20,
       pendingRoll INTEGER,
       turnsPlayed INTEGER NOT NULL DEFAULT 0,
-      referralCount INTEGER NOT NULL DEFAULT 0
+      referralCount INTEGER NOT NULL DEFAULT 0,
+      workedToday INTEGER NOT NULL DEFAULT 0
     );
 
     -- 实体经济状态
