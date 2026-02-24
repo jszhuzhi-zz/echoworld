@@ -2373,14 +2373,14 @@ function showBuildingOverlay(node, force) {
   document.getElementById('building-overlay').classList.add('show');
 }
 
-function closeBuildingOverlay(userDismissed) {
+window.closeBuildingOverlay = function closeBuildingOverlay(userDismissed) {
   // 仅当用户手动点击"知道了"时记录，防止 fetchMe 轮询重复弹出
   // 程序性关闭（骰子/移动/消费后）不记录，避免误阻挡新位置的 overlay
   if (userDismissed && _overlayNode) _dismissedOverlayNodeId = _overlayNode.id;
   document.getElementById('building-overlay').classList.remove('show');
   document.getElementById('bo-buy-btn').style.display = 'none';
   _overlayNode = null;
-}
+};
 
 // ============ API CALLS ============
 
@@ -3053,7 +3053,7 @@ window.closeBankModal = function() {
   document.getElementById('bank-modal').classList.remove('show');
 };
 
-async function doBankDeposit(nodeId) {
+window.doBankDeposit = async function(nodeId) {
   const zh = currentLang === 'zh';
   const amount = parseFloat(prompt(zh ? '输入存款金额 (CC):' : 'Enter deposit amount (CC):'));
   if (!amount || amount <= 0) return;
@@ -3068,9 +3068,9 @@ async function doBankDeposit(nodeId) {
     if (data.entity) updateMoney(data.entity);
     openBankModal(); // refresh
   } catch (e) { showBuildToast(zh ? '存款失败' : 'Deposit failed', 'warn'); }
-}
+};
 
-async function doBankLoan(nodeId) {
+window.doBankLoan = async function(nodeId) {
   const zh = currentLang === 'zh';
   const amount = parseFloat(prompt(zh ? '输入贷款金额 (CC):\n⚠️ 贷款按日计息，请谨慎借贷' : 'Enter loan amount (CC):\n⚠️ Daily interest applies. Borrow carefully.'));
   if (!amount || amount <= 0) return;
@@ -3086,9 +3086,9 @@ async function doBankLoan(nodeId) {
     if (data.entity) updateMoney(data.entity);
     openBankModal();
   } catch (e) { showBuildToast(zh ? '贷款失败' : 'Loan failed', 'warn'); }
-}
+};
 
-async function doBankRepay(nodeId) {
+window.doBankRepay = async function(nodeId) {
   const zh = currentLang === 'zh';
   const amount = parseFloat(prompt(zh ? '输入还款金额 (CC):' : 'Enter repay amount (CC):'));
   if (!amount || amount <= 0) return;
@@ -3103,9 +3103,9 @@ async function doBankRepay(nodeId) {
     if (data.entity) updateMoney(data.entity);
     openBankModal();
   } catch (e) { showBuildToast(zh ? '还款失败' : 'Repay failed', 'warn'); }
-}
+};
 
-async function doBankWithdraw(depositId) {
+window.doBankWithdraw = async function(depositId) {
   const zh = currentLang === 'zh';
   try {
     const res = await fetch(API + '/api/world/bank/withdraw', {
@@ -3118,9 +3118,9 @@ async function doBankWithdraw(depositId) {
     if (data.entity) updateMoney(data.entity);
     openBankModal(); // refresh
   } catch (e) { showBuildToast(zh ? '取款失败' : 'Withdraw failed', 'warn'); }
-}
+};
 
-async function setBankRates(nodeId) {
+window.setBankRates = async function(nodeId) {
   const zh = currentLang === 'zh';
   const dRate = parseFloat(prompt(zh ? '设置存款日利率 (%, 范围0~10):' : 'Set deposit daily rate (%, 0-10):'));
   if (isNaN(dRate)) return;
@@ -3136,9 +3136,9 @@ async function setBankRates(nodeId) {
     showBuildToast(data.message, 'good');
     openBankModal();
   } catch (e) { showBuildToast(zh ? '设置失败' : 'Failed', 'warn'); }
-}
+};
 
-async function fundBankPool(nodeId) {
+window.fundBankPool = async function(nodeId) {
   const zh = currentLang === 'zh';
   const amount = parseFloat(prompt(zh ? '输入注入资金池金额 (CC):' : 'Enter amount to fund pool (CC):'));
   if (!amount || amount <= 0) return;
@@ -3153,7 +3153,7 @@ async function fundBankPool(nodeId) {
     if (data.entity) updateMoney(data.entity);
     openBankModal();
   } catch (e) { showBuildToast(zh ? '操作失败' : 'Failed', 'warn'); }
-}
+};
 
 /** 确认死亡（不可复活） */
 window.confirmDeath = async function() {
